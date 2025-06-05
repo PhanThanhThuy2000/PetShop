@@ -11,7 +11,7 @@ import {
     View,
 } from 'react-native';
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
