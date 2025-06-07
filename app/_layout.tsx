@@ -1,6 +1,7 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import 'expo-router/entry';
 import App from './app';
+import AccountScreen from './screens/AccountScreen';
 import ChangePassword from './screens/ChangePassword';
 import LoginScreen from './screens/LoginScreen';
 import NewPasswordScreen from './screens/NewPasswordScreen';
@@ -19,6 +20,7 @@ export default function RootLayout() {
       <Stack.Screen name="PasswordCode" component={PasswordCodeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="RecoveryPassword" component={RecoveryPasswordScreen} options={{ headerShown: false }} />
       <Stack.Screen name="NewPassword" component={NewPasswordScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Account" component={AccountScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Voucher" component={VoucherScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChangePasswor" component={ChangePassword} options={{ headerShown: false }} />
