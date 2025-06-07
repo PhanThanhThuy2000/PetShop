@@ -17,9 +17,9 @@ export default function RootLayout() {
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignUp" component={RegisterScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PasswordCode" component={PasswordCodeScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="RecoveryPasswordScreen" component={RecoveryPasswordScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="RecoveryPassword" component={RecoveryPasswordScreen} options={{ headerShown: false }} />
       <Stack.Screen name="NewPassword" component={NewPasswordScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="VoucherScreen" component={VoucherScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Voucher" component={VoucherScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChangePasswor" component={ChangePassword} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
