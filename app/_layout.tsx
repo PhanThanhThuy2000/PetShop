@@ -10,10 +10,11 @@ import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import VoucherScreen from './screens/VoucherScreen';
+import WellcomeScreen from './screens/WellcomeScreen';
 const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
-    <Stack.Navigator initialRouteName="VoucherScreen">
+    <Stack.Navigator initialRouteName="Wellcome">
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignUp" component={RegisterScreen} options={{ headerShown: false }} />
@@ -24,6 +25,7 @@ export default function RootLayout() {
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Voucher" component={VoucherScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChangePasswor" component={ChangePassword} options={{ headerShown: false }} />
+      <Stack.Screen name="Wellcome" component={WellcomeScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
