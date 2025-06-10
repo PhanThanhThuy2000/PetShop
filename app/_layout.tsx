@@ -1,6 +1,7 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import 'expo-router/entry';
 import App from './app';
+import AboutScreen from './screens/AboutScreen';
 import AccountScreen from './screens/AccountScreen';
 import ChangePassword from './screens/ChangePassword';
 import LoginScreen from './screens/LoginScreen';
@@ -12,6 +13,7 @@ import ReviewsScreen from './screens/ReviewsScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
+
 const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
@@ -29,10 +31,9 @@ export default function RootLayout() {
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Voucher" component={VoucherScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChangePasswor" component={ChangePassword} options={{ headerShown: false }} />
-
       <Stack.Screen name="Wellcome" component={WellcomeScreen} options={{ headerShown: false }} />
-
       <Stack.Screen name="Reviews" component={ReviewsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="AboutScreen" component={AboutScreen} options={{ headerShown: false }} />
 
     </Stack.Navigator>
   );
