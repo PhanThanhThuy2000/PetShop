@@ -1,6 +1,7 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import 'expo-router/entry';
 import App from './app';
+
 import About from './screens/AboutScreen';
 import AccountScreen from './screens/AccountScreen';
 import CartScreen from './screens/CartScreen';
@@ -8,6 +9,7 @@ import ChangePassword from './screens/ChangePassword';
 import LanguageScreen from './screens/LanguageScreen';
 import LoginScreen from './screens/LoginScreen';
 import NewPasswordScreen from './screens/NewPasswordScreen';
+
 import OrderSuccess from './screens/OrderSuccessScreen';
 import PasswordCodeScreen from './screens/PasswordCodeScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
@@ -32,6 +34,7 @@ export default function RootLayout() {
       <Stack.Screen name="ChangePasswor" component={ChangePassword} options={{ headerShown: false }} />
       <Stack.Screen name="Wellcome" component={WellcomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Reviews" component={ReviewsScreen} options={{ headerShown: false }} />
+
       <Stack.Screen name="Cart" component={CartScreen} options={{ headerShown: false }} />
       <Stack.Screen name="About" component={About} options={{ headerShown: false }} />
       <Stack.Screen name="OrderSuccess" component={OrderSuccess} options={{ headerShown: false }} />
