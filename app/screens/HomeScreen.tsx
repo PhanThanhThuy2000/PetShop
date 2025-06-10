@@ -48,7 +48,7 @@ const PetShopScreen = () => {
             </ScrollView>
             <View style={styles.seeAllContainer}>
                 <TouchableOpacity style={styles.seeAllButton}>
-                    <Text style={styles.seeAllText}>See All</Text>
+                    <Text style={styles.seeAllText}>See All </Text>
                     <Text style={styles.arrowRight}>
                         <Icon name="arrow-right" size={15} color="#fff" />
                     </Text>
