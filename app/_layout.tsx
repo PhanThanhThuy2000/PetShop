@@ -6,7 +6,7 @@ import AccountScreen from './screens/AccountScreen';
 import ChangePassword from './screens/ChangePassword';
 import LoginScreen from './screens/LoginScreen';
 import NewPasswordScreen from './screens/NewPasswordScreen';
-import OrderSuccessScreen from './screens/OrderSuccessScreen';
+import OrderSuccess from './screens/OrderSuccess';
 import PasswordCodeScreen from './screens/PasswordCodeScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -34,7 +34,7 @@ export default function RootLayout() {
       <Stack.Screen name="Wellcome" component={WellcomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Reviews" component={ReviewsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="About" component={About} options={{ headerShown: false }} />
-      <Stack.Screen name="OrderSuccessScreen" component={OrderSuccessScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="OrderSuccess" component={OrderSuccess} options={{ headerShown: false }} />
 
     </Stack.Navigator>
   );
