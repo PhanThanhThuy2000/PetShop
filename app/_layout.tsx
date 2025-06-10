@@ -1,13 +1,13 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import 'expo-router/entry';
 import App from './app';
-import About from './screens/About';
+import About from './screens/AboutScreen';
 import AccountScreen from './screens/AccountScreen';
 import CartScreen from './screens/CartScreen';
 import ChangePassword from './screens/ChangePassword';
 import LoginScreen from './screens/LoginScreen';
 import NewPasswordScreen from './screens/NewPasswordScreen';
-import OrderSuccess from './screens/OrderSuccess';
+import OrderSuccess from './screens/OrderSuccessScreen';
 import PasswordCodeScreen from './screens/PasswordCodeScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
