@@ -5,6 +5,7 @@ import About from './screens/AboutScreen';
 import AccountScreen from './screens/AccountScreen';
 import CartScreen from './screens/CartScreen';
 import ChangePassword from './screens/ChangePassword';
+import LanguageScreen from './screens/LanguageScreen';
 import LoginScreen from './screens/LoginScreen';
 import NewPasswordScreen from './screens/NewPasswordScreen';
 import OrderSuccess from './screens/OrderSuccessScreen';
@@ -18,7 +19,7 @@ import WellcomeScreen from './screens/WellcomeScreen';
 const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
-    <Stack.Navigator initialRouteName="Cart">
+    <Stack.Navigator initialRouteName="Language">
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignUp" component={RegisterScreen} options={{ headerShown: false }} />
@@ -34,6 +35,7 @@ export default function RootLayout() {
       <Stack.Screen name="Cart" component={CartScreen} options={{ headerShown: false }} />
       <Stack.Screen name="About" component={About} options={{ headerShown: false }} />
       <Stack.Screen name="OrderSuccess" component={OrderSuccess} options={{ headerShown: false }} />
+      <Stack.Screen name="Language" component={LanguageScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
