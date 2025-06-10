@@ -16,7 +16,7 @@ const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
 
-    <Stack.Navigator initialRouteName="Wellcome">
+    <Stack.Navigator initialRouteName="app">
 
 
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
@@ -29,9 +29,7 @@ export default function RootLayout() {
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Voucher" component={VoucherScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChangePasswor" component={ChangePassword} options={{ headerShown: false }} />
-
       <Stack.Screen name="Wellcome" component={WellcomeScreen} options={{ headerShown: false }} />
-
       <Stack.Screen name="Reviews" component={ReviewsScreen} options={{ headerShown: false }} />
 
     </Stack.Navigator>
