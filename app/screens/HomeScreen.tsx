@@ -23,7 +23,7 @@ const PetShopScreen = () => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Shop</Text>
+                <Text style={styles.headerTitle}>Shop </Text>
                 <View style={styles.searchContainer}>
                     <TextInput style={styles.searchInput} placeholder="Search" />
                     <Icon name="camera" style={styles.cameraIcon} />
