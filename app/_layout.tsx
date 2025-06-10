@@ -18,7 +18,10 @@ const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
 
-    <Stack.Navigator initialRouteName="OrderSuccessScreen">
+
+    <Stack.Navigator initialRouteName="app">
+
+
 
 
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
