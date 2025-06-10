@@ -11,7 +11,7 @@ import {
     View,
 } from 'react-native';
 
-const AboutPeShopsScreen = ({ navigation }) => {
+const AboutScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
