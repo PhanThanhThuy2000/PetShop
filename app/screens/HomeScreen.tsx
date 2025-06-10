@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
 const categories = [
@@ -32,11 +32,7 @@ const PetShopScreen = () => {
             <View style={styles.bannerContainer}>
                 <Image source={require('@/assets/images/banner-home.png')} style={styles.bannerImage} />
             </View>
-            <View style={styles.filterContainer}>
-                <TouchableOpacity style={[styles.filterButton, styles.activeFilter]}>
-                    <Text style={styles.filterText}>All</Text>
-                    
-                </TouchableOpacity>
+            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
                 <TouchableOpacity style={styles.filterButton}>
                     <Image source={require('@/assets/images/dog-icon.png')} style={styles.iconDog} />
                     <Text style={styles.filterText}>Dog</Text>
@@ -45,7 +41,11 @@ const PetShopScreen = () => {
                     <Image source={require('@/assets/images/cat-icon.png')} style={styles.iconCat} />
                     <Text style={styles.filterText}>Cat</Text>
                 </TouchableOpacity>
-            </View>
+                <TouchableOpacity style={styles.filterButton}>
+                    <Image source={require('@/assets/images/item.png')} style={styles.iconCat} />
+                    <Text style={styles.filterText}>Item</Text>
+                </TouchableOpacity>
+            </ScrollView>
             <View style={styles.seeAllContainer}>
                 <TouchableOpacity style={styles.seeAllButton}>
                     <Text style={styles.seeAllText}>See All</Text>
@@ -72,21 +72,19 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 24, fontWeight: 'bold' },
     searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f1f1', borderRadius: 10, padding: 5, width: '70%' },
     searchInput: { flex: 1, height: 20, fontSize: 16 },
-    cameraIcon: { width: 20, height: 20, tintColor: '#1e90ff', alignItems:"center",lineHeight:20, fontSize:15, color:"#0042E0" },
+    cameraIcon: { width: 20, height: 20, tintColor: '#1e90ff', alignItems: "center", lineHeight: 20, fontSize: 15, color: "#0042E0" },
     bannerContainer: { padding: 10, alignItems: 'center' },
     iconCat: { width: 30, height: 20 },
     iconDog: { width: 30, height: 20 },
     bannerImage: { width: '100%', height: 120, resizeMode: 'cover', borderRadius: 10 },
-    bannerText: { position: 'absolute', fontSize: 24, fontWeight: 'bold', color: '#fff', top: 20, left: 20 },
-    bannerSubText: { position: 'absolute', fontSize: 14, color: '#fff', top: 50, left: 20 },
-    filterContainer: { flexDirection: 'row', justifyContent: 'space-around', padding: 10, backgroundColor: '#f9f9f9' },
-    filterButton: { flexDirection:'row',paddingHorizontal: 30, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: '#ddd' },
+    filterContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#f9f9f9' },
+    filterButton: { flexDirection: 'row', paddingHorizontal: 30, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: '#ddd', alignItems: 'center', marginRight: 10 },
     activeFilter: { backgroundColor: '#ffcc00' },
-    filterText: { fontSize: 16 },
-    seeAllContainer: {  alignItems: 'flex-end' },
-    seeAllButton: { padding: 10,   flexDirection: 'row', alignItems: 'center' },
+    filterText: { fontSize: 16, height: 20, lineHeight: 20 },
+    seeAllContainer: { alignItems: 'flex-end' },
+    seeAllButton: { padding: 10, flexDirection: 'row', alignItems: 'center' },
     seeAllText: { color: '#000', fontSize: 16, marginRight: 5 },
-    arrowRight: { color: '#fff', fontSize: 16, backgroundColor: '#004CFF', borderRadius: 20, padding: 5, },
+    arrowRight: { color: '#fff', fontSize: 16, backgroundColor: '#004CFF', borderRadius: 20, padding: 5 },
     row: { justifyContent: 'space-around' },
     listContainer: { paddingBottom: 10 },
     categoryItem: { alignItems: 'center', margin: 10 },
