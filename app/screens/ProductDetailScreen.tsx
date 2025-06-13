@@ -51,7 +51,7 @@ const Header: FC = () => (
   >
     <View style={styles.topIcons}>
       <TouchableOpacity style={styles.iconBtn}>
-        <Ionicons name="heart-outline" size={24} color="#fff" />
+        <Ionicons name="heart" size={24} color="#000" />
       </TouchableOpacity>
       <TouchableOpacity style={styles.iconBtn}>
         <Ionicons name="share-social-outline" size={24} color="#fff" />
