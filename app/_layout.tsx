@@ -29,6 +29,7 @@ import WellcomeScreen from './screens/WellcomeScreen';
 // Đức Anh code bên dưới
 
 
+import PetAllScreen from './screens/PetAllScreen';
 
 const Stack = createStackNavigator();
 export default function RootLayout() {
@@ -63,6 +64,8 @@ export default function RootLayout() {
 
 
       
+
+      <Stack.Screen name="PetAllScreen" component={PetAllScreen} options={{ headerShown: false }} />
 
     </Stack.Navigator>
   );
