@@ -12,6 +12,7 @@ import NewPasswordScreen from './screens/NewPasswordScreen';
 
 import OrderSuccess from './screens/OrderSuccessScreen';
 import PasswordCodeScreen from './screens/PasswordCodeScreen';
+import ProductDetailScreen from './screens/ProductDetailScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ReviewsScreen from './screens/ReviewsScreen';
@@ -21,7 +22,7 @@ import WellcomeScreen from './screens/WellcomeScreen';
 const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
-    <Stack.Navigator initialRouteName="app">
+    <Stack.Navigator initialRouteName="ProductDetail">
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignUp" component={RegisterScreen} options={{ headerShown: false }} />
@@ -39,6 +40,7 @@ export default function RootLayout() {
       <Stack.Screen name="About" component={About} options={{ headerShown: false }} />
       <Stack.Screen name="OrderSuccess" component={OrderSuccess} options={{ headerShown: false }} />
       <Stack.Screen name="Language" component={LanguageScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
