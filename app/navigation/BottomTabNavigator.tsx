@@ -35,7 +35,7 @@ const BottomTabNavigator: React.FC = () => {
                             iconName = "person-outline";
                             break;
                         default:
-                            iconName = "help-circle-outline"; // Fixed the icon name
+                            iconName = "help-circle-outline"; 
                     }
 
                     return (
