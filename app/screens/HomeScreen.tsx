@@ -1,12 +1,14 @@
 import React from 'react';
 import { FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import PetList from './PetList';
 
 interface Category {
     id: string;
     name: string;
     image: string;
 }
+
 const categories: Category[] = [
     { id: '1', name: 'Hamster', image: 'https://hoseiki.vn/wp-content/uploads/2025/03/meo-cute-12.jpg' },
     { id: '2', name: 'Dog', image: 'https://phongvu.vn/cong-nghe/wp-content/uploads/2024/09/Meme-meo-bua-21.jpg' },
@@ -23,20 +25,11 @@ const products: Category[] = [
     { id: '6', name: 'Rabbit', image: 'https://hoanghamobile.com/tin-tuc/wp-content/uploads/2024/04/anh-con-cho-28.jpg' },
 ];
 
-const PetShopScreen: React.FC = () => {
+const HomeScreen: React.FC = () => {
     const renderCategory = ({ item }: { item: Category }) => (
         <TouchableOpacity style={styles.categoryItem}>
             <Image source={{ uri: item.image }} style={styles.categoryImage} />
             <Text style={styles.categoryText}>{item.name}</Text>
-        </TouchableOpacity>
-    );
-
-    const renderProduct = ({ item }: { item: Category }) => (
-        <TouchableOpacity style={styles.productItem}>
-            <Image source={{ uri: item.image }} style={styles.productImage} />
-            <Text style={styles.soldText}>Sold (50 Products)</Text>
-            <Text style={styles.productText}>{item.name}</Text>
-            <Text style={styles.priceText}>1,000,000 đ</Text>
         </TouchableOpacity>
     );
 
@@ -97,7 +90,7 @@ const PetShopScreen: React.FC = () => {
                     </View>
                 </ScrollView>
             </View>
-             <View style={styles.seeAllContainer}>
+            <View style={styles.seeAllContainer}>
                 <TouchableOpacity style={styles.seeAllButton}>
                     <Text style={styles.seeAllText}>See All </Text>
                     <Text style={styles.arrowRight}>
@@ -105,10 +98,8 @@ const PetShopScreen: React.FC = () => {
                     </Text>
                 </TouchableOpacity>
             </View>
-            <FlatList
+            <PetList
                 data={products}
-                renderItem={renderProduct}
-                keyExtractor={item => item.id}
                 numColumns={2}
                 columnWrapperStyle={styles.row}
                 contentContainerStyle={styles.listContainer}
@@ -158,18 +149,14 @@ const styles = StyleSheet.create({
     seeAllText: { fontSize: 16, color: '#1E90FF' },
     row: { justifyContent: 'space-around', paddingHorizontal: 10 },
     listContainer: { paddingBottom: 10 },
-    productItem: { alignItems: 'center', margin: 5, width: 150, backgroundColor: '#fff', borderRadius: 10, padding: 10, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
-    productImage: { width: 100, height: 100, borderRadius: 10 },
-    soldText: { fontSize: 12, color: '#', paddingTop: 20 },
-    productText: { marginTop: 5, fontSize: 16 ,},
-    priceText: { fontSize: 14, color: 'red', marginTop: 5 },
     itemSection: { padding: 10 },
     itemScroll: { flexGrow: 0 },
     itemContainer: { alignItems: 'center', marginRight: 10, width: 150, backgroundColor: '#f9f9f9', borderRadius: 10, padding: 10, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
     itemImage: { width: 100, height: 100, borderRadius: 10 },
     itemText: { marginTop: 5, fontSize: 16 },
+    soldText: { fontSize: 12, color: '#666', paddingTop: 20 },
+    priceText: { fontSize: 14, color: 'red', marginTop: 5 },
     arrowRight: { color: '#fff', fontSize: 16, backgroundColor: '#004CFF', borderRadius: 20, padding: 5 },
-
 });
 
-export default PetShopScreen;
+export default HomeScreen;
