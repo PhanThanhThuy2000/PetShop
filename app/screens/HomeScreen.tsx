@@ -1,27 +1,56 @@
-import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
-const categories = [
+interface Category {
+    id: string;
+    name: string;
+    image: string;
+}
+const categories: Category[] = [
     { id: '1', name: 'Hamster', image: 'https://hoseiki.vn/wp-content/uploads/2025/03/meo-cute-12.jpg' },
     { id: '2', name: 'Dog', image: 'https://phongvu.vn/cong-nghe/wp-content/uploads/2024/09/Meme-meo-bua-21.jpg' },
     { id: '3', name: 'Cat', image: 'https://sieupet.com/sites/default/files/pictures/images/1-1473150685951-5.jpg' },
     { id: '4', name: 'Rabbit', image: 'https://hoanghamobile.com/tin-tuc/wp-content/uploads/2024/04/anh-con-cho-28.jpg' },
 ];
 
-const PetShopScreen = () => {
-    const navigation = useNavigation();
+const products: Category[] = [
+    { id: '1', name: 'Hamster', image: 'https://hoseiki.vn/wp-content/uploads/2025/03/meo-cute-12.jpg' },
+    { id: '2', name: 'Dog', image: 'https://phongvu.vn/cong-nghe/wp-content/uploads/2024/09/Meme-meo-bua-21.jpg' },
+    { id: '3', name: 'Cat', image: 'https://sieupet.com/sites/default/files/pictures/images/1-1473150685951-5.jpg' },
+    { id: '4', name: 'Rabbit', image: 'https://hoanghamobile.com/tin-tuc/wp-content/uploads/2024/04/anh-con-cho-28.jpg' },
+    { id: '5', name: 'Cat', image: 'https://sieupet.com/sites/default/files/pictures/images/1-1473150685951-5.jpg' },
+    { id: '6', name: 'Rabbit', image: 'https://hoanghamobile.com/tin-tuc/wp-content/uploads/2024/04/anh-con-cho-28.jpg' },
+];
 
-    const renderCategory = ({ item }: { item: { id: string; name: string; image: string } }) => (
+const PetShopScreen: React.FC = () => {
+    const renderCategory = ({ item }: { item: Category }) => (
         <TouchableOpacity style={styles.categoryItem}>
             <Image source={{ uri: item.image }} style={styles.categoryImage} />
             <Text style={styles.categoryText}>{item.name}</Text>
         </TouchableOpacity>
     );
 
+    const renderProduct = ({ item }: { item: Category }) => (
+        <TouchableOpacity style={styles.productItem}>
+            <Image source={{ uri: item.image }} style={styles.productImage} />
+            <Text style={styles.soldText}>Sold (50 Products)</Text>
+            <Text style={styles.productText}>{item.name}</Text>
+            <Text style={styles.priceText}>1,000,000 đ</Text>
+        </TouchableOpacity>
+    );
+
+    const renderItem = ({ item }: { item: Category }) => (
+        <TouchableOpacity style={styles.itemContainer}>
+            <Image source={{ uri: item.image }} style={styles.itemImage} />
+            <Text style={styles.soldText}>Sold (50 Products)</Text>
+            <Text style={styles.itemText}>{item.name}</Text>
+            <Text style={styles.priceText}>1,000,000 đ</Text>
+        </TouchableOpacity>
+    );
+
     return (
-        <View style={styles.container}>
+        <ScrollView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Shop</Text>
                 <View style={styles.searchContainer}>
@@ -32,21 +61,43 @@ const PetShopScreen = () => {
             <View style={styles.bannerContainer}>
                 <Image source={require('@/assets/images/banner-home.png')} style={styles.bannerImage} />
             </View>
-            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
-                <TouchableOpacity style={styles.filterButton}>
-                    <Image source={require('@/assets/images/dog-icon.png')} style={styles.iconDog} />
-                    <Text style={styles.filterText}>Dog</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.filterButton}>
-                    <Image source={require('@/assets/images/cat-icon.png')} style={styles.iconCat} />
-                    <Text style={styles.filterText}>Cat</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.filterButton}>
-                    <Image source={require('@/assets/images/item.png')} style={styles.iconCat} />
-                    <Text style={styles.filterText}>Item</Text>
-                </TouchableOpacity>
-            </ScrollView>
-            <View style={styles.seeAllContainer}>
+            <View style={styles.categorySection}>
+                <Text style={styles.sectionTitle}>All Categories</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                    <FlatList
+                        data={categories}
+                        renderItem={renderCategory}
+                        keyExtractor={item => item.id}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                    />
+                </ScrollView>
+            </View>
+            <View style={styles.flashSaleSection}>
+                <View style={styles.flashSaleHeader}>
+                    <Text style={styles.sectionTitle}>Flash Sale</Text>
+                    <Text style={styles.timerText}>00:36:58</Text>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flashSaleScroll}>
+                    <View style={styles.flashSaleItem}>
+                        <Image source={require('@/assets/images/cat.png')} style={styles.flashSaleImage} />
+                        <Text style={styles.discountText}>-20%</Text>
+                    </View>
+                    <View style={styles.flashSaleItem}>
+                        <Image source={require('@/assets/images/cat.png')} style={styles.flashSaleImage} />
+                        <Text style={styles.discountText}>-20%</Text>
+                    </View>
+                    <View style={styles.flashSaleItem}>
+                        <Image source={require('@/assets/images/cat.png')} style={styles.flashSaleImage} />
+                        <Text style={styles.discountText}>-20%</Text>
+                    </View>
+                    <View style={styles.flashSaleItem}>
+                        <Image source={require('@/assets/images/cat.png')} style={styles.flashSaleImage} />
+                        <Text style={styles.discountText}>-20%</Text>
+                    </View>
+                </ScrollView>
+            </View>
+             <View style={styles.seeAllContainer}>
                 <TouchableOpacity style={styles.seeAllButton}>
                     <Text style={styles.seeAllText}>See All </Text>
                     <Text style={styles.arrowRight}>
@@ -55,14 +106,26 @@ const PetShopScreen = () => {
                 </TouchableOpacity>
             </View>
             <FlatList
-                data={categories}
-                renderItem={renderCategory}
+                data={products}
+                renderItem={renderProduct}
                 keyExtractor={item => item.id}
                 numColumns={2}
                 columnWrapperStyle={styles.row}
                 contentContainerStyle={styles.listContainer}
             />
-        </View>
+            <View style={styles.itemSection}>
+                <Text style={styles.sectionTitle}>Item</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.itemScroll}>
+                    <FlatList
+                        data={products.slice(0, 4)}
+                        renderItem={renderItem}
+                        keyExtractor={item => item.id}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                    />
+                </ScrollView>
+            </View>
+        </ScrollView>
     );
 };
 
@@ -72,24 +135,41 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 24, fontWeight: 'bold' },
     searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f1f1', borderRadius: 10, padding: 5, width: '70%' },
     searchInput: { flex: 1, height: 20, fontSize: 16 },
-    cameraIcon: { width: 20, height: 20, tintColor: '#1e90ff', alignItems: "center", lineHeight: 20, fontSize: 15, color: "#0042E0" },
+    cameraIcon: { width: 20, height: 20, tintColor: '#1e90ff' },
     bannerContainer: { padding: 10, alignItems: 'center' },
-    iconCat: { width: 30, height: 20 },
-    iconDog: { width: 30, height: 20 },
     bannerImage: { width: '100%', height: 120, resizeMode: 'cover', borderRadius: 10 },
-    filterContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#f9f9f9' },
-    filterButton: { flexDirection: 'row', paddingHorizontal: 30, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: '#ddd', alignItems: 'center', marginRight: 10 },
-    activeFilter: { backgroundColor: '#ffcc00' },
-    filterText: { fontSize: 16, height: 20, lineHeight: 20 },
-    seeAllContainer: { alignItems: 'flex-end' },
-    seeAllButton: { padding: 10, flexDirection: 'row', alignItems: 'center' },
-    seeAllText: { color: '#000', fontSize: 16, marginRight: 5 },
-    arrowRight: { color: '#fff', fontSize: 16, backgroundColor: '#004CFF', borderRadius: 20, padding: 5 },
-    row: { justifyContent: 'space-around' },
+    bannerText: { fontSize: 18, fontWeight: 'bold', marginTop: 5 },
+    subText: { fontSize: 12, color: '#666' },
+    categorySection: { padding: 10 },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+    categoryScroll: { flexGrow: 0 },
+    categoryItem: { alignItems: 'center', marginRight: 20 },
+    categoryImage: { width: 50, height: 50, borderRadius: 25 },
+    categoryText: { marginTop: 5, fontSize: 14 },
+    flashSaleSection: { padding: 10 },
+    flashSaleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    timerText: { fontSize: 14, color: '#1E90FF' },
+    flashSaleScroll: { flexDirection: 'row', paddingVertical: 10 },
+    flashSaleItem: { marginRight: 10 },
+    flashSaleImage: { width: 100, height: 100, borderRadius: 10 },
+    discountText: { position: 'absolute', top: 5, left: 5, backgroundColor: 'red', color: '#fff', padding: 2, borderRadius: 5, fontSize: 12 },
+    seeAllContainer: { padding: 10, alignItems: 'flex-end' },
+    seeAllButton: { flexDirection: 'row', alignItems: 'center' },
+    seeAllText: { fontSize: 16, color: '#1E90FF' },
+    row: { justifyContent: 'space-around', paddingHorizontal: 10 },
     listContainer: { paddingBottom: 10 },
-    categoryItem: { alignItems: 'center', margin: 10 },
-    categoryImage: { width: 100, height: 100, borderRadius: 10 },
-    categoryText: { marginTop: 5, fontSize: 16 },
+    productItem: { alignItems: 'center', margin: 5, width: 150, backgroundColor: '#fff', borderRadius: 10, padding: 10, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+    productImage: { width: 100, height: 100, borderRadius: 10 },
+    soldText: { fontSize: 12, color: '#', paddingTop: 20 },
+    productText: { marginTop: 5, fontSize: 16 ,},
+    priceText: { fontSize: 14, color: 'red', marginTop: 5 },
+    itemSection: { padding: 10 },
+    itemScroll: { flexGrow: 0 },
+    itemContainer: { alignItems: 'center', marginRight: 10, width: 150, backgroundColor: '#f9f9f9', borderRadius: 10, padding: 10, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+    itemImage: { width: 100, height: 100, borderRadius: 10 },
+    itemText: { marginTop: 5, fontSize: 16 },
+    arrowRight: { color: '#fff', fontSize: 16, backgroundColor: '#004CFF', borderRadius: 20, padding: 5 },
+
 });
 
 export default PetShopScreen;
