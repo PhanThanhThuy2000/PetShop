@@ -16,7 +16,7 @@ const categories: Category[] = [
     { id: '4', name: 'Rabbit', image: 'https://hoanghamobile.com/tin-tuc/wp-content/uploads/2024/04/anh-con-cho-28.jpg' },
 ];
 
-const products: Category[] = [
+export const pets: Category[] = [
     { id: '1', name: 'Hamster', image: 'https://hoseiki.vn/wp-content/uploads/2025/03/meo-cute-12.jpg' },
     { id: '2', name: 'Dog', image: 'https://phongvu.vn/cong-nghe/wp-content/uploads/2024/09/Meme-meo-bua-21.jpg' },
     { id: '3', name: 'Cat', image: 'https://sieupet.com/sites/default/files/pictures/images/1-1473150685951-5.jpg' },
@@ -99,7 +99,7 @@ const HomeScreen: React.FC = () => {
                 </TouchableOpacity>
             </View>
             <PetList
-                data={products}
+                data={pets}
                 numColumns={2}
                 columnWrapperStyle={styles.row}
                 contentContainerStyle={styles.listContainer}
@@ -108,7 +108,7 @@ const HomeScreen: React.FC = () => {
                 <Text style={styles.sectionTitle}>Item</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.itemScroll}>
                     <FlatList
-                        data={products.slice(0, 4)}
+                        data={pets.slice(0, 4)}
                         renderItem={renderItem}
                         keyExtractor={item => item.id}
                         horizontal
