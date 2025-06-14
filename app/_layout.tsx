@@ -20,7 +20,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
 // Trí code bên dưới
-
+import ChatScreen from './screens/ChatScreen';
 
 
 // Thắng code bên dưới
@@ -35,7 +35,7 @@ import PetAllScreen from './screens/PetAllScreen';
 const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
-    <Stack.Navigator initialRouteName="ListAdress">
+    <Stack.Navigator initialRouteName="Chat">
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignUp" component={RegisterScreen} options={{ headerShown: false }} />
@@ -55,7 +55,7 @@ export default function RootLayout() {
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Search" component={SearchScreen} options={{ headerShown: false }} />
       {/* // Trí code bên dưới */}
-
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
 
 
       {/* // Thắng code bên dưới */}
