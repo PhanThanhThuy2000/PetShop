@@ -14,17 +14,17 @@ import ProductDetailScreen from './screens/ProductDetailScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ReviewsScreen from './screens/ReviewsScreen';
-import SearchScreen from './screens/SearchScreen';
-import AccountScreen from './screens/SettingProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
 // Trí code bên dưới
-
+import ChatScreen from './screens/ChatScreen';
+import ShippingAddressScreen from './screens/ShippingAddressScreen';
 
 
 // Thắng code bên dưới
-
+import BreedsScreen from './screens/BreedsScreen';
+import SearchScreen from './screens/SearchScreen';
 
 
 // Đức Anh code bên dưới
@@ -32,6 +32,7 @@ import WellcomeScreen from './screens/WellcomeScreen';
 
 import ListAdressScreen from './screens/ListAdressScreen';
 import PetAllScreen from './screens/PetAllScreen';
+import AccountScreen from './screens/AccountScreen';
 const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
@@ -53,14 +54,15 @@ export default function RootLayout() {
       <Stack.Screen name="OrderSuccess" component={OrderSuccess} options={{ headerShown: false }} />
       <Stack.Screen name="Language" component={LanguageScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Search" component={SearchScreen} options={{ headerShown: false }} />
+     
       {/* // Trí code bên dưới */}
-
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ShippingAddress" component={ShippingAddressScreen} options={{ headerShown: false }} />
 
 
       {/* // Thắng code bên dưới */}
-
-
+      <Stack.Screen name="Search" component={SearchScreen} options={{ headerShown: false }} />  
+      <Stack.Screen name="Breeds" component={BreedsScreen} options={{ headerShown: false }} />   
 
       {/* // Đức Anh code bên dưới */}
 
