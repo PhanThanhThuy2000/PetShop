@@ -28,7 +28,7 @@ import SearchScreen from './screens/SearchScreen';
 
 
 // Đức Anh code bên dưới
-
+import PaymentScreen from './screens/PaymentScreen';
 
 import ListAdressScreen from './screens/ListAdressScreen';
 import PetAllScreen from './screens/PetAllScreen';
@@ -36,7 +36,7 @@ import AccountScreen from './screens/AccountScreen';
 const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
-    <Stack.Navigator initialRouteName="Account">
+    <Stack.Navigator initialRouteName="Payment">
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignUp" component={RegisterScreen} options={{ headerShown: false }} />
@@ -65,7 +65,7 @@ export default function RootLayout() {
       <Stack.Screen name="Breeds" component={BreedsScreen} options={{ headerShown: false }} />   
 
       {/* // Đức Anh code bên dưới */}
-
+    <Stack.Screen name="Payment" component={PaymentScreen} options={{ headerShown: false }} /> 
 
       
 
