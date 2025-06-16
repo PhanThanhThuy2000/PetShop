@@ -3,7 +3,6 @@ import 'expo-router/entry';
 import App from './app';
 
 import About from './screens/AboutScreen';
-import AccountScreen from './screens/AccountScreen';
 import CartScreen from './screens/CartScreen';
 import ChangePassword from './screens/ChangePassword';
 import LanguageScreen from './screens/LanguageScreen';
@@ -16,6 +15,7 @@ import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ReviewsScreen from './screens/ReviewsScreen';
 import SearchScreen from './screens/SearchScreen';
+import AccountScreen from './screens/SettingProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
@@ -35,7 +35,7 @@ import PetAllScreen from './screens/PetAllScreen';
 const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
-    <Stack.Navigator initialRouteName="ListAdress">
+    <Stack.Navigator initialRouteName="Account">
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignUp" component={RegisterScreen} options={{ headerShown: false }} />
