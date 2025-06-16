@@ -36,6 +36,8 @@ import PetAllScreen from './screens/PetAllScreen';
 const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
+
+    <Stack.Navigator initialRouteName="Account">
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignUp" component={RegisterScreen} options={{ headerShown: false }} />
