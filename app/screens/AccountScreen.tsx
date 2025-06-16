@@ -1,141 +1,199 @@
 import React from 'react';
-import { SafeAreaView, View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
+import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 
-const PRIMARY = '#3498db';
-
-const AccountScreen: React.FC = () => {
+const AccountScreen = () => {
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container}>
       {/* Header */}
-      <Text style={styles.title}>Settings</Text>
-      <Text style={styles.subTitle}>Your Profile</Text>
-
-      {/* Avatar + Edit */}
-      <View style={styles.avatarWrapper}>
-        <Image source={require('@/assets/images/avt.png')} style={styles.avatar} />
-        <TouchableOpacity style={styles.editButton}>
-          <Ionicons name="pencil" size={16} color="#fff" />
+      <View style={styles.header}>
+        <Image
+          source={{ uri: 'https://randomuser.me/api/portraits/women/1.jpg' }}
+          style={styles.avatar}
+        />
+        <TouchableOpacity style={styles.activityBtn}>
+          <Text style={styles.activityText}>My Activity</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Form */}
-      <View style={styles.form}>
-        <View style={styles.field}>
-          <Text style={styles.label}>Name</Text>
-          <TextInput
-            style={styles.input}
-            value="Romina"
-            editable
-            placeholder="Enter your name"
-            placeholderTextColor="#aaa"
-          />
-        </View>
-        <View style={styles.field}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value="gmail@example.com"
-            editable
-            keyboardType="email-address"
-            placeholder="Enter your email"
-            placeholderTextColor="#aaa"
-          />
-        </View>
-        <View style={styles.field}>
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value="••••••••"
-            secureTextEntry
-            editable
-            placeholder="Enter new password"
-            placeholderTextColor="#aaa"
-          />
+        <View style={styles.icons}>
+          <Ionicons name="notifications-outline" size={24} color="#333" style={styles.icon} />
+          <Ionicons name="settings-outline" size={24} color="#333" />
         </View>
       </View>
 
-      {/* Save */}
-      <TouchableOpacity style={styles.saveButton}>
-        <Text style={styles.saveText}>Save Changes</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+      {/* Greeting */}
+      <Text style={styles.greeting}>Hello, Amanda!</Text>
+
+      {/* My Purchases */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>My Purchases</Text>
+          <Text style={styles.cardLink}>View Purchase History</Text>
+        </View>
+        <View style={styles.purchaseRow}>
+          <Item icon="wallet" label="To Pay" color="#FF4C4C" />
+          <Item icon="box-open" label="Order" color="#F9A825" iconLib="FontAwesome5" />
+          <Item icon="local-shipping" label="To Receive" color="#2196F3" iconLib="MaterialIcons" />
+          <Item icon="ticket-alt" label="Voucher" color="#FF5722" iconLib="FontAwesome5" />
+
+
+        </View>
+      </View>
+
+      {/* Categories */}
+      <View style={styles.card}>
+        <View style={styles.grid}>
+          <Category label="Comida" icon="utensils" active />
+          <Category label="Pruning" icon="cut" />
+          <Category label="Vacinas" icon="syringe" />
+          <Category label="Petshop" icon="stethoscope" />
+          <Category label="Medicamentos" icon="capsules" />
+          <Category label="Higiene" icon="soap" />
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+const Item = ({
+  icon,
+  label,
+  color,
+  iconLib = 'FontAwesome5',
+}: {
+  icon: string;
+  label: string;
+  color: string;
+  iconLib?: 'FontAwesome5' | 'MaterialIcons';
+}) => {
+  const IconLib = iconLib === 'MaterialIcons' ? MaterialIcons : FontAwesome5;
+  return (
+    <View style={styles.item}>
+      <IconLib name={icon as any} size={24} color={color} />
+      <Text style={styles.itemLabel}>{label}</Text>
+    </View>
+  );
+};
+
+const Category = ({
+  label,
+  icon,
+  active = false,
+}: {
+  label: string;
+  icon: string;
+  active?: boolean;
+}) => {
+  return (
+    <TouchableOpacity style={[styles.catBox, active && styles.catBoxActive]}>
+      <FontAwesome5 name={icon as any} size={20} color={active ? '#fff' : '#555'} />
+      <Text style={[styles.catLabel, active && styles.catLabelActive]}>{label}</Text>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    marginTop:30,
     flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    backgroundColor: '#FAFAFA',
+    padding: 16,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#333',
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  subTitle: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 4,
-    marginBottom: 24,
+  activityBtn: {
+    backgroundColor: '#1976D2',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
   },
-  avatarWrapper: {
-    alignSelf: 'center',
-    marginBottom: 32,
+  activityText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  icons: {
+    flexDirection: 'row',
+  },
+  icon: {
+    marginRight: 10,
   },
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#f0f0f0',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
-  editButton: {
-    position: 'absolute',
-    top: 0,
-    right: -4,
-    backgroundColor: PRIMARY,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
+  greeting: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginVertical: 16,
   },
-  form: {
-    marginBottom: 40,
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 3,
   },
-  field: {
-    marginBottom: 20,
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  label: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 6,
-  },
-  input: {
-    height: 48,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+  cardTitle: {
+    fontWeight: 'bold',
     fontSize: 16,
-    color: '#222',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
   },
-  saveButton: {
-    backgroundColor: PRIMARY,
-    height: 50,
-    borderRadius: 8,
+  cardLink: {
+    color: '#F57C00',
+    fontSize: 12,
+  },
+  purchaseRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  item: {
+    alignItems: 'center',
+    width: '24%',
+  },
+  itemLabel: {
+    marginTop: 4,
+    fontSize: 12,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  catBox: {
+    width: '30%',
+    aspectRatio: 1,
+    backgroundColor: '#EEE',
+    marginBottom: 14,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveText: {
+  catBoxActive: {
+    backgroundColor: '#7B61FF',
+  },
+  catLabel: {
+    marginTop: 6,
+    color: '#555',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  catLabelActive: {
     color: '#fff',
-    fontSize: 17,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
 });
 
