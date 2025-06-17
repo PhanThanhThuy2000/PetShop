@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     Image,
     SafeAreaView,
     ScrollView,
@@ -11,30 +14,46 @@ import {
     View,
 } from 'react-native';
 
+import { useAuth } from '../../hooks/redux';
+import { clearError, loginUser } from '../redux/slices/authSlice';
+
+
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const navigation = useNavigation();
+    
+    const { isLoading, error, token, dispatch } = useAuth();
 
-    const handleLogin = () => {
-        console.log('Login with:', { email, password });
-        // navigation.navigate('Home');
-    };
+    useEffect(() => {
+        if (token) {
+            navigation.navigate('app' as never);
+        }
+    }, [token, navigation]);
 
-    const handleGoogleLogin = () => {
-        console.log('Google login');
-    };
+    useEffect(() => {
+        if (error) {
+            Alert.alert('Login Error', error, [
+                { text: 'OK', onPress: () => dispatch(clearError()) }
+            ]);
+        }
+    }, [error, dispatch]);
 
-    const handleFacebookLogin = () => {
-        console.log('Facebook login');
-    };
+    const handleLogin = async () => {
+        if (!email.trim() || !password.trim()) {
+            Alert.alert('Error', 'Please enter both email and password');
+            return;
+        }
 
-    const handleForgotPassword = () => {
-        console.log('Forgot password');
+        dispatch(loginUser({ email: email.trim(), password }));
     };
 
     const handleSignUp = () => {
-        console.log('Sign up');
+        navigation.navigate('SignUp' as never);
     };
+    const handleForgotPassword = () => {}
+    const handleGoogleLogin = () => {}
+    const handleFacebookLogin = () => {}
 
     return (
         <SafeAreaView style={styles.container}>
