@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -8,8 +8,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth, useCart } from '../../hooks/redux';
+import { 
+  getCart, 
+  updateCartItem, 
+  removeFromCart, 
+  clearCart 
+} from '../redux/slices/cartSlice';
 
 type Item = {
   id: number;
@@ -25,25 +34,11 @@ const CARD_HEIGHT = 100;
 const CARD_PADDING = 12;
 
 export default function CartScreen() {
-  const [cartItems, setCartItems] = useState<Item[]>([
-    {
-      id: 1,
-      image: require('../../assets/images/dog.png'),
-      title: 'Green Parrot',
-      description: 'Lorem ipsum dolor sit amet consectetur.',
-      price: 1000000,
-      quantity: 1,
-    },
-    {
-      id: 2,
-      image: require('../../assets/images/cat.png'),
-      title: 'Cute Kitten',
-      description: 'Lorem ipsum dolor sit amet consectetur.',
-      price: 1000000,
-      quantity: 1,
-    },
-  ]);
+  // Redux state
+  const { items, totalItems, totalAmount, isLoading, dispatch } = useCart();
+  const { token } = useAuth();
 
+  // Local state cho wishlist (giữ nguyên)
   const [wishlistItems, setWishlistItems] = useState<Item[]>([
     {
       id: 3,
@@ -59,32 +54,127 @@ export default function CartScreen() {
     },
   ]);
 
-  const updateQuantity = (id: number, delta: number) => {
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) }
-          : item
-      )
-    );
+  // Load cart data when component mounts
+  useEffect(() => {
+    if (token) {
+      dispatch(getCart());
+    }
+  }, [token, dispatch]);
+
+  // Convert API cart items to local Item format for display
+  const getDisplayItems = () => {
+    return items.map(apiItem => {
+      const itemData = apiItem.pet_id || apiItem.product_id;
+      const primaryImage = itemData?.images?.find(img => img.is_primary) || itemData?.images?.[0];
+      
+      return {
+        id: parseInt(apiItem._id.replace(/\D/g, '')) || Math.random(), // Convert _id to number
+        image: primaryImage?.url ? { uri: primaryImage.url } : require('../../assets/images/dog.png'),
+        title: itemData?.name || 'Unknown Item',
+        description: apiItem.pet_id ? 
+          `${apiItem.pet_id.breed_id?.name} - ${apiItem.pet_id.gender} - ${apiItem.pet_id.age}y` :
+          'Pet product',
+        price: itemData?.price || 0,
+        quantity: apiItem.quantity,
+        _apiId: apiItem._id, // Lưu ID gốc để gọi API
+      };
+    });
   };
 
-  const removeFromCart = (id: number) =>
-    setCartItems(items => items.filter(item => item.id !== id));
+  const cartItems = getDisplayItems();
+
+  const updateQuantity = async (id: number, delta: number) => {
+    const item = cartItems.find(item => item.id === id);
+    if (!item || !item._apiId) return;
+
+    const newQuantity = Math.max(1, (item.quantity || 1) + delta);
+    
+    try {
+      await dispatch(updateCartItem({ 
+        id: item._apiId, 
+        quantity: newQuantity 
+      })).unwrap();
+      
+      // Refresh cart data
+      dispatch(getCart());
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update quantity');
+    }
+  };
+
+  const removeFromCart = async (id: number) => {
+    const item = cartItems.find(item => item.id === id);
+    if (!item || !item._apiId) return;
+
+    Alert.alert(
+      'Remove Item',
+      `Are you sure you want to remove ${item.title} from your cart?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dispatch(removeFromCart(item._apiId)).unwrap();
+              dispatch(getCart());
+            } catch (error) {
+              Alert.alert('Error', 'Failed to remove item');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const removeFromWishlist = (id: number) =>
     setWishlistItems(items => items.filter(item => item.id !== id));
 
-  const total = cartItems.reduce(
+  const handleClearCart = () => {
+    Alert.alert(
+      'Clear Cart',
+      'Are you sure you want to remove all items from your cart?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dispatch(clearCart()).unwrap();
+              dispatch(getCart());
+            } catch (error) {
+              Alert.alert('Error', 'Failed to clear cart');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCheckout = () => {
+    if (cartItems.length === 0) {
+      Alert.alert('Empty Cart', 'Please add items to your cart first');
+      return;
+    }
+    Alert.alert('Checkout', 'Checkout functionality coming soon!');
+  };
+
+  // Sử dụng totalAmount từ API thay vì tính local
+  const total = totalAmount || cartItems.reduce(
     (sum, x) => sum + x.price * (x.quantity || 1),
     0
   );
 
-  const renderCard = (item: Item, isCart: boolean) => (
+  const renderCard = (item: Item & { _apiId?: string }, isCart: boolean) => (
     <View key={item.id} style={styles.card}>
       {/* Image + Trash overlay */}
       <View style={styles.imgWrapper}>
-        <Image source={item.image} style={styles.cardImage} />
+        <Image 
+          source={typeof item.image === 'string' ? { uri: item.image } : item.image} 
+          style={styles.cardImage} 
+          defaultSource={require('../../assets/images/dog.png')}
+        />
         <TouchableOpacity
           style={styles.deleteBtn}
           onPress={() =>
@@ -118,6 +208,7 @@ export default function CartScreen() {
           <TouchableOpacity
             onPress={() => updateQuantity(item.id, -1)}
             style={styles.qtyBtn}
+            disabled={isLoading}
           >
             <Text style={styles.qtyText}>–</Text>
           </TouchableOpacity>
@@ -125,6 +216,7 @@ export default function CartScreen() {
           <TouchableOpacity
             onPress={() => updateQuantity(item.id, 1)}
             style={styles.qtyBtn}
+            disabled={isLoading}
           >
             <Text style={styles.qtyText}>+</Text>
           </TouchableOpacity>
@@ -137,14 +229,45 @@ export default function CartScreen() {
     </View>
   );
 
+  // Show loading state
+  if (isLoading && cartItems.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading cart...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show login required state
+  if (!token) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="person-circle-outline" size={80} color="#C0C0C0" />
+          <Text style={styles.emptyTitle}>Please login to view your cart</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Cart</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{cartItems.length}</Text>
+          <View style={styles.headerRight}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{totalItems || cartItems.length}</Text>
+            </View>
+            {cartItems.length > 0 && (
+              <TouchableOpacity onPress={handleClearCart} style={styles.clearButton}>
+                <Text style={styles.clearText}>Clear All</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -160,32 +283,61 @@ export default function CartScreen() {
         </View>
 
         {/* Cart Items */}
-        {cartItems.map(item => renderCard(item, true))}
+        {cartItems.length === 0 ? (
+          <View style={styles.emptyCart}>
+            <Ionicons name="cart-outline" size={60} color="#C0C0C0" />
+            <Text style={styles.emptyTitle}>Your cart is empty</Text>
+            <Text style={styles.emptySubtext}>Add some items to get started!</Text>
+          </View>
+        ) : (
+          cartItems.map(item => renderCard(item, true))
+        )}
 
         {/* Wishlist */}
-        <Text style={styles.sectionTitle}>From Your Wishlist</Text>
-        {wishlistItems.map(item => renderCard(item, false))}
+        {wishlistItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>From Your Wishlist</Text>
+            {wishlistItems.map(item => renderCard(item, false))}
+          </>
+        )}
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.totalText}>
-          Total: {(total / 23000).toFixed(2)} $
-        </Text>
-        <TouchableOpacity style={styles.checkoutBtn}>
-          <Text style={styles.checkoutText}>Checkout</Text>
-        </TouchableOpacity>
-      </View>
+      {cartItems.length > 0 && (
+        <View style={styles.footer}>
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>
+              Total: ${(total / 23000).toFixed(2)}
+            </Text>
+            {isLoading && (
+              <ActivityIndicator size="small" color="#007AFF" style={styles.footerLoader} />
+            )}
+          </View>
+          <TouchableOpacity 
+            style={[styles.checkoutBtn, isLoading && styles.checkoutBtnDisabled]} 
+            onPress={handleCheckout}
+            disabled={isLoading}
+          >
+            <Text style={styles.checkoutText}>Checkout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' , marginTop:20},
+  container: { flex: 1, backgroundColor: '#fff', marginTop: 20 },
   scroll: { padding: 16, paddingBottom: 120 },
 
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    marginBottom: 16 
+  },
   headerTitle: { fontSize: 28, fontWeight: 'bold', flex: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center' },
   badge: {
     backgroundColor: '#007AFF',
     borderRadius: 12,
@@ -195,6 +347,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badgeText: { color: '#fff', fontWeight: '600', fontSize: 12 },
+  clearButton: { marginLeft: 12 },
+  clearText: { color: '#e74c3c', fontSize: 14, fontWeight: '600' },
 
   addressCard: {
     flexDirection: 'row',
@@ -280,12 +434,55 @@ const styles = StyleSheet.create({
     borderColor: '#eee',
     alignItems: 'center',
   },
-  totalText: { flex: 1, fontSize: 18, fontWeight: '600' },
+  totalContainer: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  totalText: { fontSize: 18, fontWeight: '600' },
+  footerLoader: { marginLeft: 8 },
   checkoutBtn: {
     backgroundColor: '#007AFF',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
+  checkoutBtnDisabled: {
+    backgroundColor: '#cccccc',
+  },
   checkoutText: { color: '#fff', fontWeight: '600' },
+
+  // Loading và Empty states
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyCart: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
 });
