@@ -1,31 +1,33 @@
+// screens/ProductDetailScreen.tsx
 import React, { useState, useEffect, FC } from 'react';
 import {
   SafeAreaView,
   View,
   Text,
   StyleSheet,
-  Image,
+  ImageBackground,
   ScrollView,
   TouchableOpacity,
   FlatList,
-  ImageBackground,
+  Image,
 } from 'react-native';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
-// --- Data Interfaces ---
+// --- Data Interfaces & Sample Data ---
 interface Variation { id: string; image: any; }
 interface RelatedItem { id: string; image: any; title: string; price: string; }
 
-// --- Sample Data ---
 const VARIATIONS: Variation[] = Array.from({ length: 4 }).map((_, i) => ({
   id: `${i}`,
   image: require('@/assets/images/dog.png'),
 }));
+
 const RELATED_ITEMS: RelatedItem[] = Array.from({ length: 4 }).map((_, i) => ({
   id: `${i}`,
   image: require('@/assets/images/dog.png'),
   title: 'Lorem ipsum dolor sit amet consectetur',
-  price: '$17,00',
+  price: '$17.00',
 }));
 
 // --- Countdown Hook ---
@@ -45,14 +47,8 @@ function useCountdown(initialSeconds: number) {
 
 // --- Subcomponents ---
 const Header: FC = () => (
-  <ImageBackground
-    source={require('@/assets/images/dog.png')}
-    style={styles.headerImage}
-  >
+  <ImageBackground source={require('@/assets/images/dog.png')} style={styles.headerImage}>
     <View style={styles.topIcons}>
-      <TouchableOpacity style={styles.iconBtn}>
-        <Ionicons name="heart" size={24} color="#000" />
-      </TouchableOpacity>
       <TouchableOpacity style={styles.iconBtn}>
         <Ionicons name="share-social-outline" size={24} color="#fff" />
       </TouchableOpacity>
@@ -69,7 +65,7 @@ const VariationSelector: FC<{ onSelect: (v: Variation) => void; selectedId: stri
   <FlatList
     data={VARIATIONS}
     horizontal
-    keyExtractor={(item) => item.id}
+    keyExtractor={item => item.id}
     showsHorizontalScrollIndicator={false}
     contentContainerStyle={styles.varList}
     renderItem={({ item }) => (
@@ -83,11 +79,10 @@ const VariationSelector: FC<{ onSelect: (v: Variation) => void; selectedId: stri
   />
 );
 
-// Updated DeliveryOptions: two horizontal bars
 const DeliveryOptions: FC = () => {
   const options = [
-    { label: 'Standard', days: '5-7 days', price: '$3,00' },
-    { label: 'Express', days: '1-2 days', price: '$12,00' },
+    { label: 'Standard', days: '5-7 days', price: '$3.00' },
+    { label: 'Express',  days: '1-2 days', price: '$12.00' },
   ];
   return (
     <View style={styles.deliveryContainer}>
@@ -123,10 +118,7 @@ const ReviewCard: FC = () => (
           <FontAwesome key={i} name="star" size={14} color="#FBBF24" />
         ))}
       </View>
-      <Text numberOfLines={3} style={styles.reviewText}>Lorem ipsum dolor sit amet...</Text>
-      <TouchableOpacity style={styles.viewAllBtn}>
-        <Text style={styles.viewAllText}>View All Reviews</Text>
-      </TouchableOpacity>
+      <Text numberOfLines={3} style={styles.reviewText}>Lorem ipsum dolor sit amet.</Text>
     </View>
   </View>
 );
@@ -135,7 +127,7 @@ const RelatedGrid: FC = () => (
   <FlatList
     data={RELATED_ITEMS}
     numColumns={2}
-    keyExtractor={(item) => item.id}
+    keyExtractor={item => item.id}
     columnWrapperStyle={styles.relatedRow}
     scrollEnabled={false}
     renderItem={({ item }) => (
@@ -148,111 +140,179 @@ const RelatedGrid: FC = () => (
   />
 );
 
-const FooterBar: FC = () => (
-  <View style={styles.footer}>
-    <TouchableOpacity style={styles.favBtn}><Ionicons name="heart-outline" size={24} color="#000" /></TouchableOpacity>
-    <TouchableOpacity style={styles.cartBtn}><Text style={styles.cartBtnTxt}>Add to cart</Text></TouchableOpacity>
-    <TouchableOpacity style={styles.buyBtn}><Text style={styles.buyBtnTxt}>Buy now</Text></TouchableOpacity>
-  </View>
-);
-
 const ProductDetailScreen: FC = () => {
+  const navigation = useNavigation<any>();
   const [selectedVar, setSelectedVar] = useState(VARIATIONS[0]);
+  const [isFavorite, setIsFavorite] = useState(false);
   const { h, m, s } = useCountdown(36 * 60 + 58);
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header Bar with Back & Favorite Toggle */}
+      <View style={styles.headerBar}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Product Detail</Text>
+        <TouchableOpacity
+          style={styles.headerFav}
+          onPress={() => setIsFavorite(prev => !prev)}
+        >
+       
+        </TouchableOpacity>
+      </View>
+
       <ScrollView>
         <Header />
         <View style={styles.content}>
-          <View style={[styles.rowCenter, styles.spaceBetween]}>  
-            <Text style={styles.badge}>Sale</Text>
-            <View style={styles.timerBox}><Ionicons name="time-outline" size={16} color="#000" /><Text style={styles.timerText}>{`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`}</Text></View>
-          </View>
-          <View style={[styles.rowCenter, styles.marginTop]}><Text style={styles.price}>1.000.000 đ</Text><View style={styles.ratingRow}><FontAwesome name="star" size={14} color="#FBBF24" /><Text style={styles.ratingText}>4,9</Text><Text style={styles.soldText}>(Sold 50)</Text></View></View>
-          <Text style={styles.title}>Dog Mundo</Text>
-          <Text style={styles.sectionTitle}>Variations</Text>
-          <VariationSelector onSelect={setSelectedVar} selectedId={selectedVar.id} />
-          <Text style={styles.sectionTitle}>Delivery</Text>
+          <Text style={styles.productTitle}>Cute Pomeranian Dog</Text>
+          <Text style={styles.productPrice}>$25.00</Text>
+          <Text style={styles.countdownText}>
+            Sale ends in {h}h {m}m {s}s
+          </Text>
+
+          <VariationSelector selectedId={selectedVar.id} onSelect={setSelectedVar} />
           <DeliveryOptions />
-          <Text style={styles.sectionTitle}>Information pet</Text>
-          <View style={styles.infoBox}><InfoRow label="Gender" value="Male" /><InfoRow label="Age" value="1 year" /><InfoRow label="Weight" value="22,2 kg" /></View>
-          <Text style={styles.sectionTitle}>Rating & Reviews</Text>
-          <View style={styles.reviewHeader}><Text style={styles.avgRating}>4.5</Text><FontAwesome name="star" size={16} color="#FBBF24" /><Text style={styles.ratingCount}>Product Ratings (90)</Text></View>
+          <InfoRow label="Breed" value="Pomeranian" />
+          <InfoRow label="Availability" value="In stock" />
+
+          <Text style={styles.sectionHeading}>Reviews</Text>
           <ReviewCard />
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.descText}>Purus in massa tempor nec feugiat...</Text>
-          <Image source={require('@/assets/images/dog.png')} style={styles.descImage} />
-          <Text style={styles.sectionTitle}>Pet Related</Text>
+
+          <Text style={styles.sectionHeading}>Related Items</Text>
           <RelatedGrid />
         </View>
       </ScrollView>
-      <FooterBar />
+
+      {/* FooterBar with Navigation */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.favBtn}
+          onPress={() => {
+            setIsFavorite(true);
+            navigation.navigate('MainTabs', { screen: 'Favourite' });
+          }}
+        >
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={24}
+            color={isFavorite ? 'red' : '#000'}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.cartBtn}
+          onPress={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
+        >
+          <Text style={styles.cartBtnTxt}>Add to cart</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.buyBtn}
+          onPress={() => navigation.navigate('Payment')}
+        >
+          <Text style={styles.buyBtnTxt}>Buy now</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
 
 export default ProductDetailScreen;
 
-// --- Styles ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    marginTop:15
+  },
+  backBtn: { padding: 4 },
+  headerTitle: { flex: 1, fontSize: 20, fontWeight: 'bold', marginLeft: 8 },
+  headerFav: { padding: 4 },
+
   headerImage: { width: '100%', height: 300 },
   topIcons: { position: 'absolute', top: 16, right: 16, flexDirection: 'row' },
   iconBtn: { marginLeft: 12 },
-  carouselDots: { position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center' },
+  carouselDots: {
+    position: 'absolute', bottom: 12, left: 0, right: 0,
+    flexDirection: 'row', justifyContent: 'center'
+  },
   dot: { width: 8, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB', margin: 4 },
   dotActive: { backgroundColor: '#2563EB' },
+
   content: { padding: 16 },
-  rowCenter: { flexDirection: 'row', alignItems: 'center' },
-  spaceBetween: { justifyContent: 'space-between' },
-  badge: { color: '#EF4444', borderColor: '#FECACA', borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-  timerBox: { flexDirection: 'row', alignItems: 'center', padding: 4, borderColor: '#D1D5DB', borderWidth: 1, borderRadius: 4 },
-  timerText: { marginLeft: 4 },
-  marginTop: { marginTop: 8 },
-  price: { color: '#EF4444', fontSize: 20, fontWeight: 'bold' },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', marginLeft: 16 },
-  ratingText: { marginHorizontal: 4 },
-  soldText: { color: '#6B7280' },
-  title: { fontSize: 24, fontWeight: 'bold', marginVertical: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginTop: 16 },
+  productTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
+  productPrice: { fontSize: 20, color: '#E63946', marginBottom: 12 },
+  countdownText: { color: '#1E90FF', marginBottom: 12 },
+  sectionHeading: { fontSize: 18, fontWeight: '600', marginVertical: 12 },
+
   varList: { paddingVertical: 8 },
   varItem: { marginRight: 12, borderRadius: 8 },
   varSelected: { borderWidth: 2, borderColor: '#10B981' },
   varImg: { width: 60, height: 60, borderRadius: 8 },
-  deliveryContainer: { marginTop: 8 },
-  deliveryBar: { flexDirection: 'row', justifyContent: 'space-between', borderWidth: 1, borderColor: '#2563EB', borderRadius: 8, padding: 12, marginBottom: 8, alignItems: 'center' },
+
+  deliveryContainer: { marginVertical: 12 },
+  deliveryBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderWidth: 1, borderColor: '#2563EB',
+    borderRadius: 8, padding: 12, marginBottom: 8,
+    alignItems: 'center'
+  },
   deliveryBarLeft: { flexDirection: 'row', alignItems: 'center' },
   deliveryLabel: { fontWeight: '500', marginRight: 12 },
   datePill: { backgroundColor: '#DBEAFE', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   dateText: { color: '#1D4ED8' },
   delPrice: { fontWeight: 'bold' },
-  infoBox: { marginTop: 8 },
+
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   infoKey: { color: '#374151' },
   infoVal: { fontWeight: '500' },
-  reviewHeader: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  avgRating: { fontSize: 18, fontWeight: '600', marginRight: 4 },
-  ratingCount: { color: '#6B7280', marginLeft: 8 },
-  reviewCard: { flexDirection: 'row', marginTop: 12, backgroundColor: '#F9FAFB', padding: 12, borderRadius: 8 },
+
+  reviewCard: { flexDirection: 'row', backgroundColor: '#F9FAFB', padding: 12, borderRadius: 8 },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
   reviewContent: { flex: 1 },
   reviewer: { fontWeight: '600' },
   starRow: { flexDirection: 'row', marginVertical: 4 },
   reviewText: { color: '#374151', marginBottom: 8 },
-  viewAllBtn: { backgroundColor: '#2563EB', borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
-  viewAllText: { color: '#fff', fontWeight: '600' },
-  descText: { color: '#6B7280', lineHeight: 20, marginTop: 8 },
-  descImage: { width: '100%', height: 200, borderRadius: 8, marginVertical: 16 },
+
   relatedRow: { justifyContent: 'space-between' },
-  relatedItem: { width: '48%' },
+  relatedItem: { width: '48%', marginBottom: 16 },
   relatedImg: { width: '100%', height: 120, borderRadius: 8 },
   relatedTitle: { marginTop: 8, color: '#374151' },
   relatedPrice: { fontWeight: '600', marginTop: 4 },
-  footer: { flexDirection: 'row', alignItems: 'center', padding: 16, borderTopWidth: 1, borderColor: '#E5E7EB' },
-  favBtn: { padding: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, marginRight: 12 },
-  cartBtn: { flex: 1, backgroundColor: '#111827', padding: 12, borderRadius: 8, alignItems: 'center', marginRight: 8 },
+
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderTopWidth: 1,
+    borderColor: '#E5E7EB'
+  },
+  favBtn: { padding: 12, marginRight: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8 },
+  cartBtn: {
+    flex: 1,
+    backgroundColor: '#111827',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginRight: 8
+  },
   cartBtnTxt: { color: '#fff', fontWeight: '600' },
-  buyBtn: { flex: 1, backgroundColor: '#2563EB', padding: 12, borderRadius: 8, alignItems: 'center' },
+  buyBtn: {
+    flex: 1,
+    backgroundColor: '#2563EB',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center'
+  },
   buyBtnTxt: { color: '#fff', fontWeight: '600' },
 });
