@@ -42,6 +42,9 @@ import SearchScreen from './screens/SearchScreen';
 import ListAdressScreen from './screens/ListAdressScreen';
 import PaymentScreen from './screens/PaymentScreen';
 import PetAllScreen from './screens/PetAllScreen';
+import FavouriteScreen from './screens/FavouriteScreen';
+import HistoryScreen from './screens/HistoryScreen';
+
 
 const Stack = createStackNavigator();
 
@@ -194,7 +197,18 @@ const AppNavigator = () => {
         component={ChatScreen} 
         options={{ headerShown: false }} 
       />
+       <Stack.Screen 
+        name="Favourite" 
+        component={FavouriteScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="History" 
+        component={HistoryScreen} 
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
+    
   );
 };
 

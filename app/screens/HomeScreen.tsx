@@ -27,7 +27,7 @@ export const pets: Category[] = [
 ];
 
 const HomeScreen: React.FC = () => {
-  const navigation = useNavigation();  
+  const navigation = useNavigation() as any;  
 
   const renderCategory = ({ item }: { item: Category }) => (
     <TouchableOpacity style={styles.categoryItem}>

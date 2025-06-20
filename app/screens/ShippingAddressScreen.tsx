@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const countries = [
   { code: '+84', name: 'Vietnam', flag: '🇻🇳' },
@@ -17,14 +18,18 @@ const countries = [
 ];
 
 const ShippingAddressScreen = () => {
+  const navigation = useNavigation<any>();
   const [selectedCountry, setSelectedCountry] = useState(countries[3]); // mặc định 🇵🇰
   const [modalVisible, setModalVisible] = useState(false);
 
   return (
     <View style={styles.container}>
-      {/* Nút back */}
-      <TouchableOpacity onPress={() => {}} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={24} color="black" />
+      {/* Icon Back */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('ListAdress')}
+        style={styles.backButton}
+      >
+        <Ionicons name="arrow-back" size={24} color="#000" />
       </TouchableOpacity>
 
       {/* Tiêu đề */}
@@ -34,13 +39,13 @@ const ShippingAddressScreen = () => {
       <Text style={styles.labelSmall}>Country</Text>
       <View style={styles.rowBetween}>
         <Text style={styles.labelLarge}>Choose your country</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => setModalVisible(true)}>
           <Ionicons name="arrow-forward-circle" size={24} color="#007AFF" />
         </TouchableOpacity>
       </View>
 
       {/* Tên người dùng */}
-      <Text style={styles.label}>user name</Text>
+      <Text style={styles.label}>User Name</Text>
       <TextInput style={styles.input} placeholder="Enter full name" />
 
       {/* Số điện thoại */}
@@ -68,11 +73,11 @@ const ShippingAddressScreen = () => {
       <TextInput style={styles.input} placeholder="Enter street address" />
 
       {/* Mô tả */}
-      <Text style={styles.label}>Describe</Text>
-      <TextInput style={styles.input} placeholder="Enter describe" />
+      <Text style={styles.label}>Description</Text>
+      <TextInput style={styles.input} placeholder="Enter description" />
 
       {/* Nút lưu */}
-      <TouchableOpacity style={styles.saveButton}>
+      <TouchableOpacity style={styles.saveButton} onPress={() => {/* handle save */}}>
         <Text style={styles.saveButtonText}>Save Changes</Text>
       </TouchableOpacity>
 
@@ -146,11 +151,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     backgroundColor: '#f7f7f7',
+    marginBottom: 10,
   },
   phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
     marginBottom: 10,
   },
   flagBox: {

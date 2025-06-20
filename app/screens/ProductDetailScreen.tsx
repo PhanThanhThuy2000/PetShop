@@ -11,7 +11,7 @@ import {
   FlatList,
   Image,
 } from 'react-native';
-import { Ionicons, FontAwesome } from '@expo/vector-icons';
+import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 // --- Data Interfaces & Sample Data ---
@@ -80,18 +80,32 @@ const VariationSelector: FC<{ onSelect: (v: Variation) => void; selectedId: stri
 );
 
 const DeliveryOptions: FC = () => {
+  const [selectedOption, setSelectedOption] = useState<string>('Standard');
   const options = [
-    { label: 'Standard', days: '5-7 days', price: '$3.00' },
-    { label: 'Express',  days: '1-2 days', price: '$12.00' },
+    { id: 'Standard', label: 'Standard', days: '5-7 days', price: '$3.00' },
+    { id: 'Express', label: 'Express', days: '1-2 days', price: '$12.00' },
   ];
+
   return (
     <View style={styles.deliveryContainer}>
-      {options.map((opt, idx) => (
-        <TouchableOpacity key={idx} style={styles.deliveryBar}>
-          <View style={styles.deliveryBarLeft}>
-            <Text style={styles.deliveryLabel}>{opt.label}</Text>
-            <View style={styles.datePill}>
-              <Text style={styles.dateText}>{opt.days}</Text>
+      {options.map((opt) => (
+        <TouchableOpacity
+          key={opt.id}
+          style={styles.deliveryBar}
+          onPress={() => setSelectedOption(opt.id)}
+        >
+          <View style={styles.radioRow}>
+            <MaterialIcons
+              name={selectedOption === opt.id ? 'radio-button-checked' : 'radio-button-unchecked'}
+              size={20}
+              color="#2563EB"
+              style={{ marginRight: 10 }}
+            />
+            <View>
+              <Text style={styles.deliveryLabel}>{opt.label}</Text>
+              <View style={styles.datePill}>
+                <Text style={styles.dateText}>{opt.days}</Text>
+              </View>
             </View>
           </View>
           <Text style={styles.delPrice}>{opt.price}</Text>
@@ -119,6 +133,9 @@ const ReviewCard: FC = () => (
         ))}
       </View>
       <Text numberOfLines={3} style={styles.reviewText}>Lorem ipsum dolor sit amet.</Text>
+      <TouchableOpacity style={styles.viewAllBtn}>
+        <Text style={styles.viewAllText}>View All Reviews</Text>
+      </TouchableOpacity>
     </View>
   </View>
 );
@@ -140,6 +157,7 @@ const RelatedGrid: FC = () => (
   />
 );
 
+// --- Main Screen ---
 const ProductDetailScreen: FC = () => {
   const navigation = useNavigation<any>();
   const [selectedVar, setSelectedVar] = useState(VARIATIONS[0]);
@@ -148,25 +166,24 @@ const ProductDetailScreen: FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Bar with Back & Favorite Toggle */}
+      {/* Header Bar */}
       <View style={styles.headerBar}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Product Detail</Text>
-        <TouchableOpacity
-          style={styles.headerFav}
-          onPress={() => setIsFavorite(prev => !prev)}
-        >
-       
+        <TouchableOpacity onPress={() => setIsFavorite(f => !f)} style={styles.headerFav}>
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={24}
+            color={isFavorite ? 'red' : '#000'}
+          />
         </TouchableOpacity>
       </View>
 
       <ScrollView>
         <Header />
+
         <View style={styles.content}>
           <Text style={styles.productTitle}>Cute Pomeranian Dog</Text>
           <Text style={styles.productPrice}>$25.00</Text>
@@ -187,14 +204,11 @@ const ProductDetailScreen: FC = () => {
         </View>
       </ScrollView>
 
-      {/* FooterBar with Navigation */}
+      {/* Footer Bar */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.favBtn}
-          onPress={() => {
-            setIsFavorite(true);
-            navigation.navigate('MainTabs', { screen: 'Favourite' });
-          }}
+          onPress={() => setIsFavorite(true)}
         >
           <Ionicons
             name={isFavorite ? 'heart' : 'heart-outline'}
@@ -205,7 +219,7 @@ const ProductDetailScreen: FC = () => {
 
         <TouchableOpacity
           style={styles.cartBtn}
-          onPress={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
+          onPress={() => navigation.navigate('Cart')}
         >
           <Text style={styles.cartBtnTxt}>Add to cart</Text>
         </TouchableOpacity>
@@ -223,6 +237,7 @@ const ProductDetailScreen: FC = () => {
 
 export default ProductDetailScreen;
 
+// --- Styles ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
 
@@ -232,7 +247,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    marginTop:15
+    marginTop: 15,
   },
   backBtn: { padding: 4 },
   headerTitle: { flex: 1, fontSize: 20, fontWeight: 'bold', marginLeft: 8 },
@@ -241,10 +256,7 @@ const styles = StyleSheet.create({
   headerImage: { width: '100%', height: 300 },
   topIcons: { position: 'absolute', top: 16, right: 16, flexDirection: 'row' },
   iconBtn: { marginLeft: 12 },
-  carouselDots: {
-    position: 'absolute', bottom: 12, left: 0, right: 0,
-    flexDirection: 'row', justifyContent: 'center'
-  },
+  carouselDots: { position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center' },
   dot: { width: 8, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB', margin: 4 },
   dotActive: { backgroundColor: '#2563EB' },
 
@@ -263,12 +275,18 @@ const styles = StyleSheet.create({
   deliveryBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderWidth: 1, borderColor: '#2563EB',
-    borderRadius: 8, padding: 12, marginBottom: 8,
-    alignItems: 'center'
+    borderWidth: 1,
+    borderColor: '#2563EB',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    alignItems: 'center',
   },
-  deliveryBarLeft: { flexDirection: 'row', alignItems: 'center' },
-  deliveryLabel: { fontWeight: '500', marginRight: 12 },
+  radioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deliveryLabel: { fontWeight: '500', marginBottom: 4 },
   datePill: { backgroundColor: '#DBEAFE', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   dateText: { color: '#1D4ED8' },
   delPrice: { fontWeight: 'bold' },
@@ -283,6 +301,8 @@ const styles = StyleSheet.create({
   reviewer: { fontWeight: '600' },
   starRow: { flexDirection: 'row', marginVertical: 4 },
   reviewText: { color: '#374151', marginBottom: 8 },
+  viewAllBtn: { backgroundColor: '#2563EB', borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
+  viewAllText: { color: '#fff', fontWeight: '600' },
 
   relatedRow: { justifyContent: 'space-between' },
   relatedItem: { width: '48%', marginBottom: 16 },
@@ -295,16 +315,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderTopWidth: 1,
-    borderColor: '#E5E7EB'
+    borderColor: '#E5E7EB',
   },
-  favBtn: { padding: 12, marginRight: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8 },
+  favBtn: { padding: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, marginRight: 12 },
   cartBtn: {
     flex: 1,
     backgroundColor: '#111827',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginRight: 8
+    marginRight: 8,
   },
   cartBtnTxt: { color: '#fff', fontWeight: '600' },
   buyBtn: {
@@ -312,7 +332,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563EB',
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center'
+    alignItems: 'center',
   },
   buyBtnTxt: { color: '#fff', fontWeight: '600' },
 });

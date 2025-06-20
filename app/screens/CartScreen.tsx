@@ -327,10 +327,11 @@ export default function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', marginTop: 20 },
+  container: { flex: 1, backgroundColor: '#fff' },
   scroll: { padding: 16, paddingBottom: 120 },
 
   header: { 
+    marginTop:10,
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between',
