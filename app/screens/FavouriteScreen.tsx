@@ -1,4 +1,5 @@
 import FavoriteItemList from '@/components/favorite/FavoriteItemList';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import React from 'react';
 import {
     Dimensions,
@@ -53,7 +54,13 @@ const favoriteItems = [
   },
 ];
 
+type RootStackParamList = {
+  FavouriteScreen: undefined;
+  ProductDetail: undefined; // Add params if ProductDetail expects any
+};
+
 const FavouriteScreen = () => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -77,7 +84,7 @@ const FavouriteScreen = () => {
         {/* Favorite Items Grid */}
       <FavoriteItemList 
         data={favoriteItems} 
-        onPressItem={(item) => console.log('Item pressed:', item.name)} 
+       onPressItem={(item) => navigation.navigate('ProductDetail')}  
       />
     </SafeAreaView>
   );

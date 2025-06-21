@@ -1,5 +1,6 @@
 import React from 'react';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';    // ← THÊM
 
 interface Category {
     id: string;
@@ -14,9 +15,19 @@ interface PetListProps {
     contentContainerStyle?: object;
 }
 
-const PetList: React.FC<PetListProps> = ({ data, numColumns = 2, columnWrapperStyle, contentContainerStyle }) => {
+const PetList: React.FC<PetListProps> = ({
+  data,
+  numColumns = 2,
+  columnWrapperStyle,
+  contentContainerStyle,
+}) => {
+    const navigation = useNavigation<any>();               
+
     const renderProduct = ({ item }: { item: Category }) => (
-        <TouchableOpacity style={styles.productItem}>
+        <TouchableOpacity
+          style={styles.productItem}
+          onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
+        >
             <Image source={{ uri: item.image }} style={styles.productImage} />
             <Text style={styles.soldText}>Sold (50 Products)</Text>
             <Text style={styles.productText}>{item.name}</Text>
