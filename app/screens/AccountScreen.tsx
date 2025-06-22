@@ -24,7 +24,7 @@ const AccountScreen: React.FC = () => {
 
         {/* Right: Notifications + Settings */}
         <View style={styles.icons}>  
-          <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
             <Ionicons name="notifications-outline" size={24} color="#333" style={styles.icon} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
