@@ -10,6 +10,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+// 1. Thêm các import cần thiết
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 type Message = {
   id: number;
@@ -20,6 +23,9 @@ type Message = {
 };
 
 const ChatScreen = () => {
+  // 2. Khởi tạo navigation
+  const navigation = useNavigation<any>();
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -85,63 +91,62 @@ const ChatScreen = () => {
   };
 
   const MessageBubble = ({ message }: { message: Message }) => {
-  // Trường hợp đặc biệt cho nút như "Order Issues"
-  if (message.isUser && message.text === 'Order Issues') {
-    return (
-      <View style={styles.specialUserMessageContainer}>
-        <View style={styles.specialBubble}>
-          <Image source={require('../../assets/images/Check.png')} style={styles.checkIcon} />
-          <Text style={styles.specialText}>{message.text}</Text>
+    // Trường hợp đặc biệt cho nút như "Order Issues"
+    if (message.isUser && message.text === 'Order Issues') {
+      return (
+        <View style={styles.specialUserMessageContainer}>
+          <View style={styles.specialBubble}>
+            <Image source={require('../../assets/images/Check.png')} style={styles.checkIcon} />
+            <Text style={styles.specialText}>{message.text}</Text>
+          </View>
+          <Image
+            source={require('../../assets/images/use.png')}
+            style={styles.userAvatarSmall}
+          />
         </View>
-        <Image
-          source={require('../../assets/images/use.png')}
-          style={styles.userAvatarSmall}
-        />
-      </View>
-    );
-  }
+      );
+    }
 
-  // Trường hợp là ảnh
-  if (message.type === 'image') {
+    // Trường hợp là ảnh
+    if (message.type === 'image') {
+      return (
+        <View
+          style={[
+            styles.imageContainer,
+            { alignSelf: message.isUser ? 'flex-end' : 'flex-start' }
+          ]}
+        >
+          <Image
+            source={
+              message.isUser
+                ? require('../../assets/images/use.png')
+                : require('../../assets/images/imageChatdog.png')
+            }
+            style={styles.productImage}
+          />
+        </View>
+      );
+    }
+
+    // Tin nhắn văn bản thường
     return (
       <View
         style={[
-          styles.imageContainer,
-          { alignSelf: message.isUser ? 'flex-end' : 'flex-start' }
+          styles.messageBubble,
+          message.isUser ? styles.userMessage : styles.botMessage
         ]}
       >
-        <Image
-          source={
-            message.isUser
-              ? require('../../assets/images/use.png')
-              : require('../../assets/images/imageChatdog.png')
-          }
-          style={styles.productImage}
-        />
+        <Text
+          style={[
+            styles.messageText,
+            message.isUser ? styles.userMessageText : styles.botMessageText
+          ]}
+        >
+          {message.text}
+        </Text>
       </View>
     );
-  }
-
-  // Tin nhắn văn bản thường
-  return (
-    <View
-      style={[
-        styles.messageBubble,
-        message.isUser ? styles.userMessage : styles.botMessage
-      ]}
-    >
-      <Text
-        style={[
-          styles.messageText,
-          message.isUser ? styles.userMessageText : styles.botMessageText
-        ]}
-      >
-        {message.text}
-      </Text>
-    </View>
-  );
-};
-
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -149,6 +154,11 @@ const ChatScreen = () => {
 
       {/* Header */}
       <View style={styles.header}>
+        {/* 3. Thêm nút back vào đây */}
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+
         <View style={styles.headerLeft}>
           <Image
             source={require('../../assets/images/avata.png')}
@@ -223,7 +233,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e0e0e0',
     marginTop: 20,
   },
+  // 4. Thêm style cho nút back
+  backButton: {
+    marginRight: 12,
+  },
   headerLeft: {
+    flex: 1, // Để phần này chiếm không gian còn lại
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -234,7 +249,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   headerInfo: {
-    flex: 1,
+    // Bỏ flex: 1 ở đây
   },
   headerName: {
     fontSize: 16,
@@ -250,7 +265,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4A90E2',
     fontStyle: 'italic',
-    marginLeft: -40,
   },
   messagesContainer: {
     flex: 1,

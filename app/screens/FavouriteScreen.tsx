@@ -1,188 +1,279 @@
-import FavoriteItemList from '@/components/favorite/FavoriteItemList';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
-import React from 'react';
+import React, { useState } from 'react';
 import {
-    Dimensions,
     SafeAreaView,
     StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
+    Modal,
+    FlatList, 
+    Image,   
 } from 'react-native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
+import { Calendar } from 'react-native-calendars';
 
-const { width } = Dimensions.get('window');
-const itemWidth = (width - 60) / 2; 
 
 const favoriteItems = [
-  {
-    id: '1',
-    name: 'Yorkshire Terrier',
-    price: '1.000.000 đ',
-    image: require('@/assets/images/imageDog.png'),
-  },
-  {
-    id: '2',
-    name: 'Golden Retriever',
-    price: '1.000.000 đ',
-    image: require('@/assets/images/imageDog.png'),
-  },
-  {
-    id: '3',
-    name: 'Persian Cat',
-    price: '1.000.000 đ',
-    image: require('@/assets/images/imageDog.png'),
-  },
-  {
-    id: '4',
-    name: 'Siamese Cat',
-    price: '1.000.000 đ',
-    image: require('@/assets/images/imageDog.png'),
-  },
-  {
-    id: '5',
-    name: 'British Shorthair',
-    price: '$17,00',
-    image: require('@/assets/images/imageDog.png'),
-  },
-  {
-    id: '6',
-    name: 'Welsh Corgi',
-    price: '$17,00',
-    image: require('@/assets/images/imageDog.png'),
-  },
+    {
+      id: '1',
+      name: 'Yorkshire Terrier',
+      price: '1.000.000 đ',
+      image: require('@/assets/images/imageDog.png'), 
+    },
+    {
+      id: '2',
+      name: 'Golden Retriever',
+      price: '1.000.000 đ',
+      image: require('@/assets/images/imageDog.png'),
+    },
+    { id: '3', name: 'Shiba Inu Dog', image: 'https://pethouse.com.vn/wp-content/uploads/2022/12/Ngoai-hinh-husky-768x1024-1-600x800.jpg', price: '1.000.000', sold: 50 },
+    { id: '4', name: 'British Longhair Cat', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTajAsFf6UunJlFGmB-Y6W1Gyk3oqPkpnOCOA&s', price: '1.000.000', sold: 50 },
+    { id: '5', name: 'Shiba Inu Dog', image: 'https://i.pinimg.com/236x/e7/8a/d6/e78ad67426f1bc002e9f221e9d0605b9.jpg', price: '1.000.000', sold: 50 },
+    { id: '6', name: 'Shiba Inu Dog', image: 'https://pethouse.com.vn/wp-content/uploads/2022/12/Ngoai-hinh-husky-768x1024-1-600x800.jpg', price: '1,000,000', sold: 50 },
+    { id: '7', name: 'British Longhair Cat', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTajAsFf6UunJlFGmB-Y6W1Gyk3oqPkpnOCOA&s', price: '1,000,000', sold: 50 },
+    { id: '8', name: 'Shiba Inu Dog', image: 'https://i.pinimg.com/236x/e7/8a/d6/e78ad67426f1bc002e9f221e9d0605b9.jpg', price: '1,000,000', sold: 50 }
 ];
 
 type RootStackParamList = {
-  FavouriteScreen: undefined;
-  ProductDetail: undefined; // Add params if ProductDetail expects any
+    FavouriteScreen: undefined;
+    ProductDetail: undefined;
 };
 
-const FavouriteScreen = () => {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Favorite</Text>
-      </View>
-      <View style={styles.filterSection}>
-        <View style={styles.dateContainer}>
-          <View style={styles.dateFilterPill}>
-            <Text style={styles.dateFilterText}>April, 18</Text>
-          </View>
-        </View>
-        
-        <TouchableOpacity style={styles.optionsButton}>
-          <View style={styles.circleButton}>
-            <Icon name="chevron-down" size={20} color="#004BFE" />
-          </View>
+type FavoriteItem = {
+    id: string;
+    name: string;
+    price: string;
+    image: any;
+    sold?: number;
+};
+
+const FavoriteCard = ({ item }: { item: FavoriteItem }) => {
+    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+    
+    const imageSource = typeof item.image === 'string' 
+        ? { uri: item.image } 
+        : item.image;          
+
+    return (
+        <TouchableOpacity 
+            style={styles.cardContainer}
+            onPress={() => navigation.navigate('ProductDetail')}
+        >
+            <Image source={imageSource} style={styles.cardImage} />
+            <View style={styles.cardDetails}>
+                <Text style={styles.cardName} numberOfLines={2}>{item.name}</Text>
+                <Text style={styles.cardPrice}>{item.price}</Text>
+            </View>
         </TouchableOpacity>
-      </View>
-        {/* Favorite Items Grid */}
-      <FavoriteItemList 
-        data={favoriteItems} 
-       onPressItem={(item) => navigation.navigate('ProductDetail')}  
-      />
-    </SafeAreaView>
-  );
+    );
+};
+
+
+const FavouriteScreen = () => {
+    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+    
+    const [isCalendarVisible, setCalendarVisible] = useState(false);
+    const [selectedDate, setSelectedDate] = useState('April, 18');
+
+    const handleDateSelect = (day: any) => {
+        const date = new Date(day.dateString);
+        const formattedDate = date.toLocaleString('en-US', { month: 'long', day: 'numeric' });
+        
+        setSelectedDate(formattedDate);
+        setCalendarVisible(false);
+    };
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+            
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Favorite</Text>
+            </View>
+
+            <View style={styles.filterSection}>
+                <View style={styles.dateContainer}>
+                    <View style={styles.dateFilterPill}>
+                        <Text style={styles.dateFilterText}>{selectedDate}</Text>
+                    </View>
+                </View>
+                
+                <TouchableOpacity 
+                    style={styles.optionsButton}
+                    onPress={() => setCalendarVisible(true)}
+                >
+                    <View style={styles.circleButton}>
+                        <Icon name="chevron-down" size={20} color="#004BFE" />
+                    </View>
+                </TouchableOpacity>
+            </View>
+            
+            {/* Thay thế Component cũ bằng FlatList */}
+            <FlatList
+                data={favoriteItems}
+                renderItem={({ item }) => <FavoriteCard item={item} />}
+                keyExtractor={(item) => item.id}
+                numColumns={2}
+                contentContainerStyle={styles.listContainer}
+                showsVerticalScrollIndicator={false}
+            />
+
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={isCalendarVisible}
+                onRequestClose={() => setCalendarVisible(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.modalOverlay} 
+                    activeOpacity={1} 
+                    onPressOut={() => setCalendarVisible(false)}
+                >
+                    <View style={styles.modalView}>
+                        <Calendar
+                            current={new Date().toISOString().split('T')[0]}
+                            onDayPress={handleDateSelect}
+                            theme={{
+                                backgroundColor: '#ffffff',
+                                calendarBackground: '#ffffff',
+                                textSectionTitleColor: '#b6c1cd',
+                                selectedDayBackgroundColor: '#004BFE',
+                                selectedDayTextColor: '#ffffff',
+                                todayTextColor: '#004BFE',
+                                dayTextColor: '#2d4150',
+                                arrowColor: '#004BFE',
+                                monthTextColor: '#202020',
+                                textMonthFontWeight: 'bold',
+                                textDayHeaderFontWeight: '600',
+                                textDayFontSize: 16,
+                                textMonthFontSize: 18,
+                                textDayHeaderFontSize: 14,
+                            }}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+        </SafeAreaView>
+    );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 48,
-    paddingBottom: 15,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#202020',
-    fontFamily: 'Raleway', 
-  },
-  filterSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 15,
-  },
-  dateContainer: {
-    flex: 1,
-  },
-  dateFilterPill: {
-    backgroundColor: '#E5EBFC',
-    borderRadius: 18,
-    paddingVertical: 6,
-    paddingHorizontal: 15,
-    alignSelf: 'flex-start',
-  },
-  dateFilterText: {
-    color: '#004BFE',
-    fontWeight: '700',
-    fontSize: 15,
-    fontFamily: 'Raleway',
-  },
-  optionsButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  circleButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#004BFE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gridContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  itemContainer: {
-    width: itemWidth,
-    margin: 5,
-    marginBottom: 15,
-  },
-  itemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 9,
-    elevation: 3, // Android shadow
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    overflow: 'hidden',
-  },
-  itemImage: {
-    width: '100%',
-    height: 171,
-    borderTopLeftRadius: 9,
-    borderTopRightRadius: 9,
-    resizeMode: 'cover',
-  },
-  itemDetails: {
-    padding: 10,
-  },
-  itemDescription: {
-    fontSize: 12,
-    color: '#000000',
-    marginBottom: 5,
-    fontFamily: 'Nunito Sans',
-  },
-  itemPrice: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#202020',
-    fontFamily: 'Raleway',
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#f8f9fa',
+    },
+    header: {
+        paddingHorizontal: 20,
+        paddingTop: 48,
+        paddingBottom: 15,
+        backgroundColor: '#fff',
+    },
+    headerTitle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#202020',
+    },
+    filterSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingBottom: 15,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee'
+    },
+    dateContainer: {
+        flex: 1,
+    },
+    dateFilterPill: {
+        backgroundColor: '#E5EBFC',
+        borderRadius: 18,
+        paddingVertical: 6,
+        paddingHorizontal: 15,
+        alignSelf: 'flex-start',
+    },
+    dateFilterText: {
+        color: '#004BFE',
+        fontWeight: '700',
+        fontSize: 15,
+    },
+    optionsButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    circleButton: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: '#004BFE',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalView: {
+        margin: 20,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 15,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+        width: '90%',
+    },
+    // Styles cho danh sách và thẻ sản phẩm
+    listContainer: {
+        paddingHorizontal: 12,
+        paddingTop: 16,
+    },
+    cardContainer: {
+        flex: 1,
+        margin: 8,
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        shadowColor: '#4A5568',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    cardImage: {
+        width: '100%',
+        height: 150,
+        backgroundColor: '#f0f0f0', // Thêm màu nền cho ảnh trong lúc tải
+    },
+    cardDetails: {
+        padding: 12,
+    },
+    cardName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#2d3748',
+        marginBottom: 6,
+        minHeight: 36,
+    },
+    cardPrice: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#e53e3e',
+    },
 });
 
 export default FavouriteScreen;

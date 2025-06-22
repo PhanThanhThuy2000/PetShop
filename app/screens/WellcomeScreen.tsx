@@ -1,4 +1,3 @@
-import { StackNavigationProp } from '@react-navigation/stack';
 import React from 'react';
 import {
   Image,
@@ -9,64 +8,43 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
-type RootStackParamList = {
-  SignUp: undefined;
-  Login: undefined;
-};
+const WelcomeScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
 
-type WelcomeScreenNavigationProp = StackNavigationProp<RootStackParamList>;
-
-interface WelcomeScreenProps {
-  navigation: WelcomeScreenNavigationProp;
-}
-
-const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC"/>
       
-      {/* Main Content */}
-      <View style={styles.content}>
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../../assets/images/LogoWellcome.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
-
-        {/* Text Content */}
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>Pet Shops</Text>
-          <Text style={styles.subtitle}>Lovely pets of every family</Text>
-        </View>
-
-        {/* Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.getStartedButton}
-            onPress={() => navigation.navigate('SignUp')}
-          >
-            <Text style={styles.getStartedText}>Let's get started</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.accountButton}
-            onPress={() => navigation.navigate('Login')}
-          >
-            <Text style={styles.accountText}>I already have an account</Text>
-            <View style={styles.arrowContainer}>
-              <Text style={styles.arrowIcon}>→</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.contentContainer}>
+        <Image
+          source={require('../../assets/images/LogoWellcome.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>Pet Shops</Text>
+        <Text style={styles.subtitle}>Lovely pets of every family</Text>
       </View>
 
-      {/* Home Indicator */}
-      <View style={styles.homeIndicator}>
-        <View style={styles.indicator} />
+      <View style={styles.footerContainer}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Text style={styles.primaryButtonText}>Let's get started</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={() => navigation.navigate('SignUp')}
+        >
+          <Text style={styles.secondaryButtonText}>I already have an account</Text>
+          <View style={styles.arrowIconContainer}>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -77,92 +55,64 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
-  content: {
+  contentContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'center', 
     paddingHorizontal: 24,
-    paddingTop: 60,
   },
-  logoContainer: {
-    marginBottom: 60,
-    marginTop: 20,
+  footerContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 40, 
   },
   logo: {
-    width: 320,
-    height: 320,
-  },
-  textContainer: {
-    alignItems: 'center',
+    width: 180,
+    height: 180,
     marginBottom: 40,
   },
   title: {
-    fontSize: 48,
-    fontWeight: '900',
+    fontSize: 34,
+    fontWeight: 'bold', // Dùng bold thay vì 900
     color: '#1A1A1A',
-    marginBottom: 10,
-    letterSpacing: 0.5,
+    marginBottom: 12,
   },
   subtitle: {
-    fontSize: 20,
+    fontSize: 16,
     color: '#666666',
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '400', // Giảm độ đậm
+    lineHeight: 24,
   },
-  buttonContainer: {
-    width: '100%',
-    gap: 16,
-    position: 'absolute',
-    bottom: 50,
-    paddingHorizontal: 24,
-  },
-  getStartedButton: {
+  primaryButton: {
     backgroundColor: '#2563EB',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16, // Tăng padding cho nút to hơn
+    borderRadius: 14,
     alignItems: 'center',
+    marginBottom: 20, // Tăng khoảng cách giữa 2 nút
   },
-  getStartedText: {
+  primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  accountButton: {
+  secondaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
-  accountText: {
-    fontSize: 16,
+  secondaryButtonText: {
+    fontSize: 15,
     color: '#666666',
     fontWeight: '500',
   },
-  arrowContainer: {
+  arrowIconContainer: {
     width: 32,
     height: 32,
     backgroundColor: '#2563EB',
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
-  },
-  arrowIcon: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '400',
-    textAlign: 'center',
-    transform: [{ translateY: -1 }],
-  },
-  homeIndicator: {
-    alignItems: 'center',
-    paddingBottom: 12,
-  },
-  indicator: {
-    width: 100,
-    height: 3,
-    backgroundColor: '#000000',
-    borderRadius: 1.5,
+    marginLeft: 12,
   },
 });
 

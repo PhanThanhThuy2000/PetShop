@@ -1,4 +1,3 @@
-// screens/AccountScreen.tsx
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -11,18 +10,16 @@ const AccountScreen: React.FC = () => {
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        {/* Left: Avatar + My Activity */}
         <View style={styles.headerLeft}>
           <Image
             source={{ uri: 'https://randomuser.me/api/portraits/women/1.jpg' }}
             style={styles.avatar}
           />
-          <TouchableOpacity style={styles.activityBtn} onPress={() => navigation.navigate('History')}>
+          <TouchableOpacity style={styles.activityBtn} onPress={() => navigation.navigate('EditInfomation')}>
             <Text style={styles.activityText}>My Activity</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Right: Notifications + Settings */}
         <View style={styles.icons}>  
           <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
             <Ionicons name="notifications-outline" size={24} color="#333" style={styles.icon} />
@@ -33,10 +30,8 @@ const AccountScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Greeting */}
       <Text style={styles.greeting}>Hello, Amanda!</Text>
 
-      {/* My Purchases */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>My Purchases</Text>
@@ -45,7 +40,7 @@ const AccountScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
         <View style={styles.purchaseRow}>
-          <TouchableOpacity onPress={() => navigation.navigate('Payment')}> {/* Example nav */}
+          <TouchableOpacity onPress={() => navigation.navigate('Payment')}> 
             <Item icon="wallet" label="To Pay" color="#FF4C4C" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('History')}>
@@ -60,7 +55,6 @@ const AccountScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Categories */}
       <View style={styles.card}>
         <View style={styles.grid}>
           <Category label="Comida" icon="utensils" active />

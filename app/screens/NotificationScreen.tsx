@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 type NotificationItem = {
   id: string;
@@ -28,6 +29,8 @@ const NOTIFICATIONS: NotificationItem[] = [
 ];
 
 export default function NotificationScreen() {
+  const navigation = useNavigation<any>();
+
   const renderNotificationItem = (item: NotificationItem) => (
     <View key={item.id} style={styles.notificationItem}>
       <Image source={item.avatar} style={styles.avatar} />
@@ -45,20 +48,18 @@ export default function NotificationScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#000" />
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
+        <View style={{width: 24}} /> 
       </View>
 
-      {/* Notifications List */}
       <ScrollView style={styles.notificationsList}>
         {NOTIFICATIONS.map(renderNotificationItem)}
       </ScrollView>
 
-      
     </SafeAreaView>
   );
 }
@@ -67,10 +68,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingTop:25
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
@@ -91,22 +94,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: '#eee',
     alignItems: 'center',
-    marginVertical: 8,
   },
   avatar: {
     width: 50,
     height: 50,
-    borderRadius: 8, // ✅ chỉ sửa dòng này (bo nhẹ ảnh)
+    borderRadius: 25, // Bo tròn ảnh avatar
     marginRight: 12,
-    backgroundColor: '#f5f5f5',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   notificationContent: {
     flex: 1,
@@ -114,9 +107,10 @@ const styles = StyleSheet.create({
   notificationText: {
     fontSize: 14,
     color: '#333',
+    lineHeight: 20,
   },
   name: {
-    fontWeight: '600',
+    fontWeight: 'bold', // Dùng bold thay cho 600
   },
   timestamp: {
     fontSize: 12,
@@ -125,16 +119,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingVertical: 12,
-  },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginLeft: 8,
   },
 });
