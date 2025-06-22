@@ -13,7 +13,6 @@ const DATA: Product[] = Array(8).fill({
 const numColumns = 2;
 const ITEM_WIDTH = (Dimensions.get('window').width - 48) / numColumns;
 
-// Define Product type
 interface Product {
     id: string;
     image: ImageSourcePropType;

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { FlatList, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 type BreedItem = {
   id: string;
@@ -17,7 +18,12 @@ const DATA = [
   { id: '6', name: 'Fish', image: require('../../assets/images/FishBreedsScreen.png') },
 ];
 
-const BreedsScreen = ({ navigation }: { navigation: any }) => {
+const BreedsScreen = () => {
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+
+  const { categoryName } = route.params;
+
   const renderItem = ({ item }: { item: BreedItem }) => (
     <View style={styles.card}>
       <Image source={item.image} style={styles.image} resizeMode="cover" />
@@ -28,11 +34,12 @@ const BreedsScreen = ({ navigation }: { navigation: any }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        {/* SỬA LẠI LỆNH ĐIỀU HƯỚNG TẠI ĐÂY */}
+        <TouchableOpacity onPress={() => navigation.navigate('app', { screen: 'Home' })}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
-        <Text style={styles.title}>Breeds Cat</Text>
-        <View style={{ width: 24 }} /> {/* Placeholder for centering title */}
+        <Text style={styles.title}>Breeds {categoryName}</Text>
+        <View style={{ width: 24 }} />
       </View>
       <View style={styles.contentBox}>
         <FlatList
@@ -59,6 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
+    paddingTop: 30,
   },
   title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', flex: 1, color: '#222' },
   contentBox: {

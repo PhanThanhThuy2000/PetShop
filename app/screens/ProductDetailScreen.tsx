@@ -122,7 +122,8 @@ const InfoRow: FC<{ label: string; value: string }> = ({ label, value }) => (
   </View>
 );
 
-const ReviewCard: FC = () => (
+// 1. Sửa ReviewCard để nhận 'navigation'
+const ReviewCard: FC<{ navigation: any }> = ({ navigation }) => (
   <View style={styles.reviewCard}>
     <Image source={require('@/assets/images/dog.png')} style={styles.avatar} />
     <View style={styles.reviewContent}>
@@ -133,7 +134,11 @@ const ReviewCard: FC = () => (
         ))}
       </View>
       <Text numberOfLines={3} style={styles.reviewText}>Lorem ipsum dolor sit amet.</Text>
-      <TouchableOpacity style={styles.viewAllBtn}>
+      {/* 2. Thêm onPress để điều hướng */}
+      <TouchableOpacity 
+        style={styles.viewAllBtn}
+        onPress={() => navigation.navigate('Reviews')}
+      >
         <Text style={styles.viewAllText}>View All Reviews</Text>
       </TouchableOpacity>
     </View>
@@ -166,7 +171,6 @@ const ProductDetailScreen: FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Bar */}
       <View style={styles.headerBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#000" />
@@ -197,14 +201,14 @@ const ProductDetailScreen: FC = () => {
           <InfoRow label="Availability" value="In stock" />
 
           <Text style={styles.sectionHeading}>Reviews</Text>
-          <ReviewCard />
+          {/* 3. Truyền navigation vào cho ReviewCard */}
+          <ReviewCard navigation={navigation} />
 
           <Text style={styles.sectionHeading}>Related Items</Text>
           <RelatedGrid />
         </View>
       </ScrollView>
 
-      {/* Footer Bar */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.favBtn}
@@ -237,7 +241,6 @@ const ProductDetailScreen: FC = () => {
 
 export default ProductDetailScreen;
 
-// --- Styles ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
 
@@ -247,38 +250,38 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    marginTop: 15,
+    paddingTop: 35, 
   },
   backBtn: { padding: 4 },
-  headerTitle: { flex: 1, fontSize: 20, fontWeight: 'bold', marginLeft: 8 },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 20, fontWeight: 'bold' },
   headerFav: { padding: 4 },
 
-  headerImage: { width: '100%', height: 300 },
-  topIcons: { position: 'absolute', top: 16, right: 16, flexDirection: 'row' },
+  headerImage: { width: '100%', height: 300, justifyContent: 'space-between' },
+  topIcons: { alignSelf: 'flex-end', padding: 16, flexDirection: 'row' },
   iconBtn: { marginLeft: 12 },
-  carouselDots: { position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center' },
+  carouselDots: { paddingBottom: 12, flexDirection: 'row', justifyContent: 'center' },
   dot: { width: 8, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB', margin: 4 },
   dotActive: { backgroundColor: '#2563EB' },
 
   content: { padding: 16 },
-  productTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
-  productPrice: { fontSize: 20, color: '#E63946', marginBottom: 12 },
-  countdownText: { color: '#1E90FF', marginBottom: 12 },
-  sectionHeading: { fontSize: 18, fontWeight: '600', marginVertical: 12 },
+  productTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 8, color: '#111827' },
+  productPrice: { fontSize: 22, color: '#E63946', marginBottom: 12, fontWeight: 'bold' },
+  countdownText: { color: '#1E90FF', marginBottom: 16, fontWeight: '500' },
+  sectionHeading: { fontSize: 18, fontWeight: '600', marginVertical: 16, color: '#111827' },
 
   varList: { paddingVertical: 8 },
-  varItem: { marginRight: 12, borderRadius: 8 },
+  varItem: { marginRight: 12, borderRadius: 10, borderWidth: 1, borderColor: '#ddd' },
   varSelected: { borderWidth: 2, borderColor: '#10B981' },
-  varImg: { width: 60, height: 60, borderRadius: 8 },
+  varImg: { width: 64, height: 64, borderRadius: 8 },
 
   deliveryContainer: { marginVertical: 12 },
   deliveryBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#2563EB',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 8,
     alignItems: 'center',
   },
@@ -286,34 +289,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  deliveryLabel: { fontWeight: '500', marginBottom: 4 },
-  datePill: { backgroundColor: '#DBEAFE', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  dateText: { color: '#1D4ED8' },
-  delPrice: { fontWeight: 'bold' },
+  deliveryLabel: { fontWeight: '600', marginBottom: 4, fontSize: 16, color: '#374151' },
+  datePill: { backgroundColor: '#DBEAFE', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' },
+  dateText: { color: '#1D4ED8', fontWeight: '500' },
+  delPrice: { fontWeight: 'bold', fontSize: 16 },
 
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  infoKey: { color: '#374151' },
-  infoVal: { fontWeight: '500' },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  infoKey: { color: '#4B5563', fontSize: 15 },
+  infoVal: { fontWeight: '600', fontSize: 15, color: '#111827' },
 
-  reviewCard: { flexDirection: 'row', backgroundColor: '#F9FAFB', padding: 12, borderRadius: 8 },
-  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
+  reviewCard: { flexDirection: 'row', backgroundColor: '#F9FAFB', padding: 16, borderRadius: 12 },
+  avatar: { width: 44, height: 44, borderRadius: 22, marginRight: 12 },
   reviewContent: { flex: 1 },
-  reviewer: { fontWeight: '600' },
+  reviewer: { fontWeight: 'bold', fontSize: 16, color: '#111827' },
   starRow: { flexDirection: 'row', marginVertical: 4 },
-  reviewText: { color: '#374151', marginBottom: 8 },
-  viewAllBtn: { backgroundColor: '#2563EB', borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
-  viewAllText: { color: '#fff', fontWeight: '600' },
+  reviewText: { color: '#374151', marginBottom: 12, lineHeight: 20 },
+  viewAllBtn: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
+  viewAllText: { color: '#2563EB', fontWeight: '600' },
 
   relatedRow: { justifyContent: 'space-between' },
   relatedItem: { width: '48%', marginBottom: 16 },
-  relatedImg: { width: '100%', height: 120, borderRadius: 8 },
-  relatedTitle: { marginTop: 8, color: '#374151' },
-  relatedPrice: { fontWeight: '600', marginTop: 4 },
+  relatedImg: { width: '100%', height: 120, borderRadius: 8, backgroundColor: '#f0f0f0' },
+  relatedTitle: { marginTop: 8, color: '#374151', minHeight: 36 },
+  relatedPrice: { fontWeight: 'bold', marginTop: 4, fontSize: 16, color: '#111827' },
 
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
+    backgroundColor: '#fff',
     borderTopWidth: 1,
     borderColor: '#E5E7EB',
   },
@@ -321,18 +325,18 @@ const styles = StyleSheet.create({
   cartBtn: {
     flex: 1,
     backgroundColor: '#111827',
-    padding: 12,
+    padding: 14,
     borderRadius: 8,
     alignItems: 'center',
     marginRight: 8,
   },
-  cartBtnTxt: { color: '#fff', fontWeight: '600' },
+  cartBtnTxt: { color: '#fff', fontWeight: '600', fontSize: 16 },
   buyBtn: {
     flex: 1,
     backgroundColor: '#2563EB',
-    padding: 12,
+    padding: 14,
     borderRadius: 8,
     alignItems: 'center',
   },
-  buyBtnTxt: { color: '#fff', fontWeight: '600' },
+  buyBtnTxt: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });

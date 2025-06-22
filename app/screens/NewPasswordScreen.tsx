@@ -4,20 +4,16 @@ import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'reac
 const NewPasswordScreen = () => {
     return (
         <View style={styles.container}>
-            {/* Viền sóng màu D9E4FF ở góc phải, nằm dưới cùng */}
             <View style={styles.waveBackgroundLight} />
 
-            {/* Viền sóng màu xanh ở góc phải, nằm dưới header */}
             <View style={styles.waveBackground} />
 
-            {/* Header với hình ảnh con chó */}
             <View style={styles.header}>
                 <View style={styles.dogIcon}>
                     <Image source={require('@/assets/images/imageDog.png')} style={styles.dogImage} />
                 </View>
             </View>
 
-            {/* Tiêu đề và nội dung */}
             <Text style={styles.title}>Setup New Password</Text>
             <Text style={styles.subtitle}>Please, setup a new password for your account</Text>
 

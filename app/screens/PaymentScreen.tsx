@@ -35,7 +35,7 @@ const PaymentScreen: React.FC = () => {
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment</Text>
@@ -78,7 +78,6 @@ const PaymentScreen: React.FC = () => {
         ))}
       </View>
 
-      {/* Shipping Options */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Shipping Options</Text>
         <TouchableOpacity

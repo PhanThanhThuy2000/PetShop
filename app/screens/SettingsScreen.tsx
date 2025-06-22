@@ -8,11 +8,10 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const SettingsScreen: React.FC = () => {
-  const SectionHeader: React.FC<{ title: string; style?: object }> = ({ title, style }) => (
-    <Text style={[styles.sectionHeader, style]}>{title}</Text>
-  );
+  const navigation = useNavigation<any>();
 
   const Row: React.FC<{
     label: string;
@@ -24,19 +23,22 @@ const SettingsScreen: React.FC = () => {
       style={styles.row}
       activeOpacity={onPress ? 0.6 : 1}
       onPress={onPress}
+      disabled={!onPress}
     >
       <Text
         style={[
           styles.rowLabel,
-          isDestructive && { color: '#E53935' /* đỏ logout / delete */ },
+          isDestructive && { color: '#E53935' }, 
         ]}
       >
         {label}
       </Text>
-      {value != null && (
-        <Text style={styles.rowValue}>{value}</Text>
-      )}
-      {onPress && <Ionicons name="chevron-forward" size={20} color="#999" />}
+      <View style={styles.rowRightContent}>
+        {value != null && (
+          <Text style={styles.rowValue}>{value}</Text>
+        )}
+        {onPress && <Ionicons name="chevron-forward" size={20} color="#999" />}
+      </View>
     </TouchableOpacity>
   );
 
@@ -44,28 +46,32 @@ const SettingsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => { /* back */ }}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.title}>Settings</Text>
+        <View style={{ width: 36 }} /> 
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Personal */}
-        <SectionHeader title="Personal" />
-        <Row label="Profile" onPress={() => {}} />
-        <Row label="Shipping Address" onPress={() => {}} />
-        <Row label="Payment methods" onPress={() => {}} />
+        {/* Mục Personal */}
+        <Text style={styles.sectionHeader}>Personal</Text>
+        <View style={styles.sectionContainer}>
+          <Row label="Profile" onPress={() => navigation.navigate('EditInfomation')} />
+          <Row label="Shipping Address" onPress={() => navigation.navigate('ListAdress')} />
+          <Row label="Payment methods" onPress={() => navigation.goBack()} />
+        </View>
 
-        {/* Account */}
-        <SectionHeader title="Account" style={{ marginTop: 32 }} />
-        <Row label="Language" value="English" onPress={() => {}} />
-        <Row label="About Slada" onPress={() => {}} />
-        <Row label="Change password" onPress={() => {}} />
-        <Row label="Delete Account" onPress={() => {}} isDestructive />
+        <Text style={styles.sectionHeader}>Account</Text>
+        <View style={styles.sectionContainer}>
+          <Row label="Language" value="English" onPress={() => navigation.navigate('Language')} />
+          <Row label="About Slada" onPress={() => navigation.navigate('About')} />
+          <Row label="Change password" onPress={() => navigation.navigate('ChangePassword')} />
+          <Row label="Delete Account" onPress={() => { /* Xử lý xóa tài khoản */ }} isDestructive />
+        </View>
 
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => {}}>
+        {/* Nút Logout */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={() => { /* Xử lý đăng xuất */ }}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -74,42 +80,58 @@ const SettingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#f2f2f7' }, // Màu nền xám nhẹ
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#ddd',
+    borderBottomWidth: 1,
+    borderColor: '#e5e5e5',
+    backgroundColor: '#fff',
     marginTop:50
   },
-  backBtn: { marginRight: 12 },
+  backBtn: { padding: 6 },
   title: { fontSize: 20, fontWeight: '600', color: '#333' },
-
-  content: { paddingHorizontal: 16, paddingTop: 24 },
-
+  content: { paddingVertical: 24 },
   sectionHeader: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#666',
+    fontWeight: '600',
+    color: '#6d6d72',
+    paddingHorizontal: 16,
     marginBottom: 8,
+  },
+  sectionContainer: {
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#e5e5e5',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#eee',
+    paddingHorizontal: 16,
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderColor: '#e5e5e5',
   },
   rowLabel: { fontSize: 16, color: '#333' },
-  rowValue: { fontSize: 16, color: '#666', marginRight: 8 },
-
-  logoutBtn: {
-    marginTop: 40,
+  rowRightContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+  },
+  rowValue: { fontSize: 16, color: '#8e8e93', marginRight: 8 },
+  logoutBtn: {
+    marginTop: 32,
+    marginHorizontal:16,
+    alignItems: 'center',
+    paddingVertical: 14,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
   },
   logoutText: {
     fontSize: 16,

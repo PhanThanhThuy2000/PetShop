@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'; // or react-native-vector-icons
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
     Image,
@@ -10,54 +10,41 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
-const AboutScreen = ({ navigation }) => {
+const AboutScreen = () => {
+  const navigation = useNavigation<any>();
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
       
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>9:41</Text>
-        <View style={styles.headerRight}>
-          <View style={styles.signalBars}>
-            <View style={[styles.bar, styles.bar1]} />
-            <View style={[styles.bar, styles.bar2]} />
-            <View style={[styles.bar, styles.bar3]} />
-            <View style={[styles.bar, styles.bar4]} />
-          </View>
-          <Ionicons name="wifi" size={16} color="#000" />
-          <View style={styles.battery}>
-            <View style={styles.batteryFill} />
-          </View>
-        </View>
+        <Text style={styles.headerTitle}>About</Text>
+        <View style={styles.headerRightIcons} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Shopping Bag Icon */}
         <View style={styles.iconContainer}>
           <Image 
-            source={require('../../assets/images/iconabout.png')} // Đường dẫn tới ảnh của bạn
+            source={require('../../assets/images/iconabout.png')} // Đảm bảo đường dẫn này đúng
             style={styles.iconImage}
             resizeMode="contain"
           />
         </View>
 
-        {/* Title */}
         <Text style={styles.title}>About PeShops</Text>
 
-        {/* Description */}
         <Text style={styles.description}>
           Shoppe - Shopping UI kit" is likely a user interface (UI) kit designed to facilitate the development of e-commerce or shopping-related applications. UI kits are collections of pre-designed elements, components, and templates that developers and designers can use to create consistent and visually appealing user interfaces.
         </Text>
 
-        {/* Contact Section */}
         <Text style={styles.contactText}>
           If you need help or you have any questions, feel free to contact me by email.
         </Text>
@@ -81,50 +68,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderColor: '#f0f0f0',
+    marginTop:25
   },
   backButton: {
     padding: 5,
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '600',
     color: '#000',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  signalBars: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  bar: {
-    width: 3,
-    backgroundColor: '#000',
-    borderRadius: 1,
-  },
-  bar1: { height: 4 },
-  bar2: { height: 6 },
-  bar3: { height: 8 },
-  bar4: { height: 10 },
-  battery: {
-    width: 20,
-    height: 10,
-    borderWidth: 1,
-    borderColor: '#000',
-    borderRadius: 2,
-    position: 'relative',
-  },
-  batteryFill: {
     position: 'absolute',
-    left: 1,
-    top: 1,
-    bottom: 1,
-    width: '80%',
-    backgroundColor: '#000',
-    borderRadius: 1,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    zIndex: -1, 
+  },
+  headerRightIcons: {
+    width: 24 + 10, 
   },
   content: {
     flex: 1,

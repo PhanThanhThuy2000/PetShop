@@ -12,6 +12,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+// 1. Thêm import cho useNavigation
+import { useNavigation } from '@react-navigation/native';
 import { useAuth, useCart } from '../../hooks/redux';
 import { 
   getCart, 
@@ -27,6 +29,7 @@ type Item = {
   description?: string;
   price: number;
   quantity?: number;
+  _apiId?: string; // Thêm _apiId để lưu ID gốc từ API
 };
 
 const { width } = Dimensions.get('window');
@@ -34,11 +37,11 @@ const CARD_HEIGHT = 100;
 const CARD_PADDING = 12;
 
 export default function CartScreen() {
-  // Redux state
+  const navigation = useNavigation<any>();
+
   const { items, totalItems, totalAmount, isLoading, dispatch } = useCart();
   const { token } = useAuth();
 
-  // Local state cho wishlist (giữ nguyên)
   const [wishlistItems, setWishlistItems] = useState<Item[]>([
     {
       id: 3,
@@ -54,29 +57,26 @@ export default function CartScreen() {
     },
   ]);
 
-  // Load cart data when component mounts
   useEffect(() => {
     if (token) {
       dispatch(getCart());
     }
   }, [token, dispatch]);
 
-  // Convert API cart items to local Item format for display
   const getDisplayItems = () => {
     return items.map(apiItem => {
       const itemData = apiItem.pet_id || apiItem.product_id;
       const primaryImage = itemData?.images?.find(img => img.is_primary) || itemData?.images?.[0];
       
       return {
-        id: parseInt(apiItem._id.replace(/\D/g, '')) || Math.random(), // Convert _id to number
+        id: parseInt(apiItem._id.replace(/\D/g, '')) || Math.random(),
         image: primaryImage?.url ? { uri: primaryImage.url } : require('../../assets/images/dog.png'),
         title: itemData?.name || 'Unknown Item',
         description: apiItem.pet_id ? 
-          `${apiItem.pet_id.breed_id?.name} - ${apiItem.pet_id.gender} - ${apiItem.pet_id.age}y` :
-          'Pet product',
+          `${apiItem.pet_id.breed_id?.name} - ${apiItem.pet_id.gender} - ${apiItem.pet_id.age}y`:'Pet product',
         price: itemData?.price || 0,
         quantity: apiItem.quantity,
-        _apiId: apiItem._id, // Lưu ID gốc để gọi API
+        _apiId: apiItem._id, 
       };
     });
   };
@@ -95,14 +95,13 @@ export default function CartScreen() {
         quantity: newQuantity 
       })).unwrap();
       
-      // Refresh cart data
       dispatch(getCart());
     } catch (error) {
       Alert.alert('Error', 'Failed to update quantity');
     }
   };
 
-  const removeFromCart = async (id: number) => {
+  const handleRemoveFromCart = async (id: number) => {
     const item = cartItems.find(item => item.id === id);
     if (!item || !item._apiId) return;
 
@@ -160,15 +159,13 @@ export default function CartScreen() {
     Alert.alert('Checkout', 'Checkout functionality coming soon!');
   };
 
-  // Sử dụng totalAmount từ API thay vì tính local
   const total = totalAmount || cartItems.reduce(
     (sum, x) => sum + x.price * (x.quantity || 1),
     0
   );
 
-  const renderCard = (item: Item & { _apiId?: string }, isCart: boolean) => (
+  const renderCard = (item: Item, isCart: boolean) => (
     <View key={item.id} style={styles.card}>
-      {/* Image + Trash overlay */}
       <View style={styles.imgWrapper}>
         <Image 
           source={typeof item.image === 'string' ? { uri: item.image } : item.image} 
@@ -178,7 +175,7 @@ export default function CartScreen() {
         <TouchableOpacity
           style={styles.deleteBtn}
           onPress={() =>
-            isCart ? removeFromCart(item.id) : removeFromWishlist(item.id)
+            isCart ? handleRemoveFromCart(item.id) : removeFromWishlist(item.id)
           }
         >
           <MaterialCommunityIcons
@@ -189,7 +186,6 @@ export default function CartScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Text content */}
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{item.title}</Text>
         {isCart && (
@@ -202,7 +198,6 @@ export default function CartScreen() {
         </Text>
       </View>
 
-      {/* Action button */}
       {isCart ? (
         <View style={styles.qtyControl}>
           <TouchableOpacity
@@ -229,7 +224,6 @@ export default function CartScreen() {
     </View>
   );
 
-  // Show loading state
   if (isLoading && cartItems.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
@@ -241,7 +235,6 @@ export default function CartScreen() {
     );
   }
 
-  // Show login required state
   if (!token) {
     return (
       <SafeAreaView style={styles.container}>
@@ -256,7 +249,6 @@ export default function CartScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Cart</Text>
           <View style={styles.headerRight}>
@@ -271,18 +263,17 @@ export default function CartScreen() {
           </View>
         </View>
 
-        {/* Shipping Address */}
         <View style={styles.addressCard}>
           <View style={{ flex: 1 }}>
             <Text style={styles.addressLabel}>Shipping Address</Text>
             <Text>Vui lòng nhập địa chỉ nhận hàng</Text>
           </View>
-          <TouchableOpacity>
+          {/* 3. Thêm onPress để điều hướng sang màn hình ListAdress */}
+          <TouchableOpacity onPress={() => navigation.navigate('ListAdress')}>
             <Ionicons name="pencil" size={20} color="#007AFF" />
           </TouchableOpacity>
         </View>
 
-        {/* Cart Items */}
         {cartItems.length === 0 ? (
           <View style={styles.emptyCart}>
             <Ionicons name="cart-outline" size={60} color="#C0C0C0" />
@@ -293,7 +284,6 @@ export default function CartScreen() {
           cartItems.map(item => renderCard(item, true))
         )}
 
-        {/* Wishlist */}
         {wishlistItems.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>From Your Wishlist</Text>
@@ -302,7 +292,6 @@ export default function CartScreen() {
         )}
       </ScrollView>
 
-      {/* Footer */}
       {cartItems.length > 0 && (
         <View style={styles.footer}>
           <View style={styles.totalContainer}>
@@ -357,6 +346,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 24,
+    alignItems: 'center', // Căn giữa các item theo chiều dọc
   },
   addressLabel: { fontWeight: '600', marginBottom: 4 },
 
@@ -392,7 +382,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     left: 6,
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 12,
     padding: 4,
   },
@@ -409,14 +399,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#f0f0f0',
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
   },
-  qtyBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+  qtyBtn: { paddingHorizontal: 10, paddingVertical: 6 },
   qtyText: { fontSize: 18, fontWeight: '600' },
-  qtyCount: { minWidth: 24, textAlign: 'center', paddingVertical: 4 },
+  qtyCount: { minWidth: 28, textAlign: 'center', paddingVertical: 6, fontSize: 16 },
 
   cartBtn: {
     paddingHorizontal: 16,
@@ -427,7 +417,8 @@ const styles = StyleSheet.create({
   footer: {
     position: 'absolute',
     bottom: 0,
-    width,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     padding: 16,
     backgroundColor: '#fff',
@@ -453,7 +444,6 @@ const styles = StyleSheet.create({
   },
   checkoutText: { color: '#fff', fontWeight: '600' },
 
-  // Loading và Empty states
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -473,6 +463,8 @@ const styles = StyleSheet.create({
   emptyCart: {
     alignItems: 'center',
     paddingVertical: 40,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
   },
   emptyTitle: {
     fontSize: 18,

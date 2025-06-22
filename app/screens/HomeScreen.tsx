@@ -1,3 +1,5 @@
+// HomeScreen.tsx (Đã cập nhật)
+
 import React from 'react';
 import {
   SafeAreaView,
@@ -27,8 +29,6 @@ const flashSaleData = [
   { id: '3', image: 'https://cocapet.net/wp-content/uploads/2018/08/bear-tam-th%E1%BB%83.jpg', price: '500,000', originalPrice: '750,000', sold: 30, total: 50 },
   { id: '4', image: 'https://file.hstatic.net/200000159621/article/cover_8d54a27928c4408593fa2f4f4e60191b_grande.jpg', price: '900,000', originalPrice: '1,100,000', sold: 5, total: 15 },
 ];
-
-// THÊM "export" VÀO ĐÂY
 export const pets = [
     { id: '1', name: 'British Longhair Cat', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSgjs2sCO0xh0Ve1Sf8mDtBt2UhO9GRZImDw&s', price: '1,000,000', sold: 50 },
     { id: '2', name: 'Shiba Inu Dog', image: 'https://thuvienmeme.com/wp-content/uploads/2024/07/cho-husky-luom-hinh-su-meme.jpg', price: '1,000,000', sold: 50 },
@@ -41,8 +41,13 @@ export const pets = [
 const HomeScreen = () => {
   const navigation = useNavigation() as any;
 
+  // Cập nhật hàm renderCategoryItem
   const renderCategoryItem = ({ item }: { item: typeof categories[0] }) => (
-    <TouchableOpacity style={styles.categoryItem}>
+    // Thêm onPress để điều hướng
+    <TouchableOpacity
+      style={styles.categoryItem}
+      onPress={() => navigation.navigate('Breeds', { categoryName: item.name })}
+    >
       <View style={styles.categoryImageContainer}>
         <Image source={{ uri: item.image }} style={styles.categoryImage} />
       </View>
@@ -155,6 +160,7 @@ const HomeScreen = () => {
   );
 };
 
+// ... Styles không đổi
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
   container: { paddingBottom: 20 },
@@ -176,8 +182,6 @@ const styles = StyleSheet.create({
   categoryImageContainer: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#E2E8F0' },
   categoryImage: { width: '90%', height: '90%', borderRadius: 30 },
   categoryText: { fontSize: 14, color: '#4A5568', fontWeight: '500' },
-  
-  // Flash Sale Styles
   flashSaleList: { paddingHorizontal: 20 },
   flashSaleItem: {
     width: 140,
@@ -220,8 +224,6 @@ const styles = StyleSheet.create({
     color: '#991B1B',
     alignSelf: 'center',
   },
-
-  // Pet List Styles
   petListRow: { justifyContent: 'space-between', paddingHorizontal: 20 },
   petItemContainer: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#4A5568', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
   petItemImage: { width: '100%', height: 160, borderTopLeftRadius: 16, borderTopRightRadius: 16 },

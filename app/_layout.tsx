@@ -44,6 +44,7 @@ import PaymentScreen from './screens/PaymentScreen';
 import PetAllScreen from './screens/PetAllScreen';
 import FavouriteScreen from './screens/FavouriteScreen';
 import HistoryScreen from './screens/HistoryScreen';
+import EditInfomationScreen from './screens/EditInfomationScreen';
 
 
 const Stack = createStackNavigator();
@@ -61,7 +62,7 @@ const AppNavigator = () => {
   }, []);
 
   return (
-    <Stack.Navigator initialRouteName="app">
+    <Stack.Navigator initialRouteName="Wellcome">
       {/* Main app with bottom tabs */}
       <Stack.Screen 
         name="app" 
@@ -205,6 +206,11 @@ const AppNavigator = () => {
       <Stack.Screen 
         name="History" 
         component={HistoryScreen} 
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="EditInfomation" 
+        component={EditInfomationScreen} 
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
