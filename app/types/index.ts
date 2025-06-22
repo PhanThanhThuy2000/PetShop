@@ -36,6 +36,8 @@ export interface ProductImage {
 
 // Pet types (dựa trên server)
 export interface Pet {
+  age: any;
+  gender: any;
   _id: string;
   name: string;
   price: number;
