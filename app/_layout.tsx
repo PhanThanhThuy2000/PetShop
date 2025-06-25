@@ -32,13 +32,14 @@ import SearchScreen from './screens/SearchScreen';
 
 
 import ListAdressScreen from './screens/ListAdressScreen';
-import PetAllScreen from './screens/PetAllScreen';
+import PaymentList from './screens/PaymentList';
 import PaymentScreen from './screens/PaymentScreen';
+import PetAllScreen from './screens/PetAllScreen';
 const Stack = createStackNavigator();
 export default function RootLayout() {
   return (
 
-    <Stack.Navigator initialRouteName="Payment">
+    <Stack.Navigator initialRouteName="Payment1">
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       <Stack.Screen name="SignUp" component={RegisterScreen} options={{ headerShown: false }} />
@@ -73,6 +74,7 @@ export default function RootLayout() {
 
       <Stack.Screen name="PetAll" component={PetAllScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ListAdress" component={ListAdressScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Payment1" component={PaymentList} options={{ headerShown: false }} />
 
     </Stack.Navigator>
   );
