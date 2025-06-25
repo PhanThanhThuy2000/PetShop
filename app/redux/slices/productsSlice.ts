@@ -1,7 +1,7 @@
 // app/redux/slices/productsSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import api from '../../utils/api';
-import { Product, ApiResponse } from '../../types';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { ApiResponse, Product } from '../../types';
+import api from '../../utils/api-client';
 
 interface ProductsState {
   products: Product[];
