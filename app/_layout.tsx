@@ -1,13 +1,13 @@
+import { createStackNavigator } from '@react-navigation/stack';
+import 'expo-router/entry';
 import React, { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { createStackNavigator } from '@react-navigation/stack';
-import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
-import 'expo-router/entry';
 
 // Redux store
-import { store, persistor } from './redux/store';
 import { loadTokenFromStorage } from './redux/slices/authSlice';
+import { persistor, store } from './redux/store';
 
 // Main 
 import App from './app';
@@ -39,12 +39,12 @@ import BreedsScreen from './screens/BreedsScreen';
 import SearchScreen from './screens/SearchScreen';
 
 // Đức Anh code screens
+import EditInfomationScreen from './screens/EditInfomationScreen';
+import FavouriteScreen from './screens/FavouriteScreen';
+import HistoryScreen from './screens/HistoryScreen';
 import ListAdressScreen from './screens/ListAdressScreen';
 import PaymentScreen from './screens/PaymentScreen';
 import PetAllScreen from './screens/PetAllScreen';
-import FavouriteScreen from './screens/FavouriteScreen';
-import HistoryScreen from './screens/HistoryScreen';
-import EditInfomationScreen from './screens/EditInfomationScreen';
 
 
 const Stack = createStackNavigator();
@@ -62,7 +62,7 @@ const AppNavigator = () => {
   }, []);
 
   return (
-    <Stack.Navigator initialRouteName="Wellcome">
+    <Stack.Navigator initialRouteName="Chat">
       {/* Main app with bottom tabs */}
       <Stack.Screen 
         name="app" 

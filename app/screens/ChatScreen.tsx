@@ -1,18 +1,17 @@
-import React, { useState } from 'react';
-import {
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-// 1. Thêm các import cần thiết
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import React, { useState } from 'react';
+import {
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 type Message = {
   id: number;
@@ -23,7 +22,6 @@ type Message = {
 };
 
 const ChatScreen = () => {
-  // 2. Khởi tạo navigation
   const navigation = useNavigation<any>();
 
   const [messages, setMessages] = useState<Message[]>([
@@ -91,7 +89,6 @@ const ChatScreen = () => {
   };
 
   const MessageBubble = ({ message }: { message: Message }) => {
-    // Trường hợp đặc biệt cho nút như "Order Issues"
     if (message.isUser && message.text === 'Order Issues') {
       return (
         <View style={styles.specialUserMessageContainer}>
@@ -99,15 +96,11 @@ const ChatScreen = () => {
             <Image source={require('../../assets/images/Check.png')} style={styles.checkIcon} />
             <Text style={styles.specialText}>{message.text}</Text>
           </View>
-          <Image
-            source={require('../../assets/images/use.png')}
-            style={styles.userAvatarSmall}
-          />
+          <Image source={require('../../assets/images/use.png')} style={styles.userAvatarSmall} />
         </View>
       );
     }
 
-    // Trường hợp là ảnh
     if (message.type === 'image') {
       return (
         <View
@@ -128,7 +121,6 @@ const ChatScreen = () => {
       );
     }
 
-    // Tin nhắn văn bản thường
     return (
       <View
         style={[
@@ -154,16 +146,12 @@ const ChatScreen = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        {/* 3. Thêm nút back vào đây */}
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
 
         <View style={styles.headerLeft}>
-          <Image
-            source={require('../../assets/images/avata.png')}
-            style={styles.avatar}
-          />
+          <Image source={require('../../assets/images/avata.png')} style={styles.avatar} />
           <View style={styles.headerInfo}>
             <Text style={styles.headerName}>Maggy Lee</Text>
             <Text style={styles.headerSubtitle}>Customer Care Service</Text>
@@ -183,16 +171,16 @@ const ChatScreen = () => {
       <View style={styles.inputContainer}>
         <View style={styles.leftButtons}>
           <TouchableOpacity style={styles.iconButton}>
-            <Image source={require('../../assets/images/Actions.png')} style={styles.iconImage} />
+            <Image source={require('../../assets/images/action.png')} style={styles.iconImage} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-            <Image source={require('../../assets/images/Photo.png')} style={styles.iconImage} />
+            <Image source={require('../../assets/images/camera.png')} style={styles.iconImage} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-            <Image source={require('../../assets/images/Gallery.png')} style={styles.iconImage} />
+            <Image source={require('../../assets/images/picture.png')} style={styles.iconImage} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-            <Image source={require('../../assets/images/Audio.png')} style={styles.iconImage} />
+            <Image source={require('../../assets/images/mic.png')} style={styles.iconImage} />
           </TouchableOpacity>
         </View>
 
@@ -209,8 +197,16 @@ const ChatScreen = () => {
           <TouchableOpacity style={styles.iconButton}>
             <Image source={require('../../assets/images/Emoji.png')} style={styles.iconImage} />
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-            <Image source={require('../../assets/images/Like.png')} style={styles.iconImage} />
+            <Image
+              source={
+                inputText.trim()
+                  ? require('../../assets/images/send.png') // Có nội dung: icon gửi
+                  : require('../../assets/images/Like.png') // Không có: icon like
+              }
+              style={styles.iconImage}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -219,10 +215,7 @@ const ChatScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -233,12 +226,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e0e0e0',
     marginTop: 20,
   },
-  // 4. Thêm style cho nút back
-  backButton: {
-    marginRight: 12,
-  },
+  backButton: { marginRight: 12 },
   headerLeft: {
-    flex: 1, // Để phần này chiếm không gian còn lại
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -248,9 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 12,
   },
-  headerInfo: {
-    // Bỏ flex: 1 ở đây
-  },
+  headerInfo: {},
   headerName: {
     fontSize: 16,
     fontWeight: '600',
@@ -282,16 +270,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#4A90E2',
     alignSelf: 'flex-end',
   },
-  userMessageText: {
-    color: '#fff',
-  },
+  userMessageText: { color: '#fff' },
   botMessage: {
     backgroundColor: '#f0f0f0',
     alignSelf: 'flex-start',
   },
-  botMessageText: {
-    color: '#333',
-  },
+  botMessageText: { color: '#333' },
   messageText: {
     fontSize: 14,
     lineHeight: 20,
@@ -346,43 +330,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
   },
   sendButton: {
-    backgroundColor: '#4A90E2',
     borderRadius: 20,
     padding: 6,
     marginLeft: 4,
   },
   specialUserMessageContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  alignSelf: 'flex-end',
-  marginVertical: 4,
-},
-specialBubble: {
-  flexDirection: 'row',
-  backgroundColor: '#1877F2',
-  paddingVertical: 8,
-  paddingHorizontal: 12,
-  borderRadius: 20,
-  alignItems: 'center',
-},
-checkIcon: {
-  width: 16,
-  height: 16,
-  marginRight: 6,
-  tintColor: '#fff'
-},
-specialText: {
-  color: '#fff',
-  fontSize: 14,
-  fontWeight: '500',
-},
-userAvatarSmall: {
-  width: 28,
-  height: 28,
-  borderRadius: 14,
-  marginLeft: 8,
-},
-
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    marginVertical: 4,
+  },
+  specialBubble: {
+    flexDirection: 'row',
+    backgroundColor: '#1877F2',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  checkIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 6,
+    tintColor: '#fff',
+  },
+  specialText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  userAvatarSmall: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginLeft: 8,
+  },
 });
 
 export default ChatScreen;
