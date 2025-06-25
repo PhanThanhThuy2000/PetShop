@@ -71,7 +71,7 @@ const SettingsScreen: React.FC = () => {
         </View>
 
         {/* Nút Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => { /* Xử lý đăng xuất */ }}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={() => {  }}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -80,7 +80,7 @@ const SettingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f7' }, // Màu nền xám nhẹ
+  container: { flex: 1, backgroundColor: '#f2f2f7' }, 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
