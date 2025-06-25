@@ -15,40 +15,31 @@ import App from './app';
 // Import all screens
 import About from './screens/AboutScreen';
 import AccountScreen from './screens/AccountScreen';
+import BreedsScreen from './screens/BreedsScreen';
 import CartScreen from './screens/CartScreen';
 import ChangePassword from './screens/ChangePassword';
+import ChatScreen from './screens/ChatScreen';
+import EditInfomationScreen from './screens/EditInfomationScreen';
+import FavouriteScreen from './screens/FavouriteScreen';
+import HistoryScreen from './screens/HistoryScreen';
 import LanguageScreen from './screens/LanguageScreen';
+import ListAdressScreen from './screens/ListAdressScreen';
 import LoginScreen from './screens/LoginScreen';
 import NewPasswordScreen from './screens/NewPasswordScreen';
 import OrderSuccess from './screens/OrderSuccessScreen';
 import PasswordCodeScreen from './screens/PasswordCodeScreen';
+import PaymentScreen from './screens/PaymentScreen';
+import PetAllScreen from './screens/PetAllScreen';
 import ProductDetailScreen from './screens/ProductDetailScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ReviewsScreen from './screens/ReviewsScreen';
+import SearchScreen from './screens/SearchScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import ShippingAddressScreen from './screens/ShippingAddressScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
 
-// Trí code screens
-import ChatScreen from './screens/ChatScreen';
-import ShippingAddressScreen from './screens/ShippingAddressScreen';
-
-// Thắng code screens
-import BreedsScreen from './screens/BreedsScreen';
-import SearchScreen from './screens/SearchScreen';
-
-// Đức Anh code screens
-import EditInfomationScreen from './screens/EditInfomationScreen';
-import FavouriteScreen from './screens/FavouriteScreen';
-import HistoryScreen from './screens/HistoryScreen';
-import ListAdressScreen from './screens/ListAdressScreen';
-import PaymentList from './screens/PaymentList';
-import PaymentScreen from './screens/PaymentScreen';
-import PetAllScreen from './screens/PetAllScreen';
-
-
-import PetAllScreen from './screens/PetAllScreen';
 const Stack = createStackNavigator();
 
 const LoadingScreen = () => (
@@ -64,7 +55,7 @@ const AppNavigator = () => {
   }, []);
 
   return (
-    <Stack.Navigator initialRouteName="Chat">
+    <Stack.Navigator initialRouteName="app">
       {/* Main app with bottom tabs */}
       <Stack.Screen 
         name="app" 
@@ -215,44 +206,6 @@ const AppNavigator = () => {
         component={EditInfomationScreen} 
         options={{ headerShown: false }}
       />
-
-    <Stack.Navigator initialRouteName="Payment1">
-      <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
-      <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="SignUp" component={RegisterScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="PasswordCode" component={PasswordCodeScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="RecoveryPassword" component={RecoveryPasswordScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="NewPassword" component={NewPasswordScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Account" component={AccountScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Voucher" component={VoucherScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="ChangePasswor" component={ChangePassword} options={{ headerShown: false }} />
-      <Stack.Screen name="Wellcome" component={WellcomeScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Reviews" component={ReviewsScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Cart" component={CartScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="About" component={About} options={{ headerShown: false }} />
-      <Stack.Screen name="OrderSuccess" component={OrderSuccess} options={{ headerShown: false }} />
-      <Stack.Screen name="Language" component={LanguageScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ headerShown: false }} />
-     
-      {/* // Trí code bên dưới */}
-      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="ShippingAddress" component={ShippingAddressScreen} options={{ headerShown: false }} />
-
-
-      {/* // Thắng code bên dưới */}
-      <Stack.Screen name="Search" component={SearchScreen} options={{ headerShown: false }} />  
-      <Stack.Screen name="Breeds" component={BreedsScreen} options={{ headerShown: false }} />   
-
-      {/* // Đức Anh code bên dưới */}
-      <Stack.Screen name="Payment" component={PaymentScreen} options={{ headerShown: false }} />
-
-      
-
-      <Stack.Screen name="PetAll" component={PetAllScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="ListAdress" component={ListAdressScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Payment1" component={PaymentList} options={{ headerShown: false }} />
-
     </Stack.Navigator>
     
   );

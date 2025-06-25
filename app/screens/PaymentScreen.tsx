@@ -1,43 +1,107 @@
-// screens/PaymentScreen.tsx
+import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as React from 'react';
 import { useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+  Alert,
   Image,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
-const PaymentScreen: React.FC = () => {
+const PaymentScreen = () => {
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'wallet' | 'vnpay'>('cod');
-  const navigation = useNavigation<any>();
-
-  // Sample items data
-  const items = [
-    {
-      name: 'Dog munuô',
-      price: '1.000.000 đ',
-      image: 'https://azpet.com.vn/wp-content/uploads/2019/01/pomeranian.jpg',
-    },
-    {
-      name: 'Cat',
-      price: '1.000.000 đ',
-      image: 'https://aquariumcare.vn/upload/user/images/Mèo%20Ragdoll%206(1).jpg',
-    },
+  const SERVER_URLS = [
+    'http://10.0.2.2:5000',      // Cho máy ảo Android thông thường
+    'http://127.0.0.1:5000',     // Localhost
+    'http://192.168.0.102:5000', // IP máy thật (thay đổi theo IP của bạn)
+    'http://localhost:5000'      // Cho web
   ];
 
+  const handleVNPAYPayment = async () => {
+    let lastError = null;
+
+    // Thử kết nối với tất cả các URL cho đến khi thành công
+    for (const serverUrl of SERVER_URLS) {
+      try {
+        console.log('Trying to connect to:', serverUrl);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // Giảm timeout xuống 5 giây
+
+        const response = await fetch(`${serverUrl}/create-vnpay-payment`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ amount: 100000 }), // 100,000 VND
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('API response data:', data);
+
+        if (!data.paymentUrl) {
+          throw new Error('Payment URL not received from server');
+        }
+
+        console.log('Payment URL:', data.paymentUrl);
+        const supported = await Linking.canOpenURL(data.paymentUrl);
+        console.log('Can open URL:', supported);
+
+        if (supported) {
+          await Linking.openURL(data.paymentUrl);
+          return; // Thoát khỏi hàm nếu thành công
+        } else {
+          throw new Error('Không thể mở URL thanh toán');
+        }
+      } catch (error) {
+        const err = error as Error;
+        console.log('Failed to connect to', serverUrl, 'Error:', err.message);
+        lastError = err;
+        // Tiếp tục thử URL tiếp theo
+        continue;
+      }
+    }
+
+    // Nếu đã thử tất cả các URL mà vẫn thất bại
+    console.log('All connection attempts failed. Last error:', {
+      message: lastError?.message,
+      stack: lastError?.stack,
+      name: lastError?.name
+    });
+
+    // Hiển thị thông báo lỗi
+    let errorMessage = 'Không thể kết nối đến máy chủ thanh toán. Vui lòng kiểm tra:\n\n' +
+      '1. Máy chủ đã được khởi động\n' +
+      '2. Kết nối mạng hoạt động\n' +
+      '3. Địa chỉ IP và cổng chính xác\n\n';
+
+    if (lastError?.name === 'AbortError') {
+      errorMessage += 'Lỗi: Kết nối bị timeout sau 5 giây';
+    } else {
+      errorMessage += 'Chi tiết lỗi: ' + lastError?.message;
+    }
+
+    Alert.alert('Lỗi Thanh Toán', errorMessage);
+  };
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
+        <Ionicons name="arrow-back" size={24} color="#000" />
         <Text style={styles.headerTitle}>Payment</Text>
         <View style={{ width: 24 }} />
       </View>
@@ -45,46 +109,32 @@ const PaymentScreen: React.FC = () => {
       {/* Address */}
       <View style={styles.addressBox}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.bold}>
-            Phan Thùy <Text style={styles.gray}>(+84 905304321)</Text>
-          </Text>
+          <Text style={styles.bold}>Phan Thùy <Text style={styles.gray}>(+84 905304321)</Text></Text>
           <Text style={styles.gray}>
             Magnolia MSI B4, next to Pheonix Theatre, Chevasandra, Bengaluru, Karnataka 560023
           </Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate('ListAdress')}>
-          <MaterialIcons name="edit" size={20} color="#1976D2" />
-        </TouchableOpacity>
+        <MaterialIcons name="edit" size={20} color="#1976D2" />
       </View>
 
       {/* Items */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Items</Text>
-          <TouchableOpacity
-            style={styles.voucherButton}
-            onPress={() => navigation.navigate('Voucher')}
-          >
-            <Text style={styles.voucherText}>Add Voucher</Text>
-          </TouchableOpacity>
+          <View style={styles.discountTag}>
+            <Text style={styles.discountText}>5% Discount</Text>
+            <Entypo name="cross" size={12} color="#fff" />
+          </View>
         </View>
-        {items.map((item, idx) => (
-          <ItemRow
-            key={idx}
-            name={item.name}
-            price={item.price}
-            image={item.image}
-          />
-        ))}
+        <ItemRow name="Dog munuô" price="1.000.000 đ" image="https://azpet.com.vn/wp-content/uploads/2019/01/pomeranian.jpg" />
+        <ItemRow name="Cat" price="1.000.000 đ" image="https://aquariumcare.vn/upload/user/images/M%C3%A8o%20Ragdoll%206(1).jpg" />
       </View>
 
+      {/* Shipping Options */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Shipping Options</Text>
         <TouchableOpacity
-          style={[
-            styles.shippingOption,
-            shippingMethod === 'standard' && styles.shippingActive,
-          ]}
+          style={[styles.shippingOption, shippingMethod === 'standard' && styles.shippingActive]}
           onPress={() => setShippingMethod('standard')}
         >
           <View style={styles.radioCircle}>
@@ -96,12 +146,8 @@ const PaymentScreen: React.FC = () => {
           </View>
           <Text style={styles.shippingFree}>FREE</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={[
-            styles.shippingOption,
-            shippingMethod === 'express' && styles.shippingActive,
-          ]}
+          style={[styles.shippingOption, shippingMethod === 'express' && styles.shippingActive]}
           onPress={() => setShippingMethod('express')}
         >
           <View style={styles.radioCircle}>
@@ -113,10 +159,7 @@ const PaymentScreen: React.FC = () => {
           </View>
           <Text style={styles.shippingPrice}>100.000 đ</Text>
         </TouchableOpacity>
-
-        <Text style={styles.deliveryNote}>
-          Delivered on or before Thursday, 23 April 2020
-        </Text>
+        <Text style={styles.deliveryNote}>Delivered on or before Thursday, 23 April 2020</Text>
       </View>
 
       {/* Payment Method */}
@@ -132,12 +175,7 @@ const PaymentScreen: React.FC = () => {
             style={styles.paymentOption}
             onPress={() => setPaymentMethod(method.id as any)}
           >
-            <FontAwesome5
-              name={method.icon as any}
-              size={20}
-              color="#1976D2"
-              style={{ width: 30 }}
-            />
+            <FontAwesome5 name={method.icon as any} size={20} color="#1976D2" style={{ width: 30 }} />
             <Text style={{ flex: 1 }}>{method.label}</Text>
             <View style={styles.radioCircle}>
               {paymentMethod === method.id && <View style={styles.selectedDot} />}
@@ -159,26 +197,14 @@ const PaymentScreen: React.FC = () => {
         <Text style={styles.totalText}>Total</Text>
         <Text style={styles.totalPrice}>2.000.000 đ</Text>
       </View>
-
-      <TouchableOpacity
-        style={styles.payButton}
-        onPress={() => navigation.navigate('OrderSuccess')}
-      >
+      <TouchableOpacity style={styles.payButton} onPress={handleVNPAYPayment}>
         <Text style={styles.payText}>Pay</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 };
 
-const ItemRow = ({
-  name,
-  price,
-  image,
-}: {
-  name: string;
-  price: string;
-  image: string;
-}) => (
+const ItemRow = ({ name, price, image }: { name: string; price: string; image: string }) => (
   <View style={styles.itemRow}>
     <Image source={{ uri: image }} style={styles.itemImage} />
     <Text style={{ flex: 1 }}>{name}</Text>
@@ -186,13 +212,7 @@ const ItemRow = ({
   </View>
 );
 
-const SummaryRow = ({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) => (
+const SummaryRow = ({ label, value }: { label: string; value: string }) => (
   <View style={styles.summaryRow}>
     <Text style={styles.gray}>{label}</Text>
     <Text style={styles.gray}>{value}</Text>
@@ -243,18 +263,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  voucherButton: {
-    borderWidth: 1,
-    borderColor: '#1976D2',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: 'transparent',
+  discountTag: {
+    flexDirection: 'row',
+    backgroundColor: '#1976D2',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    alignItems: 'center',
+    gap: 4,
   },
-  voucherText: {
-    color: '#1976D2',
-    fontSize: 14,
-    fontWeight: '500',
+  discountText: {
+    color: '#fff',
+    fontSize: 12,
   },
   itemRow: {
     flexDirection: 'row',
