@@ -72,7 +72,7 @@ const PasswordCodeScreen = () => {
             {code.map((digit, index) => (
               <TextInput
                 key={index}
-                ref={(ref) => (inputRefs.current[index] = ref)}
+                ref={(ref) => { inputRefs.current[index] = ref; }}
                 style={styles.codeInput}
                 value={digit}
                 onChangeText={(text) => handleCodeChange(text, index)}

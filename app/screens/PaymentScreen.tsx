@@ -1,5 +1,7 @@
+// screens/PaymentScreen.tsx
 import * as React from 'react';
 import { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -8,17 +10,34 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import { Ionicons, MaterialIcons, FontAwesome5, Entypo } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
-const PaymentScreen = () => {
+const PaymentScreen: React.FC = () => {
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'wallet' | 'vnpay'>('cod');
+  const navigation = useNavigation<any>();
+
+  // Sample items data
+  const items = [
+    {
+      name: 'Dog munuô',
+      price: '1.000.000 đ',
+      image: 'https://azpet.com.vn/wp-content/uploads/2019/01/pomeranian.jpg',
+    },
+    {
+      name: 'Cat',
+      price: '1.000.000 đ',
+      image: 'https://aquariumcare.vn/upload/user/images/Mèo%20Ragdoll%206(1).jpg',
+    },
+  ];
 
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Ionicons name="arrow-back" size={24} color="#000" />
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment</Text>
         <View style={{ width: 24 }} />
       </View>
@@ -26,32 +45,46 @@ const PaymentScreen = () => {
       {/* Address */}
       <View style={styles.addressBox}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.bold}>Phan Thùy <Text style={styles.gray}>(+84 905304321)</Text></Text>
+          <Text style={styles.bold}>
+            Phan Thùy <Text style={styles.gray}>(+84 905304321)</Text>
+          </Text>
           <Text style={styles.gray}>
             Magnolia MSI B4, next to Pheonix Theatre, Chevasandra, Bengaluru, Karnataka 560023
           </Text>
         </View>
-        <MaterialIcons name="edit" size={20} color="#1976D2" />
+        <TouchableOpacity onPress={() => navigation.navigate('ListAdress')}>
+          <MaterialIcons name="edit" size={20} color="#1976D2" />
+        </TouchableOpacity>
       </View>
 
       {/* Items */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Items</Text>
-          <View style={styles.discountTag}>
-            <Text style={styles.discountText}>5% Discount</Text>
-            <Entypo name="cross" size={12} color="#fff" />
-          </View>
+          <TouchableOpacity
+            style={styles.voucherButton}
+            onPress={() => navigation.navigate('Voucher')}
+          >
+            <Text style={styles.voucherText}>Add Voucher</Text>
+          </TouchableOpacity>
         </View>
-        <ItemRow name="Dog munuô" price="1.000.000 đ" image="https://azpet.com.vn/wp-content/uploads/2019/01/pomeranian.jpg" />
-        <ItemRow name="Cat" price="1.000.000 đ" image="https://aquariumcare.vn/upload/user/images/M%C3%A8o%20Ragdoll%206(1).jpg" />
+        {items.map((item, idx) => (
+          <ItemRow
+            key={idx}
+            name={item.name}
+            price={item.price}
+            image={item.image}
+          />
+        ))}
       </View>
 
-      {/* Shipping Options */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Shipping Options</Text>
         <TouchableOpacity
-          style={[styles.shippingOption, shippingMethod === 'standard' && styles.shippingActive]}
+          style={[
+            styles.shippingOption,
+            shippingMethod === 'standard' && styles.shippingActive,
+          ]}
           onPress={() => setShippingMethod('standard')}
         >
           <View style={styles.radioCircle}>
@@ -63,8 +96,12 @@ const PaymentScreen = () => {
           </View>
           <Text style={styles.shippingFree}>FREE</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={[styles.shippingOption, shippingMethod === 'express' && styles.shippingActive]}
+          style={[
+            styles.shippingOption,
+            shippingMethod === 'express' && styles.shippingActive,
+          ]}
           onPress={() => setShippingMethod('express')}
         >
           <View style={styles.radioCircle}>
@@ -72,11 +109,14 @@ const PaymentScreen = () => {
           </View>
           <View style={styles.shippingLabel}>
             <Text style={styles.shippingText}>Express</Text>
-<Text style={styles.shippingTime}>1-2 days</Text>
+            <Text style={styles.shippingTime}>1-2 days</Text>
           </View>
           <Text style={styles.shippingPrice}>100.000 đ</Text>
         </TouchableOpacity>
-        <Text style={styles.deliveryNote}>Delivered on or before Thursday, 23 April 2020</Text>
+
+        <Text style={styles.deliveryNote}>
+          Delivered on or before Thursday, 23 April 2020
+        </Text>
       </View>
 
       {/* Payment Method */}
@@ -92,7 +132,12 @@ const PaymentScreen = () => {
             style={styles.paymentOption}
             onPress={() => setPaymentMethod(method.id as any)}
           >
-            <FontAwesome5 name={method.icon as any} size={20} color="#1976D2" style={{ width: 30 }} />
+            <FontAwesome5
+              name={method.icon as any}
+              size={20}
+              color="#1976D2"
+              style={{ width: 30 }}
+            />
             <Text style={{ flex: 1 }}>{method.label}</Text>
             <View style={styles.radioCircle}>
               {paymentMethod === method.id && <View style={styles.selectedDot} />}
@@ -114,14 +159,26 @@ const PaymentScreen = () => {
         <Text style={styles.totalText}>Total</Text>
         <Text style={styles.totalPrice}>2.000.000 đ</Text>
       </View>
-      <TouchableOpacity style={styles.payButton}>
+
+      <TouchableOpacity
+        style={styles.payButton}
+        onPress={() => navigation.navigate('OrderSuccess')}
+      >
         <Text style={styles.payText}>Pay</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 };
 
-const ItemRow = ({ name, price, image }: { name: string; price: string; image: string }) => (
+const ItemRow = ({
+  name,
+  price,
+  image,
+}: {
+  name: string;
+  price: string;
+  image: string;
+}) => (
   <View style={styles.itemRow}>
     <Image source={{ uri: image }} style={styles.itemImage} />
     <Text style={{ flex: 1 }}>{name}</Text>
@@ -129,7 +186,13 @@ const ItemRow = ({ name, price, image }: { name: string; price: string; image: s
   </View>
 );
 
-const SummaryRow = ({ label, value }: { label: string; value: string }) => (
+const SummaryRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) => (
   <View style={styles.summaryRow}>
     <Text style={styles.gray}>{label}</Text>
     <Text style={styles.gray}>{value}</Text>
@@ -142,7 +205,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-    marginTop:20,
+    marginTop: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -171,7 +234,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   sectionTitle: {
-fontWeight: 'bold',
+    fontWeight: 'bold',
     marginBottom: 12,
     fontSize: 16,
   },
@@ -180,18 +243,18 @@ fontWeight: 'bold',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  discountTag: {
-    flexDirection: 'row',
-    backgroundColor: '#1976D2',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
-    alignItems: 'center',
-    gap: 4,
+  voucherButton: {
+    borderWidth: 1,
+    borderColor: '#1976D2',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
   },
-  discountText: {
-    color: '#fff',
-    fontSize: 12,
+  voucherText: {
+    color: '#1976D2',
+    fontSize: 14,
+    fontWeight: '500',
   },
   itemRow: {
     flexDirection: 'row',

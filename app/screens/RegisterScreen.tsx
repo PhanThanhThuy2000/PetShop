@@ -1,4 +1,3 @@
-// RegisterScreen.tsx
 import React from 'react';
 import {
   SafeAreaView,
@@ -13,17 +12,19 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import CountryPicker from 'react-native-country-picker-modal';
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
 const RegisterScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* HEADER: Tiêu đề + Ảnh minh họa */}
         <View style={styles.headerContainer}>
           <Text style={styles.title}>SignUp</Text>
           <Image
@@ -32,16 +33,13 @@ const RegisterScreen: React.FC = () => {
           />
         </View>
 
-        {/* FORM: Name, Email, Password, Phone, Button, Cancel */}
         <View style={styles.formContainer}>
-          {/* Input Name */}
           <TextInput
             style={styles.input}
             placeholder="Name"
             placeholderTextColor="#C0C0C0"
           />
 
-          {/* Input Email */}
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -50,7 +48,6 @@ const RegisterScreen: React.FC = () => {
             autoCapitalize="none"
           />
 
-          {/* Input Password (có icon show/hide) */}
           <View style={styles.passwordWrapper}>
             <TextInput
               style={styles.passwordInput}
@@ -61,7 +58,6 @@ const RegisterScreen: React.FC = () => {
             <Icon name="eye-off" size={20} color="#C0C0C0" />
           </View>
 
-          {/* Input Phone với CountryPicker */}
           <View style={styles.phoneWrapper}>
             <View style={styles.countryButton}>
               <CountryPicker
@@ -84,15 +80,16 @@ const RegisterScreen: React.FC = () => {
             />
           </View>
 
-          {/* Nút “Done” */}
-          <View style={styles.buttonPrimary}>
-            <Text style={styles.buttonPrimaryText}>Done</Text>
-          </View>
+          <TouchableOpacity style={styles.buttonPrimary}>
+            <Text style={styles.buttonPrimaryText}>Next</Text>
+          </TouchableOpacity>
 
-          {/* Link “Cancel” */}
-          <View style={styles.cancelContainer}>
+          <TouchableOpacity 
+            style={styles.cancelContainer} 
+            onPress={() => navigation.navigate('Login')}
+          >
             <Text style={styles.cancelText}>Cancel</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -110,13 +107,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
-  // HEADER: chứa title + illustration
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginTop: 30,
+    marginTop: 40,
   },
   title: {
     fontSize: 40,
@@ -124,12 +120,11 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   illustration: {
-    width: 300,
-    height: 300,
+    width: 250,
+    height: 250,
     resizeMode: 'contain',
   },
 
-  // FORM: sẽ được đẩy xuống gần cuối màn hình
   formContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -141,7 +136,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F2',
     borderRadius: 24,
     paddingHorizontal: 20,
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '500',
     color: '#000000',
     marginTop: 16,
   },
@@ -156,7 +152,7 @@ const styles = StyleSheet.create({
   },
   passwordInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 18,
     color: '#000000',
   },
   phoneWrapper: {
@@ -179,12 +175,12 @@ const styles = StyleSheet.create({
   },
   phoneInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 18,
     color: '#000000',
     marginLeft: 10,
+    fontWeight: '500'
   },
 
-  // BUTTON “Done”
   buttonPrimary: {
     height: 50,
     backgroundColor: '#0066FF',
@@ -199,14 +195,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // LINK “Cancel”
   cancelContainer: {
     marginTop: 20,
     alignItems: 'center',
   },
   cancelText: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#000000',
-    opacity: 0.6,
+    fontWeight: '600'
   },
 });

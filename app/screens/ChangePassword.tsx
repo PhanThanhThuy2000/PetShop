@@ -1,3 +1,5 @@
+// ChangePassword.tsx (Đã sửa)
+
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -11,6 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+// 1. Thêm import useNavigation
+import { useNavigation } from '@react-navigation/native';
 
 interface PasswordInputProps {
   placeholder: string;
@@ -21,6 +25,9 @@ interface PasswordInputProps {
 }
 
 const ChangePasswordScreen = () => {
+  // 2. Lấy navigation từ hook
+  const navigation = useNavigation<any>();
+
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -64,8 +71,9 @@ const ChangePasswordScreen = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#000000" />
+        {/* 3. Thêm onPress và sửa lại icon cho đồng bộ */}
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Change Password</Text>
         <View style={styles.placeholder} />
@@ -114,10 +122,12 @@ const ChangePasswordScreen = () => {
   );
 };
 
+// ... styles không đổi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    paddingTop:50
   },
   header: {
     flexDirection: 'row',
@@ -137,12 +147,12 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   placeholder: {
-    width: 34,
+    width: 34, // Bằng kích thước nút back để title ở giữa
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 100, // Đẩy toàn bộ input xuống một chút
+    paddingTop: 40, 
   },
   inputContainer: {
     flexDirection: 'row',
@@ -150,9 +160,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     borderRadius: 12,
-    marginBottom: 30, // Dãn khoảng cách giữa các input
+    marginBottom: 20,
     paddingHorizontal: 15,
-    height: 50,
+    height: 56,
     backgroundColor: '#FFFFFF',
   },
   textInput: {
@@ -165,12 +175,12 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 50, // Đẩy nút lên một chút so với đáy màn hình
+    paddingBottom: 40,
   },
   updateButton: {
-    backgroundColor: '#A8B5FF',
+    backgroundColor: '#2563EB', // Đổi màu cho nổi bật hơn
     borderRadius: 12,
-    height: 50,
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -180,5 +190,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
 
 export default ChangePasswordScreen;

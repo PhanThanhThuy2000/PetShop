@@ -1,4 +1,3 @@
-// ReviewsScreen.tsx
 import React from 'react';
 import {
   View,
@@ -7,10 +6,12 @@ import {
   Image,
   StyleSheet,
   SafeAreaView,
+  TouchableOpacity, 
+  StatusBar,
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
-// Data mẫu 39 reviews
 const reviews = Array.from({ length: 39 }).map((_, i) => ({
   id: String(i),
   name: 'Veronika',
@@ -20,7 +21,6 @@ const reviews = Array.from({ length: 39 }).map((_, i) => ({
     'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
 }));
 
-// Component hiển thị sao
 const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
   <View style={styles.stars}>
     {Array.from({ length: 5 }).map((_, i) => (
@@ -34,7 +34,6 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
   </View>
 );
 
-// Component một review item
 const ReviewItem: React.FC<{
   avatar: string;
   name: string;
@@ -54,9 +53,21 @@ const ReviewItem: React.FC<{
 );
 
 export default function ReviewsScreen() {
+  const navigation = useNavigation<any>();
+
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Reviews</Text>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      
+      {/* Header với nút back */}
+      <View style={styles.headerContainer}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Reviews ({reviews.length})</Text>
+        <View style={{ width: 24 }} /> 
+      </View>
+
       <FlatList
         data={reviews}
         keyExtractor={(item) => item.id}
@@ -68,7 +79,6 @@ export default function ReviewsScreen() {
             text={item.text}
           />
         )}
-        // Nếu muốn thêm khoảng cách cuối list thì dùng paddingBottom
         contentContainerStyle={styles.list}
       />
     </SafeAreaView>
@@ -80,12 +90,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginHorizontal: 20,
+  // Styles mới cho header
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
     marginTop: 30,
-    marginBottom: 10,
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111',
   },
   list: {
     paddingBottom: 20,
@@ -94,7 +116,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#f0f0f0',
     borderBottomWidth: 1,
     alignItems: 'flex-start',
   },
@@ -103,13 +125,15 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     marginRight: 15,
+    backgroundColor: '#e0e0e0'
   },
   reviewContent: {
     flex: 1,
   },
   name: {
-    fontWeight: '500',
+    fontWeight: '600', // Đậm hơn một chút
     fontSize: 16,
+    marginBottom: 2,
   },
   stars: {
     flexDirection: 'row',
@@ -117,10 +141,11 @@ const styles = StyleSheet.create({
   },
   starIcon: {
     marginRight: 2,
-    color: '#f1c40f',
+    color: '#f5b025', 
   },
   text: {
     fontSize: 14,
-    color: '#555',
+    color: '#444', 
+    lineHeight: 20, 
   },
 });

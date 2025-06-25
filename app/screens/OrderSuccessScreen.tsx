@@ -1,11 +1,14 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const OrderSuccessScreen = () => {
+  const navigation = useNavigation<any>();
+
   return (
     <View style={styles.container}>
       <Image
-        source={require('../../assets/images/iconshop.png')} // Đặt hình trong thư mục assets
+        source={require('../../assets/images/iconshop.png')} 
         style={styles.image}
         resizeMode="contain"
       />
@@ -13,7 +16,10 @@ const OrderSuccessScreen = () => {
       <Text style={styles.description}>
         Thank you for choosing us! Feel free to continue shopping and explore our wide range of products. Happy Shopping!
       </Text>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity 
+        style={styles.button} 
+        onPress={() => navigation.navigate('app', { screen: 'Home' })}
+      >
         <Text style={styles.buttonText}>Continue Shopping</Text>
       </TouchableOpacity>
     </View>
@@ -36,24 +42,32 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22, 
     fontWeight: 'bold',
     color: '#2C2C2C',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   description: {
-    fontSize: 14,
+    fontSize: 15, 
     color: '#666',
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
+    marginBottom: 32, 
+    lineHeight: 22,
   },
   button: {
-    backgroundColor: '#2C1E1E',
-    paddingVertical: 14,
+    backgroundColor: '#D9534F', 
+    paddingVertical: 16,
     paddingHorizontal: 40,
-    borderRadius: 10,
+    borderRadius: 12, 
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   buttonText: {
     color: '#FFFFFF',

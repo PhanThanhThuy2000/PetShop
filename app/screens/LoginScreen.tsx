@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     Image,
     SafeAreaView,
     ScrollView,
@@ -10,41 +12,61 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+
+import { useAuth } from '../../hooks/redux';
+import { clearError, loginUser } from '../redux/slices/authSlice';
 
 const LoginScreen = () => {
+    const navigation = useNavigation<any>();
+    
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const { isLoading, error, token, dispatch } = useAuth();
 
-    const handleLogin = () => {
-        console.log('Login with:', { email, password });
-        // navigation.navigate('Home');
-    };
+    useEffect(() => {
+        if (token) {
+            navigation.navigate('app' as never);
+        }
+    }, [token, navigation]);
 
-    const handleGoogleLogin = () => {
-        console.log('Google login');
-    };
+    useEffect(() => {
+        if (error) {
+            Alert.alert('Login Error', error, [
+                { text: 'OK', onPress: () => dispatch(clearError()) }
+            ]);
+        }
+    }, [error, dispatch]);
 
-    const handleFacebookLogin = () => {
-        console.log('Facebook login');
-    };
-
-    const handleForgotPassword = () => {
-        console.log('Forgot password');
+    const handleLogin = async () => {
+        if (!email.trim() || !password.trim()) {
+            Alert.alert('Error', 'Please enter both email and password');
+            return;
+        }
+        dispatch(loginUser({ email: email.trim(), password }));
     };
 
     const handleSignUp = () => {
-        console.log('Sign up');
+        navigation.navigate('SignUp' as never);
     };
+
+    const handleForgotPassword = () => {
+        navigation.navigate('NewPassword');
+    }
+
+    const handleGoogleLogin = () => {}
+    const handleFacebookLogin = () => {}
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
             <ScrollView
-                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContainer}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
             >
-                <View style={styles.headerSection}>
-                    <View style={styles.titleContainer}>
+                <View style={styles.headerContainer}>
+                    <View>
                         <Text style={styles.title}>Login</Text>
                         <Text style={styles.subtitle}>Good to see you back!</Text>
                     </View>
@@ -55,11 +77,11 @@ const LoginScreen = () => {
                     />
                 </View>
 
-                <View style={styles.formSection}>
+                <View style={styles.formContainer}>
                     <TextInput
                         style={styles.input}
                         placeholder="Email"
-                        placeholderTextColor="#D2D2D2"
+                        placeholderTextColor="#BDBDBD"
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -69,63 +91,50 @@ const LoginScreen = () => {
                     <TextInput
                         style={styles.input}
                         placeholder="Password"
-                        placeholderTextColor="#D2D2D2"
+                        placeholderTextColor="#BDBDBD"
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
                     />
 
-                    <TouchableOpacity
-                        style={styles.forgotPasswordContainer}
-                        onPress={handleForgotPassword}
-                    >
+                    <TouchableOpacity onPress={handleForgotPassword}>
                         <Text style={styles.forgotPasswordText}>Forgot Password ?</Text>
                     </TouchableOpacity>
-                </View>
-
-                <View style={styles.signUpSection}>
-                    <TouchableOpacity onPress={handleSignUp}>
-                        <Text style={styles.signUpText}>
-                            Don't have an account? <Text style={styles.signUpLink}>Sign Up</Text>
+                    
+                    <TouchableOpacity style={styles.footerLink} onPress={handleSignUp}>
+                        <Text style={styles.footerText}>
+                            Don't have an account? <Text style={styles.footerLinkText}>Sign Up</Text>
                         </Text>
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.socialSection}>
-                    <TouchableOpacity
-                        style={styles.socialButton}
-                        onPress={handleGoogleLogin}
-                    >
-                        <Image
-                            source={require('../../assets/images/google_icon.png')}
-                            style={styles.socialIcon}
-                        />
+                <View style={styles.socialContainer}>
+                     <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
+                        <Image source={require('../../assets/images/google_icon.png')} style={styles.socialIcon}/>
                         <Text style={styles.socialButtonText}>Continue with Google</Text>
                     </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.socialButton}
-                        onPress={handleFacebookLogin}
-                    >
-                        <Image
-                            source={require('@/assets/images/facebook_icon.png')}
-                            style={styles.socialIcon}
-                        />
+                    <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
+                        <Image source={require('@/assets/images/facebook_icon.png')} style={styles.socialIcon}/>
                         <Text style={styles.socialButtonText}>Continue with Facebook</Text>
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity
-                    style={styles.loginButton}
-                    onPress={handleLogin}
-                >
-                    <Text style={styles.loginButtonText}>Next</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.cancelButton}>
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-
+                <View style={styles.buttonWrapper}>
+                    <TouchableOpacity
+                        style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+                        onPress={handleLogin}
+                        disabled={isLoading}
+                    >
+                         {isLoading ? (
+                            <ActivityIndicator color="#fff" />
+                         ) : (
+                            <Text style={styles.primaryButtonText}>Next</Text>
+                         )}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <Text style={styles.cancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
@@ -136,86 +145,78 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#FFFFFF',
     },
-    scrollView: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
+    scrollContainer: {
+        flexGrow: 1,
+        justifyContent: 'space-between',
+        paddingVertical: 20,
     },
-    headerSection: {
+    headerContainer: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        paddingHorizontal: 21,
-        paddingTop: 20,
-        marginBottom: 40,
-    },
-    titleContainer: {
-        flex: 1,
-        marginRight: 20,
+        justifyContent: 'space-between',
+        paddingHorizontal: 24,
+        paddingTop: 40,
     },
     title: {
-        color: '#202020',
-        fontSize: 52,
+        fontSize: 42,
         fontWeight: 'bold',
-        marginBottom: 10,
+        color: '#202020',
+        maxWidth: 200, // Giới hạn chiều rộng để text tự xuống dòng
     },
     subtitle: {
-        color: '#202020',
-        fontSize: 19,
-        fontWeight: '400',
+        fontSize: 18,
+        color: '#696969',
+        marginTop: 8,
     },
     illustration: {
-        width: 150,
-        height: 140,
+        width: 250,
+        height: 250,
     },
-    formSection: {
-        paddingHorizontal: 22,
-        marginBottom: 20,
+    formContainer: {
+        paddingHorizontal: 24,
+        marginTop: 20,
     },
     input: {
-        backgroundColor: '#F8F8F8',
-        borderRadius: 30,
+        backgroundColor: '#F7F7F7',
+        borderRadius: 12,
         paddingVertical: 16,
         paddingHorizontal: 20,
         fontSize: 16,
         color: '#202020',
-        marginBottom: 15,
-        fontWeight: '500',
-    },
-    forgotPasswordContainer: {
-        alignItems: 'flex-end',
-        marginBottom: 20,
+        marginBottom: 16,
     },
     forgotPasswordText: {
         color: '#202020',
-        fontSize: 16,
-        fontWeight: '400',
+        fontSize: 15,
+        textAlign: 'right',
+        marginBottom: 16,
     },
-    signUpSection: {
-        alignItems: 'center',
-        marginBottom: 30,
-        paddingHorizontal: 22,
+    footerLink: {
+        marginTop: 16,
+        alignSelf: 'center',
     },
-    signUpText: {
+    footerText: {
         color: '#696969',
-        fontSize: 16,
+        fontSize: 15,
     },
-    signUpLink: {
+    footerLinkText: {
         color: '#004CFF',
         fontWeight: 'bold',
     },
-    socialSection: {
-        paddingHorizontal: 22,
-        marginBottom: 30,
+    socialContainer: {
+        paddingHorizontal: 24,
+        marginTop: 20,
     },
     socialButton: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FCFCFC',
         borderWidth: 1,
-        borderColor: '#D1D1D1',
+        borderColor: '#EAEAEA',
         borderRadius: 16,
         paddingVertical: 15,
         paddingHorizontal: 20,
-        marginBottom: 15,
+        marginBottom: 12,
     },
     socialIcon: {
         width: 24,
@@ -224,33 +225,33 @@ const styles = StyleSheet.create({
     },
     socialButtonText: {
         color: '#2A2A2A',
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '500',
     },
-    loginButton: {
+    buttonWrapper: {
+        paddingHorizontal: 24,
+        marginTop: 20,
+    },
+    primaryButton: {
         backgroundColor: '#004CFF',
         borderRadius: 16,
-        paddingVertical: 16,
-        marginHorizontal: 22,
+        paddingVertical: 18,
         alignItems: 'center',
-        marginBottom: 20,
     },
-    loginButtonText: {
+    primaryButtonText: {
         color: '#FFFFFF',
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontSize: 18,
+        fontWeight: '600',
     },
-    cancelButton: {
-        alignItems: 'center',
-        paddingVertical: 15,
-        marginBottom: 20,
+    buttonDisabled: {
+        backgroundColor: '#A0BFFF',
     },
-    cancelButtonText: {
-        color: '#202020',
+    cancelText: {
+        color: '#696969',
         fontSize: 16,
-        fontWeight: '400',
+        textAlign: 'center',
+        marginTop: 16,
     },
-
 });
 
 export default LoginScreen;

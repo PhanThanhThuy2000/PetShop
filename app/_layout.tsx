@@ -1,7 +1,18 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import 'expo-router/entry';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+
+// Redux store
+import { loadTokenFromStorage } from './redux/slices/authSlice';
+import { persistor, store } from './redux/store';
+
+// Main 
 import App from './app';
 
+// Import all screens
 import About from './screens/AboutScreen';
 import AccountScreen from './screens/AccountScreen';
 import CartScreen from './screens/CartScreen';
@@ -18,26 +29,192 @@ import ReviewsScreen from './screens/ReviewsScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
-// Trí code bên dưới
+
+// Trí code screens
 import ChatScreen from './screens/ChatScreen';
 import ShippingAddressScreen from './screens/ShippingAddressScreen';
 
-
-// Thắng code bên dưới
+// Thắng code screens
 import BreedsScreen from './screens/BreedsScreen';
 import SearchScreen from './screens/SearchScreen';
 
-
-// Đức Anh code bên dưới
-
-
+// Đức Anh code screens
+import EditInfomationScreen from './screens/EditInfomationScreen';
+import FavouriteScreen from './screens/FavouriteScreen';
+import HistoryScreen from './screens/HistoryScreen';
 import ListAdressScreen from './screens/ListAdressScreen';
 import PaymentList from './screens/PaymentList';
 import PaymentScreen from './screens/PaymentScreen';
 import PetAllScreen from './screens/PetAllScreen';
+
+
+import PetAllScreen from './screens/PetAllScreen';
 const Stack = createStackNavigator();
-export default function RootLayout() {
+
+const LoadingScreen = () => (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color="#004CFF" />
+    <Text style={styles.loadingText}>Loading PetShop...</Text>
+  </View>
+);
+
+const AppNavigator = () => {
+  useEffect(() => {
+    store.dispatch(loadTokenFromStorage());
+  }, []);
+
   return (
+    <Stack.Navigator initialRouteName="Chat">
+      {/* Main app with bottom tabs */}
+      <Stack.Screen 
+        name="app" 
+        component={App} 
+        options={{ headerShown: false }} 
+      />
+      
+      {/* Authentication screens */}
+      <Stack.Screen 
+        name="Login" 
+        component={LoginScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="SignUp" 
+        component={RegisterScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="PasswordCode" 
+        component={PasswordCodeScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="RecoveryPassword" 
+        component={RecoveryPasswordScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="NewPassword" 
+        component={NewPasswordScreen} 
+        options={{ headerShown: false }} 
+      />
+      
+      {/* Welcome screen */}
+      <Stack.Screen 
+        name="Wellcome" 
+        component={WellcomeScreen} 
+        options={{ headerShown: false }} 
+      />
+      
+      {/* Account & Settings screens */}
+      <Stack.Screen 
+        name="Account" 
+        component={AccountScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="Settings" 
+        component={SettingsScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="ChangePassword" 
+        component={ChangePassword} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="Language" 
+        component={LanguageScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="About" 
+        component={About} 
+        options={{ headerShown: false }} 
+      />
+      
+      {/* Shopping & Cart screens */}
+      <Stack.Screen 
+        name="Cart" 
+        component={CartScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="ProductDetail" 
+        component={ProductDetailScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="Reviews" 
+        component={ReviewsScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="Voucher" 
+        component={VoucherScreen} 
+        options={{ headerShown: false }} 
+      />
+      
+      {/* Order & Payment screens */}
+      <Stack.Screen 
+        name="Payment" 
+        component={PaymentScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="OrderSuccess" 
+        component={OrderSuccess} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="ShippingAddress" 
+        component={ShippingAddressScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="ListAdress" 
+        component={ListAdressScreen} 
+        options={{ headerShown: false }} 
+      />
+      
+      {/* Pet & Product screens */}
+      <Stack.Screen 
+        name="PetAll" 
+        component={PetAllScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="Breeds" 
+        component={BreedsScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="Search" 
+        component={SearchScreen} 
+        options={{ headerShown: false }} 
+      />
+      
+      {/* Communication screens */}
+      <Stack.Screen 
+        name="Chat" 
+        component={ChatScreen} 
+        options={{ headerShown: false }} 
+      />
+       <Stack.Screen 
+        name="Favourite" 
+        component={FavouriteScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="History" 
+        component={HistoryScreen} 
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="EditInfomation" 
+        component={EditInfomationScreen} 
+        options={{ headerShown: false }}
+      />
 
     <Stack.Navigator initialRouteName="Payment1">
       <Stack.Screen name="app" component={App} options={{ headerShown: false }} />
@@ -77,5 +254,34 @@ export default function RootLayout() {
       <Stack.Screen name="Payment1" component={PaymentList} options={{ headerShown: false }} />
 
     </Stack.Navigator>
+    
+  );
+};
+
+export default function RootLayout() {
+  return (
+    <Provider store={store}>
+      <PersistGate 
+        loading={<LoadingScreen />} 
+        persistor={persistor}
+      >
+        <AppNavigator />
+      </PersistGate>
+    </Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666666',
+    fontWeight: '500',
+  },
+});
