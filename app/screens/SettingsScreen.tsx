@@ -1,142 +1,99 @@
-import React from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// screens/SettingsScreen.js
 import { useNavigation } from '@react-navigation/native';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const SettingsScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+const SettingsScreen = () => {
+  const navigation = useNavigation();
 
-  const Row: React.FC<{
-    label: string;
-    value?: string;
-    onPress?: () => void;
-    isDestructive?: boolean;
-  }> = ({ label, value, onPress, isDestructive }) => (
-    <TouchableOpacity
-      style={styles.row}
-      activeOpacity={onPress ? 0.6 : 1}
-      onPress={onPress}
-      disabled={!onPress}
-    >
-      <Text
-        style={[
-          styles.rowLabel,
-          isDestructive && { color: '#E53935' }, 
-        ]}
-      >
-        {label}
-      </Text>
-      <View style={styles.rowRightContent}>
-        {value != null && (
-          <Text style={styles.rowValue}>{value}</Text>
-        )}
-        {onPress && <Ionicons name="chevron-forward" size={20} color="#999" />}
-      </View>
-    </TouchableOpacity>
-  );
+  const handleDeleteAccountPress = () => {
+    navigation.navigate('DeleteTest'); // Chuyển sang màn DeletingAccountScreen
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+    <View style={styles.container}>
+      <Text style={styles.title}>Settings</Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Personal</Text>
+        <TouchableOpacity style={styles.option}>
+          <Text style={styles.optionText}>Profile</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Settings</Text>
-        <View style={{ width: 36 }} /> 
+        <TouchableOpacity style={styles.option}>
+          <Text style={styles.optionText}>Shipping Address</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.option}>
+          <Text style={styles.optionText}>Payment methods</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.option}>
+          <Text style={styles.optionText}>Account</Text>
+        </TouchableOpacity>
       </View>
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Mục Personal */}
-        <Text style={styles.sectionHeader}>Personal</Text>
-        <View style={styles.sectionContainer}>
-          <Row label="Profile" onPress={() => navigation.navigate('EditInfomation')} />
-          <Row label="Shipping Address" onPress={() => navigation.navigate('ListAdress')} />
-          <Row label="Payment methods" onPress={() => navigation.goBack()} />
-        </View>
-
-        <Text style={styles.sectionHeader}>Account</Text>
-        <View style={styles.sectionContainer}>
-          <Row label="Language" value="English" onPress={() => navigation.navigate('Language')} />
-          <Row label="About Slada" onPress={() => navigation.navigate('About')} />
-          <Row label="Change password" onPress={() => navigation.navigate('ChangePassword')} />
-          <Row label="Delete Account" onPress={() => { /* Xử lý xóa tài khoản */ }} isDestructive />
-        </View>
-
-        {/* Nút Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => { /* Xử lý đăng xuất */ }}>
-          <Text style={styles.logoutText}>Logout</Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Language</Text>
+        <TouchableOpacity style={styles.option}>
+          <Text style={styles.optionText}>English</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>About Slada</Text>
+        <TouchableOpacity style={styles.option}>
+          <Text style={styles.optionText}>Change password</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.option} onPress={handleDeleteAccountPress}>
+          <Text style={styles.optionTextDelete}>Delete Account</Text>
+        </TouchableOpacity>
+      </View>
+      <TouchableOpacity style={styles.logoutButton}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f7' }, // Màu nền xám nhẹ
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: '#e5e5e5',
+  container: {
+    flex: 1,
+    padding: 20,
     backgroundColor: '#fff',
-    marginTop:50
   },
-  backBtn: { padding: 6 },
-  title: { fontSize: 20, fontWeight: '600', color: '#333' },
-  content: { paddingVertical: 24 },
-  sectionHeader: {
-    fontSize: 14,
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
     fontWeight: '600',
-    color: '#6d6d72',
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    color: '#666',
+    marginBottom: 10,
   },
-  sectionContainer: {
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
+  option: {
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderColor: '#e5e5e5',
+    borderBottomColor: '#eee',
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderColor: '#e5e5e5',
+  optionText: {
+    fontSize: 16,
+    color: '#333',
   },
-  rowLabel: { fontSize: 16, color: '#333' },
-  rowRightContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  optionTextDelete: {
+    fontSize: 16,
+    color: '#ef5350', // Màu đỏ cho Delete Account để nổi bật
   },
-  rowValue: { fontSize: 16, color: '#8e8e93', marginRight: 8 },
-  logoutBtn: {
-    marginTop: 32,
-    marginHorizontal:16,
+  logoutButton: {
+    backgroundColor: '#ef5350',
+    padding: 15,
+    borderRadius: 8,
     alignItems: 'center',
-    paddingVertical: 14,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
+    marginTop: 20,
   },
   logoutText: {
+    color: '#fff',
     fontSize: 16,
-    color: '#E53935',
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
 
