@@ -1,7 +1,7 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../../utils/api';
-import { AuthState, LoginRequest, RegisterRequest, ApiResponse } from '../../types';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { ApiResponse, AuthState, LoginRequest, RegisterRequest } from '../../types';
+import api from '../../utils/api-client';
 
 const initialState: AuthState = {
   user: null,

@@ -1,7 +1,7 @@
 // app/redux/slices/cartSlice.ts
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { AddToCartRequest, ApiResponse, CartItem, CartState } from '../../types';
-import api from '../../utils/api';
+import api from '../../utils/api-client';
 
 const initialState: CartState = {
   items: [],

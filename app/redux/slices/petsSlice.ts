@@ -1,7 +1,7 @@
 // app/redux/slices/petsSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { petsService } from '../../services/api';
-import { Pet } from '../../types';
+import api from '@/app/utils/api-client';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { ApiResponse, Pet } from '../../types';
 
 interface PetsState {
   pets: Pet[];

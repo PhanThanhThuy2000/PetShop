@@ -1,5 +1,5 @@
-import api from '../utils/api';
-import { Pet, Product, ApiResponse } from '../types';
+import { ApiResponse, Pet, Product } from '../types';
+import api from '../utils/api-client';
 
 export const petsService = {
   async getPets(params: { page?: number; limit?: number; type?: string } = {}) {
