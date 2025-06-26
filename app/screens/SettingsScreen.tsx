@@ -9,10 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useAuth } from '../../hooks/redux';
+import { clearError, logoutUser } from '../redux/slices/authSlice';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-
+  const { user, dispatch } = useAuth();
+  
   const Row: React.FC<{
     label: string;
     value?: string;
@@ -41,6 +44,12 @@ const SettingsScreen: React.FC = () => {
       </View>
     </TouchableOpacity>
   );
+
+ const handleLogout = () => {
+    dispatch(logoutUser());
+    dispatch(clearError());
+    navigation.navigate('Login' as never);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -71,7 +80,7 @@ const SettingsScreen: React.FC = () => {
         </View>
 
         {/* Nút Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => {  }}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={() => { handleLogout() }}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
