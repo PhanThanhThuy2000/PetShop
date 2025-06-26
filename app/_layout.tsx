@@ -36,6 +36,7 @@ import ShippingAddressScreen from './screens/ShippingAddressScreen';
 
 // Thắng code screens
 import BreedsScreen from './screens/BreedsScreen';
+import DeletingAccountScreen from './screens/DeletingAccountScreen';
 import SearchScreen from './screens/SearchScreen';
 
 // Đức Anh code screens
@@ -62,7 +63,7 @@ const AppNavigator = () => {
   }, []);
 
   return (
-    <Stack.Navigator initialRouteName="Chat">
+    <Stack.Navigator initialRouteName="Settings">
       {/* Main app with bottom tabs */}
       <Stack.Screen 
         name="app" 
@@ -198,7 +199,13 @@ const AppNavigator = () => {
         component={ChatScreen} 
         options={{ headerShown: false }} 
       />
-       <Stack.Screen 
+      {/* Test Delete Account screen */}
+      <Stack.Screen
+        name="DeleteTest"
+        component={DeletingAccountScreen}
+        options={{ headerShown: true, title: 'Delete Account' }}
+      />
+      <Stack.Screen 
         name="Favourite" 
         component={FavouriteScreen} 
         options={{ headerShown: false }} 
@@ -214,7 +221,6 @@ const AppNavigator = () => {
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
-    
   );
 };
 
