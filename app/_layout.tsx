@@ -212,6 +212,7 @@ const AppNavigator = () => {
 };
 
 export default function RootLayout() {
+  
   return (
     <Provider store={store}>
       <PersistGate 

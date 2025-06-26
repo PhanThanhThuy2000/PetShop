@@ -1,45 +1,36 @@
 import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native'; // Thêm useNavigation
 import * as React from 'react';
 import { useState } from 'react';
-import {
-  Alert,
-  Image,
-  Linking,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
-
-// Hàm chuyển đổi chuỗi tiền tệ thành số (VD: "2.000.000 đ" -> 2000000)
-const parseCurrency = (currency: string): number => {
-  return parseInt(currency.replace(/[^0-9]/g, ''), 10);
-};
+import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const PaymentScreen = () => {
+  const navigation = useNavigation<any>(); // Khởi tạo navigation
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'wallet' | 'vnpay'>('cod');
   const SERVER_URLS = [
-    'http://10.0.2.2:5000',      // Cho máy ảo Android thông thường
-    'http://127.0.0.1:5000',     // Localhost
-    'http://192.168.0.103:5000', // IP máy thật (thay đổi theo IP của bạn)
-    'http://localhost:5000'      // Cho web
+    'http://10.0.2.2:5000',
+    'http://127.0.0.1:5000',
+    'http://192.168.0.102:5000',
+    // 'http://192.168.0.103:5000',
+    'http://localhost:5000',
   ];
 
-  // Dữ liệu tóm tắt để tính tổng
   const summaryData = {
     merchandiseSubtotal: "20.000 đ",
     shippingSubtotal: shippingMethod === 'standard' ? "0 đ" : "100.000 đ",
     discount: "-100.000 đ",
   };
 
-  // Tính tổng số tiền
+  const parseCurrency = (currency: string): number => {
+    return parseInt(currency.replace(/[^0-9]/g, ''), 10);
+  };
+
   const calculateTotal = () => {
     const merchandise = parseCurrency(summaryData.merchandiseSubtotal);
     const shipping = parseCurrency(summaryData.shippingSubtotal);
     const discount = parseCurrency(summaryData.discount);
-    return merchandise + shipping - discount; // Tổng tiền
+    return merchandise + shipping - discount;
   };
 
   const handleVNPAYPayment = async () => {
@@ -63,10 +54,10 @@ const PaymentScreen = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
           },
           body: JSON.stringify({ amount: totalAmount }),
-          signal: controller.signal
+          signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
@@ -85,13 +76,24 @@ const PaymentScreen = () => {
 
         console.log('Payment URL:', data.paymentUrl);
         const urlParams = new URLSearchParams(data.paymentUrl.split('?')[1]);
-        console.log('VNPay vnp_Amount:', urlParams.get('vnp_Amount')); // Log VNPay amount
+        console.log('VNPay vnp_Amount:', urlParams.get('vnp_Amount'));
 
         const supported = await Linking.canOpenURL(data.paymentUrl);
         console.log('Can open URL:', supported);
 
         if (supported) {
+          // Mở URL thanh toán
           await Linking.openURL(data.paymentUrl);
+
+          // Lắng nghe deep link (cần cấu hình thêm trong ứng dụng)
+          Linking.addEventListener('url', ({ url }) => {
+            console.log('Received URL:', url);
+            if (url.includes('success')) {
+              navigation.navigate('OrderSuccess'); // Điều hướng đến OrderSuccessScreen
+            } else if (url.includes('failure')) {
+              Alert.alert('Lỗi', 'Thanh toán thất bại. Vui lòng thử lại.');
+            }
+          });
           return;
         } else {
           throw new Error('Không thể mở URL thanh toán');
@@ -107,10 +109,11 @@ const PaymentScreen = () => {
     console.log('All connection attempts failed. Last error:', {
       message: lastError?.message,
       stack: lastError?.stack,
-      name: lastError?.name
+      name: lastError?.name,
     });
 
-    let errorMessage = 'Không thể kết nối đến máy chủ thanh toán. Vui lòng kiểm tra:\n\n' +
+    let errorMessage =
+      'Không thể kết nối đến máy chủ thanh toán. Vui lòng kiểm tra:\n\n' +
       '1. Máy chủ đã được khởi động\n' +
       '2. Kết nối mạng hoạt động\n' +
       '3. Địa chỉ IP và cổng chính xác\n\n';
@@ -124,18 +127,19 @@ const PaymentScreen = () => {
     Alert.alert('Lỗi Thanh Toán', errorMessage);
   };
 
-  // New function to handle Pay button press
   const handlePay = () => {
     if (paymentMethod === 'vnpay') {
       handleVNPAYPayment();
     } else if (paymentMethod === 'cod') {
       Alert.alert('Thành công', 'Đặt hàng với phương thức thanh toán COD thành công!');
+      navigation.navigate('OrderSuccess'); // Điều hướng đến OrderSuccessScreen
     } else if (paymentMethod === 'wallet') {
       Alert.alert('Thành công', 'Thanh toán bằng ví thành công!');
+      navigation.navigate('OrderSuccess'); // Điều hướng đến OrderSuccessScreen
     } else {
       Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán');
     }
-  };
+  }
 
   return (
     <ScrollView style={styles.container}>
