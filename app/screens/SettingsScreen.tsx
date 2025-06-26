@@ -76,7 +76,7 @@ const SettingsScreen: React.FC = () => {
           <Row label="Language" value="English" onPress={() => navigation.navigate('Language')} />
           <Row label="About Slada" onPress={() => navigation.navigate('About')} />
           <Row label="Change password" onPress={() => navigation.navigate('ChangePassword')} />
-          <Row label="Delete Account" onPress={() => { /* Xử lý xóa tài khoản */ }} isDestructive />
+          <Row label="Delete Account" onPress={() => navigation.navigate('DeleteTest')} isDestructive />
         </View>
 
         {/* Nút Logout */}
@@ -89,7 +89,7 @@ const SettingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f7' }, // Màu nền xám nhẹ
+  container: { flex: 1, backgroundColor: '#f2f2f7' }, 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
