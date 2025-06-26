@@ -15,37 +15,30 @@ import App from './app';
 // Import all screens
 import About from './screens/AboutScreen';
 import AccountScreen from './screens/AccountScreen';
+import BreedsScreen from './screens/BreedsScreen';
 import CartScreen from './screens/CartScreen';
 import ChangePassword from './screens/ChangePassword';
+import ChatScreen from './screens/ChatScreen';
+import EditInfomationScreen from './screens/EditInfomationScreen';
+import FavouriteScreen from './screens/FavouriteScreen';
+import HistoryScreen from './screens/HistoryScreen';
 import LanguageScreen from './screens/LanguageScreen';
+import ListAdressScreen from './screens/ListAdressScreen';
 import LoginScreen from './screens/LoginScreen';
 import NewPasswordScreen from './screens/NewPasswordScreen';
 import OrderSuccess from './screens/OrderSuccessScreen';
 import PasswordCodeScreen from './screens/PasswordCodeScreen';
+import PaymentScreen from './screens/PaymentScreen';
+import PetAllScreen from './screens/PetAllScreen';
 import ProductDetailScreen from './screens/ProductDetailScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ReviewsScreen from './screens/ReviewsScreen';
+import SearchScreen from './screens/SearchScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import ShippingAddressScreen from './screens/ShippingAddressScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
-
-// Trí code screens
-import ChatScreen from './screens/ChatScreen';
-import ShippingAddressScreen from './screens/ShippingAddressScreen';
-
-// Thắng code screens
-import BreedsScreen from './screens/BreedsScreen';
-import SearchScreen from './screens/SearchScreen';
-
-// Đức Anh code screens
-import EditInfomationScreen from './screens/EditInfomationScreen';
-import FavouriteScreen from './screens/FavouriteScreen';
-import HistoryScreen from './screens/HistoryScreen';
-import ListAdressScreen from './screens/ListAdressScreen';
-import PaymentScreen from './screens/PaymentScreen';
-import PetAllScreen from './screens/PetAllScreen';
-
 
 const Stack = createStackNavigator();
 
@@ -62,7 +55,11 @@ const AppNavigator = () => {
   }, []);
 
   return (
+<<<<<<< PT-31-payment
+    <Stack.Navigator initialRouteName="app">
+=======
     <Stack.Navigator initialRouteName="Wellcome">
+>>>>>>> dev
       {/* Main app with bottom tabs */}
       <Stack.Screen 
         name="app" 
@@ -219,6 +216,7 @@ const AppNavigator = () => {
 };
 
 export default function RootLayout() {
+  
   return (
     <Provider store={store}>
       <PersistGate 
