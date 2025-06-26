@@ -55,7 +55,11 @@ const AppNavigator = () => {
   }, []);
 
   return (
+<<<<<<< PT-31-payment
     <Stack.Navigator initialRouteName="app">
+=======
+    <Stack.Navigator initialRouteName="Wellcome">
+>>>>>>> dev
       {/* Main app with bottom tabs */}
       <Stack.Screen 
         name="app" 

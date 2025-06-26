@@ -1,18 +1,21 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
   SafeAreaView,
-  View,
+  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  ScrollView,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../hooks/redux';
+import { clearError, logoutUser } from '../redux/slices/authSlice';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-
+  const { user, dispatch } = useAuth();
+  
   const Row: React.FC<{
     label: string;
     value?: string;
@@ -42,6 +45,12 @@ const SettingsScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+ const handleLogout = () => {
+    dispatch(logoutUser());
+    dispatch(clearError());
+    navigation.navigate('Login' as never);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -67,11 +76,11 @@ const SettingsScreen: React.FC = () => {
           <Row label="Language" value="English" onPress={() => navigation.navigate('Language')} />
           <Row label="About Slada" onPress={() => navigation.navigate('About')} />
           <Row label="Change password" onPress={() => navigation.navigate('ChangePassword')} />
-          <Row label="Delete Account" onPress={() => { /* Xử lý xóa tài khoản */ }} isDestructive />
+          <Row label="Delete Account" onPress={() => navigation.navigate('DeleteTest')} isDestructive />
         </View>
 
         {/* Nút Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => { /* Xử lý đăng xuất */ }}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={() => { handleLogout() }}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -80,7 +89,7 @@ const SettingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f7' }, // Màu nền xám nhẹ
+  container: { flex: 1, backgroundColor: '#f2f2f7' }, 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
