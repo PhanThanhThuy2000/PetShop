@@ -1,14 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
   SafeAreaView,
-  View,
+  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  ScrollView,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -42,6 +42,10 @@ const SettingsScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+  // const handleLogout = () => {
+  //   // Xử lý đăng xuất
+  // };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -71,7 +75,7 @@ const SettingsScreen: React.FC = () => {
         </View>
 
         {/* Nút Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => { /* Xử lý đăng xuất */ }}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={() => { handleLogout() }}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>

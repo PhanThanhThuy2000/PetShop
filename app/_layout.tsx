@@ -62,7 +62,7 @@ const AppNavigator = () => {
   }, []);
 
   return (
-    <Stack.Navigator initialRouteName="Chat">
+    <Stack.Navigator initialRouteName="Wellcome">
       {/* Main app with bottom tabs */}
       <Stack.Screen 
         name="app" 
