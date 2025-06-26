@@ -9,10 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useAuth } from '../../hooks/redux';
+import { clearError, logoutUser } from '../redux/slices/authSlice';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-
+  const { user, dispatch } = useAuth();
+  
   const Row: React.FC<{
     label: string;
     value?: string;
@@ -42,9 +45,11 @@ const SettingsScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  // const handleLogout = () => {
-  //   // Xử lý đăng xuất
-  // };
+ const handleLogout = () => {
+    dispatch(logoutUser());
+    dispatch(clearError());
+    navigation.navigate('Login' as never);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
