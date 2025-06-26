@@ -12,26 +12,52 @@ import {
   View
 } from 'react-native';
 
+// Hàm chuyển đổi chuỗi tiền tệ thành số (VD: "2.000.000 đ" -> 2000000)
+const parseCurrency = (currency: string): number => {
+  return parseInt(currency.replace(/[^0-9]/g, ''), 10);
+};
+
 const PaymentScreen = () => {
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'wallet' | 'vnpay'>('cod');
   const SERVER_URLS = [
     'http://10.0.2.2:5000',      // Cho máy ảo Android thông thường
     'http://127.0.0.1:5000',     // Localhost
-    'http://192.168.0.102:5000', // IP máy thật (thay đổi theo IP của bạn)
+    'http://192.168.0.103:5000', // IP máy thật (thay đổi theo IP của bạn)
     'http://localhost:5000'      // Cho web
   ];
 
-  const handleVNPAYPayment = async () => {
-    let lastError = null;
+  // Dữ liệu tóm tắt để tính tổng
+  const summaryData = {
+    merchandiseSubtotal: "20.000 đ",
+    shippingSubtotal: shippingMethod === 'standard' ? "0 đ" : "100.000 đ",
+    discount: "-100.000 đ",
+  };
 
-    // Thử kết nối với tất cả các URL cho đến khi thành công
+  // Tính tổng số tiền
+  const calculateTotal = () => {
+    const merchandise = parseCurrency(summaryData.merchandiseSubtotal);
+    const shipping = parseCurrency(summaryData.shippingSubtotal);
+    const discount = parseCurrency(summaryData.discount);
+    return merchandise + shipping - discount; // Tổng tiền
+  };
+
+  const handleVNPAYPayment = async () => {
+    if (paymentMethod !== 'vnpay') {
+      Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán VNPay');
+      return;
+    }
+
+    let lastError = null;
+    const totalAmount = calculateTotal();
+    console.log('Calculated totalAmount:', totalAmount);
+
     for (const serverUrl of SERVER_URLS) {
       try {
         console.log('Trying to connect to:', serverUrl);
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // Giảm timeout xuống 5 giây
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         const response = await fetch(`${serverUrl}/create-vnpay-payment`, {
           method: 'POST',
@@ -39,7 +65,7 @@ const PaymentScreen = () => {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          body: JSON.stringify({ amount: 100000 }), // 100,000 VND
+          body: JSON.stringify({ amount: totalAmount }),
           signal: controller.signal
         });
 
@@ -58,12 +84,15 @@ const PaymentScreen = () => {
         }
 
         console.log('Payment URL:', data.paymentUrl);
+        const urlParams = new URLSearchParams(data.paymentUrl.split('?')[1]);
+        console.log('VNPay vnp_Amount:', urlParams.get('vnp_Amount')); // Log VNPay amount
+
         const supported = await Linking.canOpenURL(data.paymentUrl);
         console.log('Can open URL:', supported);
 
         if (supported) {
           await Linking.openURL(data.paymentUrl);
-          return; // Thoát khỏi hàm nếu thành công
+          return;
         } else {
           throw new Error('Không thể mở URL thanh toán');
         }
@@ -71,19 +100,16 @@ const PaymentScreen = () => {
         const err = error as Error;
         console.log('Failed to connect to', serverUrl, 'Error:', err.message);
         lastError = err;
-        // Tiếp tục thử URL tiếp theo
         continue;
       }
     }
 
-    // Nếu đã thử tất cả các URL mà vẫn thất bại
     console.log('All connection attempts failed. Last error:', {
       message: lastError?.message,
       stack: lastError?.stack,
       name: lastError?.name
     });
 
-    // Hiển thị thông báo lỗi
     let errorMessage = 'Không thể kết nối đến máy chủ thanh toán. Vui lòng kiểm tra:\n\n' +
       '1. Máy chủ đã được khởi động\n' +
       '2. Kết nối mạng hoạt động\n' +
@@ -97,6 +123,20 @@ const PaymentScreen = () => {
 
     Alert.alert('Lỗi Thanh Toán', errorMessage);
   };
+
+  // New function to handle Pay button press
+  const handlePay = () => {
+    if (paymentMethod === 'vnpay') {
+      handleVNPAYPayment();
+    } else if (paymentMethod === 'cod') {
+      Alert.alert('Thành công', 'Đặt hàng với phương thức thanh toán COD thành công!');
+    } else if (paymentMethod === 'wallet') {
+      Alert.alert('Thành công', 'Thanh toán bằng ví thành công!');
+    } else {
+      Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán');
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -187,17 +227,17 @@ const PaymentScreen = () => {
       {/* Summary */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Information pet</Text>
-        <SummaryRow label="Merchandise Subtotal" value="2.000.000 đ" />
-        <SummaryRow label="Shipping Subtotal" value="100.000 đ" />
-        <SummaryRow label="Discount" value="-100.000 đ" />
+        <SummaryRow label="Merchandise Subtotal" value={summaryData.merchandiseSubtotal} />
+        <SummaryRow label="Shipping Subtotal" value={summaryData.shippingSubtotal} />
+        <SummaryRow label="Discount" value={summaryData.discount} />
       </View>
 
       {/* Total */}
       <View style={styles.totalRow}>
         <Text style={styles.totalText}>Total</Text>
-        <Text style={styles.totalPrice}>2.000.000 đ</Text>
+        <Text style={styles.totalPrice}>{calculateTotal().toLocaleString('vi-VN') + ' đ'}</Text>
       </View>
-      <TouchableOpacity style={styles.payButton} onPress={handleVNPAYPayment}>
+      <TouchableOpacity style={styles.payButton} onPress={handlePay}>
         <Text style={styles.payText}>Pay</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -219,6 +259,7 @@ const SummaryRow = ({ label, value }: { label: string; value: string }) => (
   </View>
 );
 
+// Các styles giữ nguyên
 const styles = StyleSheet.create({
   container: {
     padding: 16,
