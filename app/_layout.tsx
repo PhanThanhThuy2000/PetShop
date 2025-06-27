@@ -57,166 +57,166 @@ const AppNavigator = () => {
   return (
     <Stack.Navigator initialRouteName="app">
       {/* Main app with bottom tabs */}
-      <Stack.Screen 
-        name="app" 
-        component={App} 
-        options={{ headerShown: false }} 
-      />
-      
-      {/* Authentication screens */}
-      <Stack.Screen 
-        name="Login" 
-        component={LoginScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="SignUp" 
-        component={RegisterScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="PasswordCode" 
-        component={PasswordCodeScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="RecoveryPassword" 
-        component={RecoveryPasswordScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="NewPassword" 
-        component={NewPasswordScreen} 
-        options={{ headerShown: false }} 
-      />
-      
-      {/* Welcome screen */}
-      <Stack.Screen 
-        name="Wellcome" 
-        component={WellcomeScreen} 
-        options={{ headerShown: false }} 
-      />
-      
-      {/* Account & Settings screens */}
-      <Stack.Screen 
-        name="Account" 
-        component={AccountScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="Settings" 
-        component={SettingsScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="ChangePassword" 
-        component={ChangePassword} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="Language" 
-        component={LanguageScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="About" 
-        component={About} 
-        options={{ headerShown: false }} 
-      />
-      
-      {/* Shopping & Cart screens */}
-      <Stack.Screen 
-        name="Cart" 
-        component={CartScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="ProductDetail" 
-        component={ProductDetailScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="Reviews" 
-        component={ReviewsScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="Voucher" 
-        component={VoucherScreen} 
-        options={{ headerShown: false }} 
-      />
-      
-      {/* Order & Payment screens */}
-      <Stack.Screen 
-        name="Payment" 
-        component={PaymentScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="OrderSuccess" 
-        component={OrderSuccess} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="ShippingAddress" 
-        component={ShippingAddressScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="ListAdress" 
-        component={ListAdressScreen} 
-        options={{ headerShown: false }} 
-      />
-      
-      {/* Pet & Product screens */}
-      <Stack.Screen 
-        name="PetAll" 
-        component={PetAllScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="Breeds" 
-        component={BreedsScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="Search" 
-        component={SearchScreen} 
-        options={{ headerShown: false }} 
-      />
-      
-      {/* Communication screens */}
-      <Stack.Screen 
-        name="Chat" 
-        component={ChatScreen} 
-        options={{ headerShown: false }} 
-      />
-       <Stack.Screen 
-        name="Favourite" 
-        component={FavouriteScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="History" 
-        component={HistoryScreen} 
+      <Stack.Screen
+        name="app"
+        component={App}
         options={{ headerShown: false }}
       />
-      <Stack.Screen 
-        name="EditInfomation" 
-        component={EditInfomationScreen} 
+
+      {/* Authentication screens */}
+      <Stack.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="SignUp"
+        component={RegisterScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PasswordCode"
+        component={PasswordCodeScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="RecoveryPassword"
+        component={RecoveryPasswordScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="NewPassword"
+        component={NewPasswordScreen}
+        options={{ headerShown: false }}
+      />
+
+      {/* Welcome screen */}
+      <Stack.Screen
+        name="Wellcome"
+        component={WellcomeScreen}
+        options={{ headerShown: false }}
+      />
+
+      {/* Account & Settings screens */}
+      <Stack.Screen
+        name="Account"
+        component={AccountScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ChangePassword"
+        component={ChangePassword}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Language"
+        component={LanguageScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="About"
+        component={About}
+        options={{ headerShown: false }}
+      />
+
+      {/* Shopping & Cart screens */}
+      <Stack.Screen
+        name="Cart"
+        component={CartScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ProductDetail"
+        component={ProductDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Reviews"
+        component={ReviewsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Voucher"
+        component={VoucherScreen}
+        options={{ headerShown: false }}
+      />
+
+      {/* Order & Payment screens */}
+      <Stack.Screen
+        name="Payment"
+        component={PaymentScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="OrderSuccess"
+        component={OrderSuccess}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ShippingAddress"
+        component={ShippingAddressScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ListAdress"
+        component={ListAdressScreen}
+        options={{ headerShown: false }}
+      />
+
+      {/* Pet & Product screens */}
+      <Stack.Screen
+        name="PetAll"
+        component={PetAllScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Breeds"
+        component={BreedsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{ headerShown: false }}
+      />
+
+      {/* Communication screens */}
+      <Stack.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Favourite"
+        component={FavouriteScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="EditInfomation"
+        component={EditInfomationScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
-    
+
   );
 };
 
 export default function RootLayout() {
-  
+
   return (
     <Provider store={store}>
-      <PersistGate 
-        loading={<LoadingScreen />} 
+      <PersistGate
+        loading={<LoadingScreen />}
         persistor={persistor}
       >
         <AppNavigator />

@@ -1,9 +1,13 @@
 import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native'; // Thêm useNavigation
-import * as React from 'react';
-import { useState } from 'react';
+import { useNavigation, useNavigationContainerRef } from '@react-navigation/native'; // Thêm useNavigation
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
+type RootStackParamList = {
+  Home: undefined;
+  Payment: undefined;
+  OrderSuccess: undefined; // Add your OrderSuccess route here
+  // Add other routes as needed
+};
 const PaymentScreen = () => {
   const navigation = useNavigation<any>(); // Khởi tạo navigation
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
@@ -11,8 +15,8 @@ const PaymentScreen = () => {
   const SERVER_URLS = [
     'http://10.0.2.2:5000',
     'http://127.0.0.1:5000',
-    'http://192.168.0.102:5000',
-    // 'http://192.168.0.103:5000',
+    // 'http://192.168.0.103',
+    'http://192.168.0.103:5000',
     'http://localhost:5000',
   ];
 
@@ -140,6 +144,33 @@ const PaymentScreen = () => {
       Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán');
     }
   }
+
+  const navigationRef = useNavigationContainerRef();
+  const isHandled = useRef(false);
+
+  useEffect(() => {
+    const handleDeepLink = (event: { url: string }) => {
+      const url = event.url;
+      if (url.includes('payment-result') && !isHandled.current) {
+        isHandled.current = true;
+        navigation.navigate('OrderSuccess'); // Điều hướng đến OrderSuccessScreen
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Xử lý trường hợp app được mở bằng deep link khi đã tắt
+    Linking.getInitialURL().then((url) => {
+      if (url && url.includes('payment-result') && !isHandled.current) {
+        isHandled.current = true;
+        navigation.navigate('OrderSuccess'); // Điều hướng đến OrderSuccessScreen
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [navigationRef]);
 
   return (
     <ScrollView style={styles.container}>
