@@ -2,12 +2,12 @@ import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icon
 import { useNavigation, useNavigationContainerRef } from '@react-navigation/native'; // Thêm useNavigation
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-type RootStackParamList = {
-  Home: undefined;
-  Payment: undefined;
-  OrderSuccess: undefined; // Add your OrderSuccess route here
-  // Add other routes as needed
-};
+// tai khoan test ngan hang noi dia
+// Ngân hàng: NCB
+// Số thẻ: 9704198526191432198
+// Tên chủ thẻ:NGUYEN VAN A
+// Ngày phát hành:07 / 15
+// Mật khẩu OTP: 123456
 const PaymentScreen = () => {
   const navigation = useNavigation<any>(); // Khởi tạo navigation
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
