@@ -1,4 +1,3 @@
-// app/redux/slices/productsSlice.ts
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { ApiResponse, Product } from '../../types';
 import api from '../../utils/api-client';
@@ -42,8 +41,8 @@ export const fetchProducts = createAsyncThunk(
 export const fetchFlashSaleProducts = createAsyncThunk(
   'products/fetchFlashSaleProducts',
   async (params: { limit?: number } = {}) => {
-    const { limit = 10 } = params;
-    // Giả sử có endpoint cho flash sale hoặc sử dụng random products
+    const { limit = 4 } = params;
+    // Sử dụng featured products cho flash sale
     const response = await api.get<ApiResponse<Product[]>>(`/products?limit=${limit}&featured=true`);
     return response.data.data;
   }
@@ -96,6 +95,7 @@ const productsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch products';
       })
+      
       // fetchFlashSaleProducts
       .addCase(fetchFlashSaleProducts.pending, (state) => {
         state.flashSaleLoading = true;
@@ -109,6 +109,7 @@ const productsSlice = createSlice({
         state.flashSaleLoading = false;
         state.error = action.error.message || 'Failed to fetch flash sale products';
       })
+      
       // searchProducts
       .addCase(searchProducts.pending, (state) => {
         state.loading = true;

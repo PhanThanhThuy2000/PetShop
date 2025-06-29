@@ -1,7 +1,6 @@
-// app/redux/slices/petsSlice.ts
-import api from '@/app/utils/api-client';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { ApiResponse, Pet } from '../../types';
+import api from '../../utils/api-client';
 
 interface PetsState {
   pets: Pet[];
@@ -95,6 +94,7 @@ const petsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch pets';
       })
+      
       // fetchPetsByCategory
       .addCase(fetchPetsByCategory.pending, (state) => {
         state.loading = true;
@@ -110,6 +110,7 @@ const petsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch pets by category';
       })
+      
       // searchPets
       .addCase(searchPets.pending, (state) => {
         state.loading = true;
