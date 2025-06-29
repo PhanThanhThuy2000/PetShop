@@ -1,236 +1,588 @@
-// HomeScreen.tsx (Đã cập nhật)
-
-import React from 'react';
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
-  View,
-  TextInput,
-  Image,
-  FlatList,
   TouchableOpacity,
-  StatusBar,
+  View
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import { useNavigation } from '@react-navigation/native';
 
-const categories = [
-    { id: '1', name: 'Cats', image: 'https://file.hstatic.net/200000108863/file/3_33cbf6a0308e40ca8962af5e0460397c_grande.png' },
-    { id: '2', name: 'Dogs', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFUAfyVe3Easiycyh3isP9wDQTYuSmGPsPQvLIJdEYvQ_DsFq5Ez2Nh_QjiS3oZ3B8ZPfK9cZQyIStmQMV1lDPLw' },
-    { id: '3', name: 'Rabbits', image: 'https://cdn.eva.vn/upload/3-2021/images/2021-09-24/image4-1632449319-210-width600height400.jpg' },
-    { id: '4', name: 'Hamsters', image: 'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQXXutfOGiZ6MYhA4L47gBE3kR-giotG2iF-j5aMMSIlEJrnOTLCdhovShKPCVofxINNjxIYw0b9KAuIKrYqKAbHA' },
-];
-
-const flashSaleData = [
-  { id: '1', image: 'https://aquariumcare.vn/upload/user/images/th%E1%BB%8F%20c%E1%BA%A3nh%204(2).jpg', price: '850,000', originalPrice: '1,000,000', sold: 15, total: 20 },
-  { id: '2', image: 'https://bizweb.dktcdn.net/100/165/948/products/img-5830-jpg.jpg?v=1502808189430', price: '1,200,000', originalPrice: '1,500,000', sold: 8, total: 10 },
-  { id: '3', image: 'https://cocapet.net/wp-content/uploads/2018/08/bear-tam-th%E1%BB%83.jpg', price: '500,000', originalPrice: '750,000', sold: 30, total: 50 },
-  { id: '4', image: 'https://file.hstatic.net/200000159621/article/cover_8d54a27928c4408593fa2f4f4e60191b_grande.jpg', price: '900,000', originalPrice: '1,100,000', sold: 5, total: 15 },
-];
-export const pets = [
-    { id: '1', name: 'British Longhair Cat', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSgjs2sCO0xh0Ve1Sf8mDtBt2UhO9GRZImDw&s', price: '1,000,000', sold: 50 },
-    { id: '2', name: 'Shiba Inu Dog', image: 'https://thuvienmeme.com/wp-content/uploads/2024/07/cho-husky-luom-hinh-su-meme.jpg', price: '1,000,000', sold: 50 },
-    { id: '3', name: 'British Longhair Cat', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQv44j8zRpM29qyJqHyCC55qdoqwtnUSmswRA&s', price: '1,000,000', sold: 50 },
-    { id: '4', name: 'Shiba Inu Dog', image: 'https://pethouse.com.vn/wp-content/uploads/2022/12/Ngoai-hinh-husky-768x1024-1-600x800.jpg', price: '1,000,000', sold: 50 },
-    { id: '5', name: 'British Longhair Cat', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTajAsFf6UunJlFGmB-Y6W1Gyk3oqPkpnOCOA&s', price: '1,000,000', sold: 50 },
-    { id: '6', name: 'Shiba Inu Dog', image: 'https://i.pinimg.com/236x/e7/8a/d6/e78ad67426f1bc002e9f221e9d0605b9.jpg', price: '1,000,000', sold: 50 },
-];
+// Import API services
+import { petsService, productsService } from '../services/api-services';
+import { categoriesService, Category } from '../services/categoriesService';
 
 const HomeScreen = () => {
   const navigation = useNavigation() as any;
-
-  // Cập nhật hàm renderCategoryItem
-  const renderCategoryItem = ({ item }: { item: typeof categories[0] }) => (
-    // Thêm onPress để điều hướng
-    <TouchableOpacity
-      style={styles.categoryItem}
-      onPress={() => navigation.navigate('Breeds', { categoryName: item.name })}
-    >
-      <View style={styles.categoryImageContainer}>
-        <Image source={{ uri: item.image }} style={styles.categoryImage} />
-      </View>
-      <Text style={styles.categoryText}>{item.name}</Text>
-    </TouchableOpacity>
-  );
   
-  const renderFlashSaleItem = ({ item }: { item: typeof flashSaleData[0] }) => (
-    <TouchableOpacity style={styles.flashSaleItem}>
-      <Image source={{ uri: item.image }} style={styles.flashSaleImage} />
-      <View style={styles.flashSaleDetails}>
-        <Text style={styles.flashSalePrice}>{item.price}</Text>
-        <View style={styles.progressBarBackground}>
-          <View style={[styles.progressBarFill, { width: `${(item.sold / item.total) * 100}%` }]} />
-          <Text style={styles.progressBarText}>Sold {item.sold}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+  // Local state
+  const [pets, setPets] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [flashSaleProducts, setFlashSaleProducts] = useState([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const renderPetItem = ({ item }: { item: typeof pets[0] }) => (
-    <TouchableOpacity
-      style={styles.petItemContainer}
-      onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}>
-      <Image source={{ uri: item.image }} style={styles.petItemImage} />
-      <View style={styles.petItemDetails}>
-        <Text style={styles.petItemName} numberOfLines={2}>{item.name}</Text>
-        <Text style={styles.petItemPrice}>{item.price}</Text>
-        <Text style={styles.petItemSold}>Sold {item.sold}+</Text>
-      </View>
-    </TouchableOpacity>
+  // Load data khi component mount
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Load categories và pets/products song song
+      await Promise.all([
+        loadCategories(),
+        loadPetsAndProducts()
+      ]);
+      
+    } catch (error: any) {
+      console.error('Error loading initial data:', error);
+      setError(error.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      const response = await categoriesService.getCategories();
+      setCategories(response.data || []);
+    } catch (error: any) {
+      console.error('Error loading categories:', error);
+      // Fallback to default categories nếu API lỗi
+      setCategories([
+        { 
+          _id: '1', 
+          name: 'Cats', 
+          images: [{ url: 'https://file.hstatic.net/200000108863/file/3_33cbf6a0308e40ca8962af5e0460397c_grande.png' }] 
+        },
+        { 
+          _id: '2', 
+          name: 'Dogs', 
+          images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFUAfyVe3Easiycyh3isP9wDQTYuSmGPsPQvLIJdEYvQ_DsFq5Ez2Nh_QjiS3oZ3B8ZPfK9cZQyIStmQMV1lDPLw' }] 
+        },
+        { 
+          _id: '3', 
+          name: 'Rabbits', 
+          images: [{ url: 'https://cdn.eva.vn/upload/3-2021/images/2021-09-24/image4-1632449319-210-width600height400.jpg' }] 
+        },
+        { 
+          _id: '4', 
+          name: 'Hamsters', 
+          images: [{ url: 'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQXXutfOGiZ6MYhA4L47gBE3kR-giotG2iF-j5aMMSIlEJrnOTLCdhovShKPCVofxINNjxIYw0b9KAuIKrYqKAbHA' }] 
+        },
+      ] as Category[]);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const loadPetsAndProducts = async () => {
+    try {
+      // Load pets và products song song
+      const [petsResponse, productsResponse, flashSaleResponse] = await Promise.all([
+        petsService.getPets({ page: 1, limit: 6 }),
+        productsService.getProducts({ page: 1, limit: 10 }),
+        productsService.getProducts({ limit: 4, featured: true })
+      ]);
+
+      setPets(petsResponse.data || []);
+      setProducts(productsResponse.data || []);
+      setFlashSaleProducts(flashSaleResponse.data || []);
+      
+    } catch (error: any) {
+      console.error('Error loading pets and products:', error);
+      throw error; // Re-throw để loadInitialData có thể catch
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadInitialData();
+    setRefreshing(false);
+  };
+
+  // Helper function để lấy hình ảnh đầu tiên
+  const getImageUrl = (images: any[] = []) => {
+    if (images && images.length > 0) {
+      return images.find(img => img.is_primary)?.url || images[0]?.url;
+    }
+    return 'https://via.placeholder.com/150?text=No+Image';
+  };
+
+  // Helper function để format giá
+  const formatPrice = (price: number) => {
+    return price?.toLocaleString('vi-VN') || '0';
+  };
+
+  const renderCategoryItem = ({ item }: { item: Category }) => {
+    const imageUrl = getImageUrl(item.images);
+    
+    return (
+      <TouchableOpacity
+        style={styles.categoryItem}
+        onPress={() => navigation.navigate('Breeds', { 
+          categoryId: item._id, 
+          categoryName: item.name 
+        })}
+      >
+        <View style={styles.categoryImageContainer}>
+          <Image 
+            source={{ uri: imageUrl }} 
+            style={styles.categoryImage} 
+            onError={(error) => {
+              console.log('Image load error for category:', item.name, error);
+            }}
+          />
+        </View>
+        <Text style={styles.categoryText}>{item.name}</Text>
+      </TouchableOpacity>
+    );
+  };
+  
+  const renderFlashSaleItem = ({ item }: { item: any }) => {
+    const imageUrl = getImageUrl(item.images);
+    return (
+      <TouchableOpacity style={styles.flashSaleItem}>
+        <Image 
+          source={{ uri: imageUrl }} 
+          style={styles.flashSaleImage} 
+        />
+        <View style={styles.flashSaleDetails}>
+          <Text style={styles.flashSalePrice}>{formatPrice(item.price)}</Text>
+          <View style={styles.progressBarBackground}>
+            <View style={[styles.progressBarFill, { width: '70%' }]} />
+            <Text style={styles.progressBarText}>Hot Sale</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderPetItem = ({ item }: { item: any }) => {
+    const imageUrl = getImageUrl(item.images);
+    return (
+      <TouchableOpacity
+        style={styles.petItemContainer}
+        onPress={() => navigation.navigate('ProductDetail', { productId: item._id, type: 'pet' })}
+      >
+        <Image 
+          source={{ uri: imageUrl }} 
+          style={styles.petItemImage} 
+        />
+        <View style={styles.petItemDetails}>
+          <Text style={styles.petItemName} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <Text style={styles.petItemPrice}>{formatPrice(item.price)}</Text>
+          <Text style={styles.petItemSold}>
+            {item.breed_id?.name || item.type || 'Pet'}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Render loading skeleton cho categories
+  const renderCategoryLoadingSkeleton = () => (
+    <View style={styles.categoriesList}>
+      {[1, 2, 3, 4].map((item) => (
+        <View key={item} style={styles.categoryItem}>
+          <View style={[styles.categoryImageContainer, styles.skeletonBackground]}>
+            <ActivityIndicator size="small" color="#ccc" />
+          </View>
+          <View style={[styles.skeletonText, { width: 50, height: 12 }]} />
+        </View>
+      ))}
+    </View>
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={styles.safeArea.backgroundColor} />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
-
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#FFE4E1" barStyle="dark-content" />
+      
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Home</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Chat')}>
-            <Icon name="message-circle" size={26} color="#2D3748" />
+          <View style={styles.headerTop}>
+            <Text style={styles.greeting}>Hi, Phước Loc 👋</Text>
+            <View style={styles.headerIcons}>
+              <TouchableOpacity style={styles.iconButton}>
+                <Icon name="bell" size={24} color="#666" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={() => navigation.navigate('Cart')}
+              >
+                <Icon name="shopping-bag" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          {/* Search Bar */}
+          <TouchableOpacity 
+            style={styles.searchContainer}
+            onPress={() => navigation.navigate('Search')}
+          >
+            <Icon name="search" size={20} color="#999" />
+            <Text style={styles.searchPlaceholder}>Search pets, food, toys...</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Icon name="search" size={20} color="#A0AEC0" style={styles.searchIcon} />
-          <TextInput placeholder="Search for pets..." style={styles.searchInput} placeholderTextColor="#A0AEC0" />
-          <TouchableOpacity>
-            <Icon name="camera" size={20} color="#A0AEC0" style={styles.cameraIcon} />
-          </TouchableOpacity>
+        {/* Categories */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Categories</Text>
+          {categoriesLoading ? (
+            renderCategoryLoadingSkeleton()
+          ) : (
+            <FlatList
+              data={categories}
+              renderItem={renderCategoryItem}
+              keyExtractor={(item) => item._id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesList}
+            />
+          )}
         </View>
 
-        <View style={styles.bannerContainer}>
-          <Image
-            source={{ uri: 'https://lh3.googleusercontent.com/proxy/YGBdiGmx0h-riNmW-TPMA_o5BY-9hLAuEmu3CwdtbG7BN8yo2AevyQgu5TM49Bwuo0GM1eNd1XNVOqoIvF1IVHhFHTDzuy-xPBdGZXfQlK2AY2Xrspkrlz0-8nvwkMagvkGE0JFNUx0gK9O0' }}
-            style={styles.bannerImage}
-          />
-        </View>
-
+        {/* Flash Sale Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Category</Text>
+            <Text style={styles.sectionTitle}> Flash Sale</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAll}>See all</Text>
+            </TouchableOpacity>
           </View>
-          <FlatList
-            data={categories}
-            renderItem={renderCategoryItem}
-            keyExtractor={item => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryList}
-          />
+          
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#D9534F" />
+            </View>
+          ) : flashSaleProducts.length > 0 ? (
+            <FlatList
+              data={flashSaleProducts}
+              renderItem={renderFlashSaleItem}
+              keyExtractor={(item) => item._id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.flashSaleList}
+            />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No flash sale products</Text>
+            </View>
+          )}
         </View>
 
+        {/* Popular Pets Section */}
         <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Flash Sale</Text>
-                <Text style={styles.timerText}>Ends in 00:15:30</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}> Popular Pets</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('PetAll')}>
+              <Text style={styles.seeAll}>See all</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#D9534F" />
             </View>
-             <FlatList
-                data={flashSaleData}
-                renderItem={renderFlashSaleItem}
-                keyExtractor={item => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.flashSaleList}
-            />
-        </View>
-        
-        {/* All Pets */}
-        <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>For You</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('PetAll')}>
-                    <Text style={styles.seeAllText}>See All</Text>
-                </TouchableOpacity>
-            </View>
+          ) : pets.length > 0 ? (
             <FlatList
-                data={pets}
-                renderItem={renderPetItem}
-                keyExtractor={(item) => item.id}
-                numColumns={2}
-                scrollEnabled={false}
-                columnWrapperStyle={styles.petListRow}
+              data={pets.slice(0, 6)} // Chỉ hiển thị 6 pets đầu tiên
+              renderItem={renderPetItem}
+              keyExtractor={(item) => item._id}
+              numColumns={2}
+              scrollEnabled={false}
+              columnWrapperStyle={styles.petRow}
+              contentContainerStyle={styles.petsList}
             />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No pets available</Text>
+            </View>
+          )}
         </View>
+
+        {/* Error handling */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton} 
+              onPress={loadInitialData}
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// ... Styles không đổi
+export default HomeScreen;
+
+// Styles giữ nguyên như cũ + thêm skeleton styles
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
-  container: { paddingBottom: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 30, paddingBottom: 10 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#2D3748' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, marginHorizontal: 20, paddingHorizontal: 15, marginTop: 10, borderWidth: 1, borderColor: '#E2E8F0' },
-  searchIcon: { marginRight: 10 },
-  cameraIcon: { marginLeft: 10 },
-  searchInput: { flex: 1, height: 48, fontSize: 16, color: '#2D3748' },
-  bannerContainer: { marginHorizontal: 20, marginTop: 20 },
-  bannerImage: { width: '100%', height: 150, borderRadius: 16 },
-  section: { marginTop: 24 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 16 },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#2D3748' },
-  seeAllText: { fontSize: 15, color: '#2563EB', fontWeight: '600' },
-  timerText: { fontSize: 15, color: '#D94A4A', fontWeight: '600' },
-  categoryList: { paddingHorizontal: 20 },
-  categoryItem: { alignItems: 'center', marginRight: 20 },
-  categoryImageContainer: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#E2E8F0' },
-  categoryImage: { width: '90%', height: '90%', borderRadius: 30 },
-  categoryText: { fontSize: 14, color: '#4A5568', fontWeight: '500' },
-  flashSaleList: { paddingHorizontal: 20 },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  greeting: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  iconButton: {
+    padding: 8,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  searchPlaceholder: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#999',
+    flex: 1,
+  },
+  section: {
+    marginBottom: 25,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  seeAll: {
+    fontSize: 14,
+    color: '#D9534F',
+    fontWeight: '500',
+  },
+  categoriesList: {
+    paddingHorizontal: 20,
+    gap: 15,
+  },
+  categoryItem: {
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  categoryImageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  categoryImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  categoryText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  flashSaleList: {
+    paddingHorizontal: 20,
+    gap: 15,
+  },
   flashSaleItem: {
-    width: 140,
-    marginRight: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    width: 150,
+    backgroundColor: '#fff',
+    borderRadius: 15,
     overflow: 'hidden',
+    marginRight: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   flashSaleImage: {
     width: '100%',
-    height: 140,
+    height: 120,
+    resizeMode: 'cover',
   },
   flashSaleDetails: {
-    padding: 10,
+    padding: 12,
   },
   flashSalePrice: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#D94A4A',
+    fontWeight: 'bold',
+    color: '#D9534F',
     marginBottom: 8,
   },
   progressBarBackground: {
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#f0f0f0',
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     overflow: 'hidden',
   },
   progressBarFill: {
-    height: '100%',
-    borderRadius: 9,
-    backgroundColor: '#F87171',
     position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    backgroundColor: '#D9534F',
+    borderRadius: 10,
   },
   progressBarText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#991B1B',
-    alignSelf: 'center',
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+    fontWeight: '500',
   },
-  petListRow: { justifyContent: 'space-between', paddingHorizontal: 20 },
-  petItemContainer: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#4A5568', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
-  petItemImage: { width: '100%', height: 160, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  petItemDetails: { padding: 12 },
-  petItemName: { fontSize: 15, fontWeight: '600', color: '#2D3748', marginBottom: 8, minHeight: 36 },
-  petItemPrice: { fontSize: 16, fontWeight: '700', color: '#D94A4A', marginBottom: 8 },
-  petItemSold: { fontSize: 12, color: '#718096' },
+  petsList: {
+    paddingHorizontal: 20,
+  },
+  petRow: {
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  petItemContainer: {
+    flex: 0.48,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  petItemImage: {
+    width: '100%',
+    height: 140,
+    resizeMode: 'cover',
+  },
+  petItemDetails: {
+    padding: 12,
+  },
+  petItemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+    minHeight: 32,
+  },
+  petItemPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#D9534F',
+    marginBottom: 4,
+  },
+  petItemSold: {
+    fontSize: 12,
+    color: '#666',
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  errorContainer: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#fee',
+    marginHorizontal: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#d32f2f',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: '#D9534F',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  retryText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  // Skeleton loading styles
+  skeletonBackground: {
+    backgroundColor: '#f0f0f0',
+  },
+  skeletonText: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+    marginTop: 4,
+  },
 });
-
-export default HomeScreen;
