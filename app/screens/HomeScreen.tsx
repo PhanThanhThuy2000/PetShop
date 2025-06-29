@@ -10,6 +10,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -21,7 +22,7 @@ import { categoriesService, Category } from '../services/categoriesService';
 
 const HomeScreen = () => {
   const navigation = useNavigation() as any;
-  
+
   // Local state
   const [pets, setPets] = useState([]);
   const [products, setProducts] = useState([]);
@@ -41,13 +42,13 @@ const HomeScreen = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Load categories và pets/products song song
       await Promise.all([
         loadCategories(),
         loadPetsAndProducts()
       ]);
-      
+
     } catch (error: any) {
       console.error('Error loading initial data:', error);
       setError(error.message || 'Failed to load data');
@@ -65,25 +66,25 @@ const HomeScreen = () => {
       console.error('Error loading categories:', error);
       // Fallback to default categories nếu API lỗi
       setCategories([
-        { 
-          _id: '1', 
-          name: 'Cats', 
-          images: [{ url: 'https://file.hstatic.net/200000108863/file/3_33cbf6a0308e40ca8962af5e0460397c_grande.png' }] 
+        {
+          _id: '1',
+          name: 'Cats',
+          images: [{ url: 'https://file.hstatic.net/200000108863/file/3_33cbf6a0308e40ca8962af5e0460397c_grande.png' }]
         },
-        { 
-          _id: '2', 
-          name: 'Dogs', 
-          images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFUAfyVe3Easiycyh3isP9wDQTYuSmGPsPQvLIJdEYvQ_DsFq5Ez2Nh_QjiS3oZ3B8ZPfK9cZQyIStmQMV1lDPLw' }] 
+        {
+          _id: '2',
+          name: 'Dogs',
+          images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFUAfyVe3Easiycyh3isP9wDQTYuSmGPsPQvLIJdEYvQ_DsFq5Ez2Nh_QjiS3oZ3B8ZPfK9cZQyIStmQMV1lDPLw' }]
         },
-        { 
-          _id: '3', 
-          name: 'Rabbits', 
-          images: [{ url: 'https://cdn.eva.vn/upload/3-2021/images/2021-09-24/image4-1632449319-210-width600height400.jpg' }] 
+        {
+          _id: '3',
+          name: 'Rabbits',
+          images: [{ url: 'https://cdn.eva.vn/upload/3-2021/images/2021-09-24/image4-1632449319-210-width600height400.jpg' }]
         },
-        { 
-          _id: '4', 
-          name: 'Hamsters', 
-          images: [{ url: 'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQXXutfOGiZ6MYhA4L47gBE3kR-giotG2iF-j5aMMSIlEJrnOTLCdhovShKPCVofxINNjxIYw0b9KAuIKrYqKAbHA' }] 
+        {
+          _id: '4',
+          name: 'Hamsters',
+          images: [{ url: 'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQXXutfOGiZ6MYhA4L47gBE3kR-giotG2iF-j5aMMSIlEJrnOTLCdhovShKPCVofxINNjxIYw0b9KAuIKrYqKAbHA' }]
         },
       ] as Category[]);
     } finally {
@@ -100,10 +101,10 @@ const HomeScreen = () => {
         productsService.getProducts({ limit: 4, featured: true })
       ]);
 
-      setPets(petsResponse.data || []);
-      setProducts(productsResponse.data || []);
+      setPets(petsResponse.data || []); 
+      setProducts(productsResponse.data || []); 
       setFlashSaleProducts(flashSaleResponse.data || []);
-      
+
     } catch (error: any) {
       console.error('Error loading pets and products:', error);
       throw error; // Re-throw để loadInitialData có thể catch
@@ -131,42 +132,46 @@ const HomeScreen = () => {
 
   const renderCategoryItem = ({ item }: { item: Category }) => {
     const imageUrl = getImageUrl(item.images);
-    
+
     return (
       <TouchableOpacity
         style={styles.categoryItem}
-        onPress={() => navigation.navigate('Breeds', { 
-          categoryId: item._id, 
-          categoryName: item.name 
+        onPress={() => navigation.navigate('Breeds', {
+          categoryId: item._id,
+          categoryName: item.name
         })}
       >
         <View style={styles.categoryImageContainer}>
-          <Image 
-            source={{ uri: imageUrl }} 
-            style={styles.categoryImage} 
-            onError={(error) => {
-              console.log('Image load error for category:', item.name, error);
-            }}
-          />
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.categoryImage}
+              onError={(error) => {
+                console.log('Image load error for category:', item.name, error);
+              }}
+            />
+          ) : (
+            <Text style={styles.categoryText}>{item.name[0]}</Text>
+          )}
         </View>
         <Text style={styles.categoryText}>{item.name}</Text>
       </TouchableOpacity>
     );
   };
-  
+
   const renderFlashSaleItem = ({ item }: { item: any }) => {
     const imageUrl = getImageUrl(item.images);
     return (
       <TouchableOpacity style={styles.flashSaleItem}>
-        <Image 
-          source={{ uri: imageUrl }} 
-          style={styles.flashSaleImage} 
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.flashSaleImage}
         />
         <View style={styles.flashSaleDetails}>
           <Text style={styles.flashSalePrice}>{formatPrice(item.price)}</Text>
           <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: '70%' }]} />
-            <Text style={styles.progressBarText}>Hot Sale</Text>
+            <View style={[styles.progressBarFill, { width: `${(item.sold / item.total) * 100}%` }]} />
+            <Text style={styles.progressBarText}>Sold {item.sold || 0}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -180,9 +185,9 @@ const HomeScreen = () => {
         style={styles.petItemContainer}
         onPress={() => navigation.navigate('ProductDetail', { productId: item._id, type: 'pet' })}
       >
-        <Image 
-          source={{ uri: imageUrl }} 
-          style={styles.petItemImage} 
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.petItemImage}
         />
         <View style={styles.petItemDetails}>
           <Text style={styles.petItemName} numberOfLines={2}>
@@ -199,11 +204,11 @@ const HomeScreen = () => {
 
   // Render loading skeleton cho categories
   const renderCategoryLoadingSkeleton = () => (
-    <View style={styles.categoriesList}>
+    <View style={styles.categoryList}>
       {[1, 2, 3, 4].map((item) => (
         <View key={item} style={styles.categoryItem}>
           <View style={[styles.categoryImageContainer, styles.skeletonBackground]}>
-            <ActivityIndicator size="small" color="#ccc" />
+            <ActivityIndicator size="small" color="#A0AEC0" />
           </View>
           <View style={[styles.skeletonText, { width: 50, height: 12 }]} />
         </View>
@@ -212,45 +217,49 @@ const HomeScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FFE4E1" barStyle="dark-content" />
-      
-      <ScrollView 
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={styles.safeArea.backgroundColor} />
+      <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.container}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <Text style={styles.greeting}>Hi, Phước Loc 👋</Text>
-            <View style={styles.headerIcons}>
-              <TouchableOpacity style={styles.iconButton}>
-                <Icon name="bell" size={24} color="#666" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.iconButton}
-                onPress={() => navigation.navigate('Cart')}
-              >
-                <Icon name="shopping-bag" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-          </View>
-          
-          {/* Search Bar */}
-          <TouchableOpacity 
-            style={styles.searchContainer}
-            onPress={() => navigation.navigate('Search')}
-          >
-            <Icon name="search" size={20} color="#999" />
-            <Text style={styles.searchPlaceholder}>Search pets, food, toys...</Text>
+          <Text style={styles.headerTitle}>Home</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Chat')}>
+            <Icon name="message-circle" size={26} color="#2D3748" />
           </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Icon name="search" size={20} color="#A0AEC0" style={styles.searchIcon} />
+          <TextInput
+            placeholder="Search for pets..."
+            style={styles.searchInput}
+            placeholderTextColor="#A0AEC0"
+          />
+          <TouchableOpacity>
+            <Icon name="camera" size={20} color="#A0AEC0" style={styles.cameraIcon} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Banner */}
+        <View style={styles.bannerContainer}>
+          <Image
+            source={{ uri: 'https://lh3.googleusercontent.com/proxy/YGBdiGmx0h-riNmW-TPMA_o5BY-9hLAuEmu3CwdtbG7BN8yo2AevyQgu5TM49Bwuo0GM1eNd1XNVOqoIvF1IVHhFHTDzuy-xPBdGZXfQlK2AY2Xrspkrlz0-8nvwkMagvkGE0JFNUx0gK9O0' }}
+            style={styles.bannerImage}
+          />
         </View>
 
         {/* Categories */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Categories</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Category</Text>
+          </View>
           {categoriesLoading ? (
             renderCategoryLoadingSkeleton()
           ) : (
@@ -260,7 +269,7 @@ const HomeScreen = () => {
               keyExtractor={(item) => item._id}
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoriesList}
+              contentContainerStyle={styles.categoryList}
             />
           )}
         </View>
@@ -268,15 +277,12 @@ const HomeScreen = () => {
         {/* Flash Sale Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}> Flash Sale</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>See all</Text>
-            </TouchableOpacity>
+            <Text style={styles.sectionTitle}>Flash Sale</Text>
+            <Text style={styles.timerText}>Ends in 00:15:30</Text>
           </View>
-          
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#D9534F" />
+              <ActivityIndicator size="small" color="#2563EB" />
             </View>
           ) : flashSaleProducts.length > 0 ? (
             <FlatList
@@ -297,24 +303,23 @@ const HomeScreen = () => {
         {/* Popular Pets Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}> Popular Pets</Text>
+            <Text style={styles.sectionTitle}>For You</Text>
             <TouchableOpacity onPress={() => navigation.navigate('PetAll')}>
-              <Text style={styles.seeAll}>See all</Text>
+              <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
-          
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#D9534F" />
+              <ActivityIndicator size="small" color="#2563EB" />
             </View>
           ) : pets.length > 0 ? (
             <FlatList
-              data={pets.slice(0, 6)} // Chỉ hiển thị 6 pets đầu tiên
+              data={pets.slice(0, 6)}
               renderItem={renderPetItem}
               keyExtractor={(item) => item._id}
               numColumns={2}
               scrollEnabled={false}
-              columnWrapperStyle={styles.petRow}
+              columnWrapperStyle={styles.petListRow}
               contentContainerStyle={styles.petsList}
             />
           ) : (
@@ -328,8 +333,8 @@ const HomeScreen = () => {
         {error && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity 
-              style={styles.retryButton} 
+            <TouchableOpacity
+              style={styles.retryButton}
               onPress={loadInitialData}
             >
               <Text style={styles.retryText}>Retry</Text>
@@ -343,246 +348,246 @@ const HomeScreen = () => {
 
 export default HomeScreen;
 
-// Styles giữ nguyên như cũ + thêm skeleton styles
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: '#F8F9FA'
+  },
+  container: {
+    paddingBottom: 20
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
-  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 10
   },
-  greeting: {
+  headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
-  },
-  headerIcons: {
-    flexDirection: 'row',
-    gap: 15,
-  },
-  iconButton: {
-    padding: 8,
+    color: '#2D3748'
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginHorizontal: 20,
     paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0'
   },
-  searchPlaceholder: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: '#999',
+  searchIcon: {
+    marginRight: 10
+  },
+  cameraIcon: {
+    marginLeft: 10
+  },
+  searchInput: {
     flex: 1,
+    height: 48,
+    fontSize: 16,
+    color: '#2D3748'
+  },
+  bannerContainer: {
+    marginHorizontal: 20,
+    marginTop: 20
+  },
+  bannerImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 16
   },
   section: {
-    marginBottom: 25,
+    marginTop: 24
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 15,
+    marginBottom: 16
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#2D3748'
   },
-  seeAll: {
-    fontSize: 14,
-    color: '#D9534F',
-    fontWeight: '500',
+  seeAllText: {
+    fontSize: 15,
+    color: '#2563EB',
+    fontWeight: '600'
   },
-  categoriesList: {
-    paddingHorizontal: 20,
-    gap: 15,
+  timerText: {
+    fontSize: 15,
+    color: '#D94A4A',
+    fontWeight: '600'
+  },
+  categoryList: {
+    paddingHorizontal: 20
   },
   categoryItem: {
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: 20
   },
   categoryImageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0'
   },
   categoryImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: '90%',
+    height: '90%',
+    borderRadius: 30
   },
   categoryText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    fontWeight: '500',
+    fontSize: 14,
+    color: '#4A5568',
+    fontWeight: '500'
   },
   flashSaleList: {
-    paddingHorizontal: 20,
-    gap: 15,
+    paddingHorizontal: 20
   },
   flashSaleItem: {
-    width: 150,
-    backgroundColor: '#fff',
-    borderRadius: 15,
+    width: 140,
+    marginRight: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
-    marginRight: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   flashSaleImage: {
     width: '100%',
-    height: 120,
-    resizeMode: 'cover',
+    height: 140,
   },
   flashSaleDetails: {
-    padding: 12,
+    padding: 10,
   },
   flashSalePrice: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#D9534F',
+    fontWeight: '700',
+    color: '#D94A4A',
     marginBottom: 8,
   },
   progressBarBackground: {
-    backgroundColor: '#f0f0f0',
-    height: 20,
-    borderRadius: 10,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FEE2E2',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   progressBarFill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
     height: '100%',
-    backgroundColor: '#D9534F',
-    borderRadius: 10,
+    borderRadius: 9,
+    backgroundColor: '#F87171',
+    position: 'absolute',
   },
   progressBarText: {
-    fontSize: 10,
-    color: '#666',
-    textAlign: 'center',
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#991B1B',
+    alignSelf: 'center',
+  },
+  petListRow: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 20
   },
   petsList: {
     paddingHorizontal: 20,
   },
-  petRow: {
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
   petItemContainer: {
-    flex: 0.48,
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#4A5568',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2
   },
   petItemImage: {
     width: '100%',
-    height: 140,
-    resizeMode: 'cover',
+    height: 160,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16
   },
   petItemDetails: {
-    padding: 12,
+    padding: 12
   },
   petItemName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-    minHeight: 32,
-  },
+  color: '#2D3748',
+  marginBottom: 8,
+  minHeight: 36
+},
   petItemPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#D9534F',
-    marginBottom: 4,
-  },
+  fontSize: 16,
+  fontWeight: '700',
+  color: '#D94A4A',
+  marginBottom: 8
+},
   petItemSold: {
-    fontSize: 12,
-    color: '#666',
-  },
+  fontSize: 12,
+  color: '#718096'
+},
   loadingContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
+  padding: 20,
+  alignItems: 'center',
+},
   emptyContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
+  padding: 20,
+  alignItems: 'center',
+},
   emptyText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
+  fontSize: 16,
+  color: '#4A5568',
+  textAlign: 'center',
+},
   errorContainer: {
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: '#fee',
-    marginHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
+  padding: 20,
+  alignItems: 'center',
+  backgroundColor: '#FEE2E2',
+  marginHorizontal: 20,
+  borderRadius: 10,
+  marginBottom: 20,
+},
   errorText: {
-    fontSize: 14,
-    color: '#d32f2f',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
+  fontSize: 14,
+  color: '#D94A4A',
+  textAlign: 'center',
+  marginBottom: 10,
+},
   retryButton: {
-    backgroundColor: '#D9534F',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
+  backgroundColor: '#D94A4A',
+  paddingHorizontal: 20,
+  paddingVertical: 8,
+  borderRadius: 20,
+},
   retryText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  // Skeleton loading styles
+  color: '#FFFFFF',
+  fontSize: 14,
+  fontWeight: '500',
+},
   skeletonBackground: {
-    backgroundColor: '#f0f0f0',
-  },
+  backgroundColor: '#E2E8F0',
+},
   skeletonText: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
-    marginTop: 4,
-  },
+  backgroundColor: '#E2E8F0',
+  borderRadius: 4,
+  marginTop: 4,
+},
 });
