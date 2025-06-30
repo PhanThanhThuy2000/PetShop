@@ -1,3 +1,4 @@
+// HomeScreen.tsx - Giao diện gốc đơn giản với dữ liệu từ API
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
@@ -12,7 +13,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
@@ -20,10 +21,25 @@ import Icon from 'react-native-vector-icons/Feather';
 import { petsService, productsService } from '../services/api-services';
 import { categoriesService, Category } from '../services/categoriesService';
 
+// Safe navigation helper
+const safeNavigate = (navigation: any, routeName: string, params?: any) => {
+  try {
+    navigation.navigate(routeName, params);
+  } catch (error) {
+    console.warn(`Route '${routeName}' not found, navigating to Search instead`);
+    // Fallback to Search or available route
+    try {
+      navigation.navigate('Search', params);
+    } catch (fallbackError) {
+      console.error('Even Search route not found:', fallbackError);
+    }
+  }
+};
+
 const HomeScreen = () => {
   const navigation = useNavigation() as any;
 
-  // Local state
+  // State cho dữ liệu API
   const [pets, setPets] = useState([]);
   const [products, setProducts] = useState([]);
   const [flashSaleProducts, setFlashSaleProducts] = useState([]);
@@ -32,6 +48,30 @@ const HomeScreen = () => {
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fallback data nếu API không hoạt động
+  const fallbackCategories = [
+    { _id: '1', name: 'Cats', images: [{ url: 'https://file.hstatic.net/200000108863/file/3_33cbf6a0308e40ca8962af5e0460397c_grande.png' }] },
+    { _id: '2', name: 'Dogs', images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFUAfyVe3Easiycyh3isP9wDQTYuSmGPsPQvLIJdEYvQ_DsFq5Ez2Nh_QjiS3oZ3B8ZPfK9cZQyIStmQMV1lDPLw' }] },
+    { _id: '3', name: 'Rabbits', images: [{ url: 'https://cdn.eva.vn/upload/3-2021/images/2021-09-24/image4-1632449319-210-width600height400.jpg' }] },
+    { _id: '4', name: 'Hamsters', images: [{ url: 'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQXXutfOGiZ6MYhA4L47gBE3kR-giotG2iF-j5aMMSIlEJrnOTLCdhovShKPCVofxINNjxIYw0b9KAuIKrYqKAbHA' }] },
+  ];
+
+  const fallbackFlashSale = [
+    { _id: '1', images: [{ url: 'https://aquariumcare.vn/upload/user/images/th%E1%BB%8F%20c%E1%BA%A3nh%204(2).jpg' }], price: 850000 },
+    { _id: '2', images: [{ url: 'https://bizweb.dktcdn.net/100/165/948/products/img-5830-jpg.jpg?v=1502808189430' }], price: 1200000 },
+    { _id: '3', images: [{ url: 'https://cocapet.net/wp-content/uploads/2018/08/bear-tam-th%E1%BB%83.jpg' }], price: 500000 },
+    { _id: '4', images: [{ url: 'https://file.hstatic.net/200000159621/article/cover_8d54a27928c4408593fa2f4f4e60191b_grande.jpg' }], price: 900000 },
+  ];
+
+  const fallbackPets = [
+    { _id: '1', name: 'British Longhair Cat', images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSgjs2sCO0xh0Ve1Sf8mDtBt2UhO9GRZImDw&s' }], price: 1000000, breed_id: { name: 'British' } },
+    { _id: '2', name: 'Shiba Inu Dog', images: [{ url: 'https://thuvienmeme.com/wp-content/uploads/2024/07/cho-husky-luom-hinh-su-meme.jpg' }], price: 1000000, breed_id: { name: 'Shiba' } },
+    { _id: '3', name: 'British Longhair Cat', images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQv44j8zRpM29qyJqHyCC55qdoqwtnUSmswRA&s' }], price: 1000000, breed_id: { name: 'British' } },
+    { _id: '4', name: 'Shiba Inu Dog', images: [{ url: 'https://pethouse.com.vn/wp-content/uploads/2022/12/Ngoai-hinh-husky-768x1024-1-600x800.jpg' }], price: 1000000, breed_id: { name: 'Shiba' } },
+    { _id: '5', name: 'British Longhair Cat', images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTajAsFf6UunJlFGmB-Y6W1Gyk3oqPkpnOCOA&s' }], price: 1000000, breed_id: { name: 'British' } },
+    { _id: '6', name: 'Shiba Inu Dog', images: [{ url: 'https://i.pinimg.com/236x/e7/8a/d6/e78ad67426f1bc002e9f221e9d0605b9.jpg' }], price: 1000000, breed_id: { name: 'Shiba' } },
+  ];
 
   // Load data khi component mount
   useEffect(() => {
@@ -52,6 +92,11 @@ const HomeScreen = () => {
     } catch (error: any) {
       console.error('Error loading initial data:', error);
       setError(error.message || 'Failed to load data');
+      
+      // Sử dụng fallback data khi có lỗi
+      setCategories(fallbackCategories as Category[]);
+      setFlashSaleProducts(fallbackFlashSale);
+      setPets(fallbackPets);
     } finally {
       setLoading(false);
     }
@@ -61,32 +106,10 @@ const HomeScreen = () => {
     try {
       setCategoriesLoading(true);
       const response = await categoriesService.getCategories();
-      setCategories(response.data || []);
+      setCategories(response.data || fallbackCategories);
     } catch (error: any) {
       console.error('Error loading categories:', error);
-      // Fallback to default categories nếu API lỗi
-      setCategories([
-        {
-          _id: '1',
-          name: 'Cats',
-          images: [{ url: 'https://file.hstatic.net/200000108863/file/3_33cbf6a0308e40ca8962af5e0460397c_grande.png' }]
-        },
-        {
-          _id: '2',
-          name: 'Dogs',
-          images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFUAfyVe3Easiycyh3isP9wDQTYuSmGPsPQvLIJdEYvQ_DsFq5Ez2Nh_QjiS3oZ3B8ZPfK9cZQyIStmQMV1lDPLw' }]
-        },
-        {
-          _id: '3',
-          name: 'Rabbits',
-          images: [{ url: 'https://cdn.eva.vn/upload/3-2021/images/2021-09-24/image4-1632449319-210-width600height400.jpg' }]
-        },
-        {
-          _id: '4',
-          name: 'Hamsters',
-          images: [{ url: 'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQXXutfOGiZ6MYhA4L47gBE3kR-giotG2iF-j5aMMSIlEJrnOTLCdhovShKPCVofxINNjxIYw0b9KAuIKrYqKAbHA' }]
-        },
-      ] as Category[]);
+      setCategories(fallbackCategories as Category[]);
     } finally {
       setCategoriesLoading(false);
     }
@@ -101,13 +124,16 @@ const HomeScreen = () => {
         productsService.getProducts({ limit: 4, featured: true })
       ]);
 
-      setPets(petsResponse.data || []); 
-      setProducts(productsResponse.data || []); 
-      setFlashSaleProducts(flashSaleResponse.data || []);
+      setPets(petsResponse.data || fallbackPets);
+      setProducts(productsResponse.data || []);
+      setFlashSaleProducts(flashSaleResponse.data || fallbackFlashSale);
 
     } catch (error: any) {
       console.error('Error loading pets and products:', error);
-      throw error; // Re-throw để loadInitialData có thể catch
+      // Sử dụng fallback data
+      setPets(fallbackPets);
+      setFlashSaleProducts(fallbackFlashSale);
+      throw error;
     }
   };
 
@@ -130,29 +156,28 @@ const HomeScreen = () => {
     return price?.toLocaleString('vi-VN') || '0';
   };
 
+  // Render functions với giao diện gốc đơn giản
   const renderCategoryItem = ({ item }: { item: Category }) => {
     const imageUrl = getImageUrl(item.images);
 
     return (
       <TouchableOpacity
         style={styles.categoryItem}
-        onPress={() => navigation.navigate('Breeds', {
-          categoryId: item._id,
-          categoryName: item.name
-        })}
+        onPress={() => {
+          safeNavigate(navigation, 'Breeds', {
+            categoryId: item._id,
+            categoryName: item.name
+          });
+        }}
       >
         <View style={styles.categoryImageContainer}>
-          {imageUrl ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={styles.categoryImage}
-              onError={(error) => {
-                console.log('Image load error for category:', item.name, error);
-              }}
-            />
-          ) : (
-            <Text style={styles.categoryText}>{item.name[0]}</Text>
-          )}
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.categoryImage}
+            onError={(error) => {
+              console.log('Image load error for category:', item.name, error);
+            }}
+          />
         </View>
         <Text style={styles.categoryText}>{item.name}</Text>
       </TouchableOpacity>
@@ -170,8 +195,8 @@ const HomeScreen = () => {
         <View style={styles.flashSaleDetails}>
           <Text style={styles.flashSalePrice}>{formatPrice(item.price)}</Text>
           <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${(item.sold / item.total) * 100}%` }]} />
-            <Text style={styles.progressBarText}>Sold {item.sold || 0}</Text>
+            <View style={[styles.progressBarFill, { width: '70%' }]} />
+            <Text style={styles.progressBarText}>Sold 15</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -183,7 +208,7 @@ const HomeScreen = () => {
     return (
       <TouchableOpacity
         style={styles.petItemContainer}
-        onPress={() => navigation.navigate('ProductDetail', { productId: item._id, type: 'pet' })}
+        onPress={() => safeNavigate(navigation, 'ProductDetail', { productId: item._id })}
       >
         <Image
           source={{ uri: imageUrl }}
@@ -195,41 +220,27 @@ const HomeScreen = () => {
           </Text>
           <Text style={styles.petItemPrice}>{formatPrice(item.price)}</Text>
           <Text style={styles.petItemSold}>
-            {item.breed_id?.name || item.type || 'Pet'}
+            {item.breed_id?.name || item.type || 'Sold 50+'}
           </Text>
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Render loading skeleton cho categories
-  const renderCategoryLoadingSkeleton = () => (
-    <View style={styles.categoryList}>
-      {[1, 2, 3, 4].map((item) => (
-        <View key={item} style={styles.categoryItem}>
-          <View style={[styles.categoryImageContainer, styles.skeletonBackground]}>
-            <ActivityIndicator size="small" color="#A0AEC0" />
-          </View>
-          <View style={[styles.skeletonText, { width: 50, height: 12 }]} />
-        </View>
-      ))}
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={styles.safeArea.backgroundColor} />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.container}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header */}
+
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Home</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Chat')}>
+          <TouchableOpacity onPress={() => safeNavigate(navigation, 'Chat')}>
             <Icon name="message-circle" size={26} color="#2D3748" />
           </TouchableOpacity>
         </View>
@@ -237,17 +248,17 @@ const HomeScreen = () => {
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Icon name="search" size={20} color="#A0AEC0" style={styles.searchIcon} />
-          <TextInput
-            placeholder="Search for pets..."
-            style={styles.searchInput}
-            placeholderTextColor="#A0AEC0"
+          <TextInput 
+            placeholder="Search for pets..." 
+            style={styles.searchInput} 
+            placeholderTextColor="#A0AEC0" 
+            onFocus={() => safeNavigate(navigation, 'Search')}
           />
           <TouchableOpacity>
             <Icon name="camera" size={20} color="#A0AEC0" style={styles.cameraIcon} />
           </TouchableOpacity>
         </View>
 
-        {/* Banner */}
         <View style={styles.bannerContainer}>
           <Image
             source={{ uri: 'https://lh3.googleusercontent.com/proxy/YGBdiGmx0h-riNmW-TPMA_o5BY-9hLAuEmu3CwdtbG7BN8yo2AevyQgu5TM49Bwuo0GM1eNd1XNVOqoIvF1IVHhFHTDzuy-xPBdGZXfQlK2AY2Xrspkrlz0-8nvwkMagvkGE0JFNUx0gK9O0' }}
@@ -255,13 +266,14 @@ const HomeScreen = () => {
           />
         </View>
 
-        {/* Categories */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Category</Text>
           </View>
           {categoriesLoading ? (
-            renderCategoryLoadingSkeleton()
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#2563EB" />
+            </View>
           ) : (
             <FlatList
               data={categories}
@@ -274,7 +286,6 @@ const HomeScreen = () => {
           )}
         </View>
 
-        {/* Flash Sale Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Flash Sale</Text>
@@ -282,7 +293,7 @@ const HomeScreen = () => {
           </View>
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#2563EB" />
+              <ActivityIndicator size="small" color="#D94A4A" />
             </View>
           ) : flashSaleProducts.length > 0 ? (
             <FlatList
@@ -299,12 +310,12 @@ const HomeScreen = () => {
             </View>
           )}
         </View>
-
-        {/* Popular Pets Section */}
+        
+        {/* All Pets */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>For You</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('PetAll')}>
+            <TouchableOpacity onPress={() => safeNavigate(navigation, 'PetAll')}>
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
@@ -314,13 +325,12 @@ const HomeScreen = () => {
             </View>
           ) : pets.length > 0 ? (
             <FlatList
-              data={pets.slice(0, 6)}
+              data={pets}
               renderItem={renderPetItem}
               keyExtractor={(item) => item._id}
               numColumns={2}
               scrollEnabled={false}
               columnWrapperStyle={styles.petListRow}
-              contentContainerStyle={styles.petsList}
             />
           ) : (
             <View style={styles.emptyContainer}>
@@ -346,117 +356,29 @@ const HomeScreen = () => {
   );
 };
 
-export default HomeScreen;
-
+// Styles của giao diện gốc đơn giản
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F8F9FA'
-  },
-  container: {
-    paddingBottom: 20
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 10
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2D3748'
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginHorizontal: 20,
-    paddingHorizontal: 15,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0'
-  },
-  searchIcon: {
-    marginRight: 10
-  },
-  cameraIcon: {
-    marginLeft: 10
-  },
-  searchInput: {
-    flex: 1,
-    height: 48,
-    fontSize: 16,
-    color: '#2D3748'
-  },
-  bannerContainer: {
-    marginHorizontal: 20,
-    marginTop: 20
-  },
-  bannerImage: {
-    width: '100%',
-    height: 150,
-    borderRadius: 16
-  },
-  section: {
-    marginTop: 24
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2D3748'
-  },
-  seeAllText: {
-    fontSize: 15,
-    color: '#2563EB',
-    fontWeight: '600'
-  },
-  timerText: {
-    fontSize: 15,
-    color: '#D94A4A',
-    fontWeight: '600'
-  },
-  categoryList: {
-    paddingHorizontal: 20
-  },
-  categoryItem: {
-    alignItems: 'center',
-    marginRight: 20
-  },
-  categoryImageContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0'
-  },
-  categoryImage: {
-    width: '90%',
-    height: '90%',
-    borderRadius: 30
-  },
-  categoryText: {
-    fontSize: 14,
-    color: '#4A5568',
-    fontWeight: '500'
-  },
-  flashSaleList: {
-    paddingHorizontal: 20
-  },
+  safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { paddingBottom: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 30, paddingBottom: 10 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#2D3748' },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, marginHorizontal: 20, paddingHorizontal: 15, marginTop: 10, borderWidth: 1, borderColor: '#E2E8F0' },
+  searchIcon: { marginRight: 10 },
+  cameraIcon: { marginLeft: 10 },
+  searchInput: { flex: 1, height: 48, fontSize: 16, color: '#2D3748' },
+  bannerContainer: { marginHorizontal: 20, marginTop: 20 },
+  bannerImage: { width: '100%', height: 150, borderRadius: 16 },
+  section: { marginTop: 24 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 16 },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#2D3748' },
+  seeAllText: { fontSize: 15, color: '#2563EB', fontWeight: '600' },
+  timerText: { fontSize: 15, color: '#D94A4A', fontWeight: '600' },
+  categoryList: { paddingHorizontal: 20 },
+  categoryItem: { alignItems: 'center', marginRight: 20 },
+  categoryImageContainer: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#E2E8F0' },
+  categoryImage: { width: '90%', height: '90%', borderRadius: 30 },
+  categoryText: { fontSize: 14, color: '#4A5568', fontWeight: '500' },
+  flashSaleList: { paddingHorizontal: 20 },
   flashSaleItem: {
     width: 140,
     marginRight: 16,
@@ -498,96 +420,51 @@ const styles = StyleSheet.create({
     color: '#991B1B',
     alignSelf: 'center',
   },
-  petListRow: {
-    justifyContent: 'space-between',
-    paddingHorizontal: 20
-  },
-  petsList: {
-    paddingHorizontal: 20,
-  },
-  petItemContainer: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#4A5568',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2
-  },
-  petItemImage: {
-    width: '100%',
-    height: 160,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16
-  },
-  petItemDetails: {
-    padding: 12
-  },
-  petItemName: {
-    fontSize: 15,
-    fontWeight: '600',
-  color: '#2D3748',
-  marginBottom: 8,
-  minHeight: 36
-},
-  petItemPrice: {
-  fontSize: 16,
-  fontWeight: '700',
-  color: '#D94A4A',
-  marginBottom: 8
-},
-  petItemSold: {
-  fontSize: 12,
-  color: '#718096'
-},
+  petListRow: { justifyContent: 'space-between', paddingHorizontal: 20 },
+  petItemContainer: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#4A5568', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
+  petItemImage: { width: '100%', height: 160, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  petItemDetails: { padding: 12 },
+  petItemName: { fontSize: 15, fontWeight: '600', color: '#2D3748', marginBottom: 8, minHeight: 36 },
+  petItemPrice: { fontSize: 16, fontWeight: '700', color: '#D94A4A', marginBottom: 8 },
+  petItemSold: { fontSize: 12, color: '#718096' },
   loadingContainer: {
-  padding: 20,
-  alignItems: 'center',
-},
+    padding: 20,
+    alignItems: 'center',
+  },
   emptyContainer: {
-  padding: 20,
-  alignItems: 'center',
-},
+    padding: 20,
+    alignItems: 'center',
+  },
   emptyText: {
-  fontSize: 16,
-  color: '#4A5568',
-  textAlign: 'center',
-},
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
   errorContainer: {
-  padding: 20,
-  alignItems: 'center',
-  backgroundColor: '#FEE2E2',
-  marginHorizontal: 20,
-  borderRadius: 10,
-  marginBottom: 20,
-},
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#fee',
+    marginHorizontal: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
   errorText: {
-  fontSize: 14,
-  color: '#D94A4A',
-  textAlign: 'center',
-  marginBottom: 10,
-},
+    fontSize: 14,
+    color: '#d32f2f',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
   retryButton: {
-  backgroundColor: '#D94A4A',
-  paddingHorizontal: 20,
-  paddingVertical: 8,
-  borderRadius: 20,
-},
+    backgroundColor: '#D94A4A',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
   retryText: {
-  color: '#FFFFFF',
-  fontSize: 14,
-  fontWeight: '500',
-},
-  skeletonBackground: {
-  backgroundColor: '#E2E8F0',
-},
-  skeletonText: {
-  backgroundColor: '#E2E8F0',
-  borderRadius: 4,
-  marginTop: 4,
-},
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });
+
+export default HomeScreen;
