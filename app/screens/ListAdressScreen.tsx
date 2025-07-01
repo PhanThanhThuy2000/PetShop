@@ -1,217 +1,251 @@
-import React, { useState } from 'react'; // Thêm useState
-import {
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    FlatList,
-    StatusBar,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 interface Address {
-  id: string; // Thêm ID để xác định duy nhất
+  _id: string;
   name: string;
   phone: string;
-  address: string;
-  isDefault?: boolean;
+  note: string;
+  province: string;
+  district: string;
+  ward: string;
+  postal_code: string;
+  country: string;
+  is_default?: boolean;
 }
 
-// Dữ liệu ban đầu
-const initialAddresses: Address[] = [
-  { id: '1', name: 'Phan Thủy', phone: '(+84) 0363901223', address: '527 đường C6 Phường C6, Quận Bắc Từ Liêm, Hà Nội', isDefault: true },
-  { id: '2', name: 'Nguyễn Văn A', phone: '(+84) 0987654321', address: '123 Đường Láng, Phường Láng Thượng, Quận Đống Đa, Hà Nội' },
-  { id: '3', name: 'Trần Thị B', phone: '(+84) 0123456789', address: '456 Phố Huế, Phường Ngô Thì Nhậm, Quận Hai Bà Trưng, Hà Nội' },
-];
+const getToken = async (): Promise<string | null> => {
+  try {
+    const rawToken = await AsyncStorage.getItem('token');
+    return rawToken ? (rawToken.startsWith('Bearer') ? rawToken : `Bearer ${rawToken}`) : null;
+  } catch (error) {
+    console.error('Lỗi khi lấy token:', error);
+    return null;
+  }
+};
 
-const ListAdressScreen: React.FC = () => {
+const ListAddressScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  
-  // 1. Dùng useState để quản lý danh sách địa chỉ
-  const [addresses, setAddresses] = useState(initialAddresses);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
-  // 2. Hàm xử lý khi chọn một địa chỉ làm mặc định
-  const handleSetDefault = (selectedId: string) => {
-    const updatedAddresses = addresses.map(address => ({
-      ...address,
-      // Đặt isDefault là true cho địa chỉ được chọn, false cho các địa chỉ còn lại
-      isDefault: address.id === selectedId
-    }));
-    setAddresses(updatedAddresses);
+  const fetchAddresses = async () => {
+    setLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      const res = await axios.get('http://192.168.0.101:5000/api/addresses', {
+        headers: { Authorization: token },
+      });
+
+      setAddresses(res.data.data);
+    } catch (error: any) {
+      console.error('Lỗi khi lấy địa chỉ:', error.message || error);
+      Alert.alert('Lỗi', 'Không thể tải địa chỉ');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const renderAddressItem = ({ item }: { item: Address }) => (
-    // 3. Bọc toàn bộ thẻ trong TouchableOpacity
-    <TouchableOpacity onPress={() => handleSetDefault(item.id)}>
-      <View style={[styles.addressCard, item.isDefault && styles.defaultCardBorder]}>
-          <View style={styles.cardHeader}>
-              <Text style={styles.name}>{item.name}</Text>
-              <View style={styles.cardActions}>
-                  {item.isDefault && (
-                      <View style={styles.defaultTag}>
-                          <Text style={styles.defaultText}>Default</Text>
-                      </View>
-                  )}
-                  <TouchableOpacity 
-                      style={styles.editButton}
-                      onPress={() => {/* handle edit address */}}
-                  >
-                      <Ionicons name="pencil-outline" size={20} color="#3182CE" />
-                  </TouchableOpacity>
-              </View>
-          </View>
-          <View style={styles.cardBody}>
-              <Text style={styles.phone}>{item.phone}</Text>
-              <Text style={styles.address}>{item.address}</Text>
-          </View>
+  const setAsDefault = async (id: string) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      await axios.put(`http://192.168.0.101:5000/api/addresses/${id}`, {
+        is_default: true,
+      }, {
+        headers: { Authorization: token },
+      });
+
+      fetchAddresses();
+    } catch (error) {
+      console.error('Lỗi đặt mặc định:', error);
+      Alert.alert('Lỗi', 'Không thể đặt mặc định');
+    }
+  };
+
+  const deleteAddress = async (id: string) => {
+    Alert.alert('Xác nhận', 'Bạn có chắc muốn xóa địa chỉ này?', [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Xóa', style: 'destructive', onPress: async () => {
+          try {
+            const token = await getToken();
+            if (!token) return;
+
+            await axios.delete(`http://192.168.0.101:5000/api/addresses/${id}`, {
+              headers: { Authorization: token },
+            });
+
+            Alert.alert('Thành công', 'Đã xóa địa chỉ');
+            fetchAddresses();
+          } catch (error) {
+            console.error('Lỗi xóa địa chỉ:', error);
+            Alert.alert('Lỗi', 'Không thể xóa địa chỉ');
+          }
+        }
+      }
+    ]);
+  };
+
+  const renderItem = ({ item }: { item: Address }) => (
+    <View style={[styles.card, item.is_default && styles.defaultBorder]}>
+      <View style={styles.cardHeader}>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{item.name}</Text>
+          {item.is_default && <View style={styles.defaultTag}><Text style={styles.defaultText}>Default</Text></View>}
+        </View>
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={() => navigation.navigate('EditAdress', { address: item })}>
+            <Ionicons name="pencil-outline" size={20} color="#3182CE" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => deleteAddress(item._id)} style={{ marginLeft: 10 }}>
+            <Ionicons name="trash-outline" size={20} color="#e53e3e" />
+          </TouchableOpacity>
+        </View>
       </View>
-    </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => { setSelectedAddress(item); setShowModal(true); }}>
+        <Text style={styles.phone}>{item.phone}</Text>
+        <Text style={styles.address}>
+          {item.note}, {item.ward}, {item.district}, {item.province}, {item.postal_code}, {item.country}
+        </Text>
+      </TouchableOpacity>
+
+      {!item.is_default && (
+        <TouchableOpacity onPress={() => setAsDefault(item._id)} style={styles.setDefaultBtn}>
+          <Text style={styles.setDefaultText}>Đặt làm mặc định</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   );
+
+  useEffect(() => {
+    fetchAddresses();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+      <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>List Addresses</Text>
+        <Text style={styles.headerTitle}>Danh sách địa chỉ</Text>
         <View style={{ width: 24 }} />
       </View>
-      
-      <FlatList
-        data={addresses}
-        renderItem={renderAddressItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        extraData={addresses} // Báo cho FlatList biết cần render lại khi state thay đổi
-      />
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#3182CE" style={{ marginTop: 40 }} />
+      ) : (
+        <FlatList
+          data={addresses}
+          keyExtractor={item => item._id}
+          renderItem={renderItem}
+          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        />
+      )}
 
       <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => navigation.navigate('AddNewAddress')}
+        style={styles.addBtn}
+        onPress={() => navigation.navigate('ShippingAddress')}
       >
-        <Ionicons name="add" size={24} color="#fff" />
-        <Text style={styles.addText}>Add New Address</Text>
+        <Ionicons name="add" size={22} color="#fff" />
+        <Text style={styles.addBtnText}>Thêm địa chỉ mới</Text>
       </TouchableOpacity>
+
+      {showModal && selectedAddress && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setShowModal(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Chi tiết địa chỉ</Text>
+              <Text>Tên: {selectedAddress.name || '(Chưa có)'}</Text>
+              <Text>SĐT: {selectedAddress.phone || '(Chưa có)'}</Text>
+              <Text>Ghi chú: {selectedAddress.note || '(Chưa có)'}</Text>
+              <Text>Xã/Phường: {selectedAddress.ward || '(Chưa có)'}</Text>
+              <Text>Quận/Huyện: {selectedAddress.district || '(Chưa có)'}</Text>
+              <Text>Tỉnh/Thành phố: {selectedAddress.province || '(Chưa có)'}</Text>
+              <Text>Mã bưu chính: {selectedAddress.postal_code || '(Chưa có)'}</Text>
+              <Text>Quốc gia: {selectedAddress.country || '(Chưa có)'}</Text>
+
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setShowModal(false)}>
+                <Text style={styles.closeBtnText}>Đóng</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        backgroundColor: '#f8f9fa',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderColor: '#eef0f2',
-        paddingTop:35
-
-    },
-    backButton: { 
-        padding: 5,
-    },
-    headerTitle: { 
-        fontSize: 20, 
-        fontWeight: '600',
-        color: '#2d3748',
-    },
-    listContainer: {
-        padding: 16,
-        paddingBottom: 100,
-    },
-    addressCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        marginBottom: 16,
-        borderWidth: 1.5, // Tăng độ dày border một chút
-        borderColor: '#e2e8f0', // Border mặc định
-        shadowColor: "#4A5568",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    defaultCardBorder: {
-        borderColor: '#3182CE', // Border màu xanh khi được chọn
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    name: { 
-        fontSize: 16, 
-        fontWeight: 'bold',
-        color: '#2d3748',
-        flex: 1,
-    },
-    cardActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    defaultTag: {
-        backgroundColor: '#EBF8FF',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
-        marginRight: 10,
-    },
-    defaultText: { 
-        color: '#3182CE', 
-        fontSize: 12, 
-        fontWeight: '600' 
-    },
-    cardBody: {},
-    phone: { 
-        fontSize: 14, 
-        color: '#718096',
-        marginBottom: 4,
-    },
-    address: { 
-        fontSize: 14, 
-        color: '#4a5568',
-        lineHeight: 20,
-    },
-    editButton: {
-        padding: 4,
-    },
-    addButton: {
-        position: 'absolute',
-        bottom: 24,
-        left: 16,
-        right: 16,
-        backgroundColor: '#3182CE',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        borderRadius: 12,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 5,
-        elevation: 5,
-    },
-    addText: { 
-        color: '#fff', 
-        fontSize: 16, 
-        fontWeight: 'bold',
-        marginLeft: 8,
-    },
+  container: { flex: 1, backgroundColor: '#f0f2f5' },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 16, backgroundColor: '#fff', elevation: 2, paddingTop: 40
+  },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#2d3748' },
+  card: {
+    backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16,
+    borderWidth: 1.2, borderColor: '#e2e8f0'
+  },
+  defaultBorder: { borderColor: '#3182CE' },
+  cardHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10
+  },
+  nameRow: { flexDirection: 'row', alignItems: 'center' },
+  name: { fontSize: 16, fontWeight: 'bold' },
+  defaultTag: {
+    backgroundColor: '#E0F2FF', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginLeft: 8
+  },
+  defaultText: { fontSize: 12, color: '#007AFF', fontWeight: '600' },
+  phone: { fontSize: 14, marginBottom: 4 },
+  address: { fontSize: 14, color: '#4a5568', lineHeight: 20 },
+  actions: { flexDirection: 'row' },
+  setDefaultBtn: {
+    marginTop: 10, backgroundColor: '#edf2f7', paddingVertical: 6,
+    paddingHorizontal: 12, borderRadius: 8, alignSelf: 'flex-start'
+  },
+  setDefaultText: { color: '#3182CE', fontWeight: '500', fontSize: 13 },
+  addBtn: {
+    position: 'absolute', bottom: 20, left: 20, right: 20,
+    backgroundColor: '#3182CE', flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', paddingVertical: 14, borderRadius: 10
+  },
+  addBtnText: { color: '#fff', marginLeft: 8, fontWeight: '600' },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center'
+  },
+  modalContent: {
+    backgroundColor: '#fff', width: '85%', padding: 20, borderRadius: 12
+  },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  closeBtn: {
+    marginTop: 20, backgroundColor: '#3182CE', paddingVertical: 10,
+    borderRadius: 6, alignSelf: 'flex-end', paddingHorizontal: 20
+  },
+  closeBtnText: { color: '#fff', fontWeight: '600' }
 });
 
-export default ListAdressScreen;
+export default ListAddressScreen;
