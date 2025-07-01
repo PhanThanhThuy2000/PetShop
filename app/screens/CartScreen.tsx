@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
   ActivityIndicator,
   Alert,
+  Dimensions,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 // 1. Thêm import cho useNavigation
 import { useNavigation } from '@react-navigation/native';
 import { useAuth, useCart } from '../../hooks/redux';
-import { 
-  getCart, 
-  updateCartItem, 
-  removeFromCart, 
-  clearCart 
+import {
+  clearCart,
+  getCart,
+  removeFromCart,
+  updateCartItem
 } from '../redux/slices/cartSlice';
 
 type Item = {
@@ -296,7 +296,7 @@ export default function CartScreen() {
         <View style={styles.footer}>
           <View style={styles.totalContainer}>
             <Text style={styles.totalText}>
-              Total: ${(total / 23000).toFixed(2)}
+              Total: {(total).toLocaleString('vi-VN')}₫
             </Text>
             {isLoading && (
               <ActivityIndicator size="small" color="#007AFF" style={styles.footerLoader} />

@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import {
     FlatList,
     Image,
@@ -6,19 +8,17 @@ import {
     StatusBar,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
-    TextInput, // Thêm TextInput
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import FeatherIcon from 'react-native-vector-icons/Feather';
-import { useNavigation } from '@react-navigation/native';
-import { pets as originalPets } from './HomeScreen'; // Import dữ liệu pet từ HomeScreen
+// import { pets as originalPets } from './HomeScreen'; // Import dữ liệu pet từ HomeScreen
 
-const pets = originalPets.map(pet => ({
-    ...pet,
-    price: typeof pet.price === 'string' ? Number(pet.price) : pet.price,
-}));
+// const pets = originalPets.map(pet => ({
+//     ...pet,
+//     price: typeof pet.price === 'string' ? Number(pet.price) : pet.price,
+// }));
 
 type Pet = {
     id: string;
