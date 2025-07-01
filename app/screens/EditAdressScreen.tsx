@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import {
@@ -11,32 +11,38 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
 const countries = [
   { code: '+84', name: 'Vietnam', flag: '🇻🇳' },
 ];
 
-const ShippingAddressScreen = () => {
+const EditAddressScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const address = route.params?.address;
 
-  const [selectedCountry, setSelectedCountry] = useState(countries[0]);
+  const [selectedCountry, setSelectedCountry] = useState(
+    countries.find(c => c.name === address?.country) || countries[0]
+  );
   const [modalVisible, setModalVisible] = useState(false);
 
-  const [userName, setUserName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [note, setNote] = useState(''); // 🔁 thay street -> note
+  const [userName, setUserName] = useState(address?.name || '');
+  const [phone, setPhone] = useState(address?.phone || '');
+  const [postalCode, setPostalCode] = useState(address?.postal_code || '');
+  const [note, setNote] = useState(address?.note || '');
 
   const [provinces, setProvinces] = useState<any[]>([]);
   const [districts, setDistricts] = useState<any[]>([]);
   const [wards, setWards] = useState<any[]>([]);
 
-  const [province, setProvince] = useState<string>('');
-  const [district, setDistrict] = useState<string>('');
-  const [ward, setWard] = useState<string>('');
+  const [province, setProvince] = useState<string>(address?.province || '');
+  const [district, setDistrict] = useState<string>(address?.district || '');
+  const [ward, setWard] = useState<string>(address?.ward || '');
 
+
+  // Fetch provinces on load
   useEffect(() => {
     axios.get('https://provinces.open-api.vn/api/?depth=1').then(res => setProvinces(res.data));
   }, []);
@@ -45,9 +51,6 @@ const ShippingAddressScreen = () => {
     if (province) {
       axios.get(`https://provinces.open-api.vn/api/p/${province}?depth=2`).then(res => {
         setDistricts(res.data.districts);
-        setDistrict('');
-        setWards([]);
-        setWard('');
       });
     }
   }, [province]);
@@ -56,12 +59,11 @@ const ShippingAddressScreen = () => {
     if (district) {
       axios.get(`https://provinces.open-api.vn/api/d/${district}?depth=2`).then(res => {
         setWards(res.data.wards);
-        setWard('');
       });
     }
   }, [district]);
 
-  const handleSaveAddress = async () => {
+  const handleUpdateAddress = async () => {
     if (!userName || !phone || !province || !district || !ward || !postalCode || !note) {
       return Alert.alert('Thiếu thông tin', 'Vui lòng điền đầy đủ các trường.');
     }
@@ -71,7 +73,7 @@ const ShippingAddressScreen = () => {
       if (!token) return Alert.alert('Không tìm thấy token');
       if (!token.startsWith('Bearer ')) token = 'Bearer ' + token;
 
-      const addressData = {
+      const updatedData = {
         name: userName,
         phone,
         province,
@@ -80,18 +82,23 @@ const ShippingAddressScreen = () => {
         postal_code: postalCode,
         country: selectedCountry.name,
         note,
-        is_default:false,
+        is_default: address?.is_default || false,
       };
 
-      await axios.post('http://192.168.0.101:5000/api/addresses', addressData, {
-        headers: { Authorization: token },
-      });
 
-      Alert.alert('✅ Thành công', 'Đã lưu địa chỉ');
-      navigation.goBack();
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Lỗi', 'Không thể lưu địa chỉ');
+      await axios.put(
+        `http://192.168.0.101:5000/api/addresses/${address._id}`,
+        updatedData,
+        {
+          headers: { Authorization: token },
+        }
+      );
+
+      Alert.alert('✅ Thành công', 'Cập nhật địa chỉ thành công');
+      navigation.navigate('ListAdress');
+    } catch (error) {
+      console.error('Lỗi cập nhật địa chỉ:', error);
+      Alert.alert('Lỗi', 'Không thể cập nhật địa chỉ');
     }
   };
 
@@ -101,9 +108,8 @@ const ShippingAddressScreen = () => {
         <Ionicons name="arrow-back" size={24} color="#000" />
       </TouchableOpacity>
 
-      <Text style={styles.title}>Shipping Address</Text>
+      <Text style={styles.title}>Update Shipping Address</Text>
 
-      {/* Chọn quốc gia */}
       <Text style={styles.labelSmall}>Country</Text>
       <View style={styles.rowBetween}>
         <Text style={styles.labelLarge}>{selectedCountry.name}</Text>
@@ -112,7 +118,6 @@ const ShippingAddressScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Tên và số điện thoại */}
       <Text style={styles.label}>Full Name</Text>
       <TextInput style={styles.input} value={userName} onChangeText={setUserName} placeholder="Full Name" />
 
@@ -130,77 +135,34 @@ const ShippingAddressScreen = () => {
         />
       </View>
 
-      {/* Tỉnh / huyện / xã */}
       <Text style={styles.label}>Province</Text>
-      <Picker
-        selectedValue={province}
-        onValueChange={(code) => {
-          const selected = provinces.find(p => p.code === code);
-          setProvince(selected?.name || '');
-          axios.get(`https://provinces.open-api.vn/api/p/${code}?depth=2`).then(res => {
-            setDistricts(res.data.districts);
-            setDistrict('');
-            setWards([]);
-            setWard('');
-          });
-        }}
-      >
+      <Picker selectedValue={province} onValueChange={v => setProvince(v)}>
         <Picker.Item label="Chọn tỉnh" value="" />
         {provinces.map(p => <Picker.Item key={p.code} label={p.name} value={p.code} />)}
       </Picker>
 
       <Text style={styles.label}>District</Text>
-      <Picker
-        selectedValue={district}
-        onValueChange={(code) => {
-          const selected = districts.find(d => d.code === code);
-          setDistrict(selected?.name || '');
-          axios.get(`https://provinces.open-api.vn/api/d/${code}?depth=2`).then(res => {
-            setWards(res.data.wards);
-            setWard('');
-          });
-        }}
-        enabled={!!province}
-      >
+      <Picker selectedValue={district} onValueChange={v => setDistrict(v)} enabled={!!province}>
         <Picker.Item label="Chọn huyện" value="" />
         {districts.map(d => <Picker.Item key={d.code} label={d.name} value={d.code} />)}
       </Picker>
 
       <Text style={styles.label}>Ward</Text>
-      <Picker
-        selectedValue={ward}
-        onValueChange={(code) => {
-          const selected = wards.find(w => w.code === code);
-          setWard(selected?.name || '');
-        }}
-        enabled={!!district}
-      >
+      <Picker selectedValue={ward} onValueChange={v => setWard(v)} enabled={!!district}>
         <Picker.Item label="Chọn xã" value="" />
         {wards.map(w => <Picker.Item key={w.code} label={w.name} value={w.code} />)}
       </Picker>
 
-      {/* Ghi chú và mã bưu chính */}
       <Text style={styles.label}>Ghi chú địa chỉ</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="VD: số nhà, tên đường..."
-        value={note}
-        onChangeText={setNote}
-      />
+      <TextInput style={styles.input} placeholder="VD: số nhà, tên đường..." value={note} onChangeText={setNote} />
 
       <Text style={styles.label}>Postal Code</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="VD: 700000"
-        value={postalCode}
-        onChangeText={setPostalCode}
-      />
+      <TextInput style={styles.input} placeholder="VD: 700000" value={postalCode} onChangeText={setPostalCode} />
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleSaveAddress}>
-        <Text style={styles.saveButtonText}>Lưu địa chỉ</Text>
+      <TouchableOpacity style={styles.saveButton} onPress={handleUpdateAddress}>
+        <Text style={styles.saveButtonText}>Update Address</Text>
       </TouchableOpacity>
 
-      {/* Modal chọn quốc gia */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -246,4 +208,4 @@ const styles = StyleSheet.create({
   countryItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
 });
 
-export default ShippingAddressScreen;
+export default EditAddressScreen;

@@ -19,6 +19,7 @@ import BreedsScreen from './screens/BreedsScreen';
 import CartScreen from './screens/CartScreen';
 import ChangePassword from './screens/ChangePassword';
 import ChatScreen from './screens/ChatScreen';
+import EditAdressScreen from './screens/EditAdressScreen';
 import EditInfomationScreen from './screens/EditInfomationScreen';
 import FavouriteScreen from './screens/FavouriteScreen';
 import HistoryScreen from './screens/HistoryScreen';
@@ -165,6 +166,11 @@ const AppNavigator = () => {
       <Stack.Screen
         name="ListAdress"
         component={ListAdressScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="EditAdress"
+        component={EditAdressScreen}
         options={{ headerShown: false }}
       />
 
