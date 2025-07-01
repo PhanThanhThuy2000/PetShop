@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const AccountScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -21,9 +21,6 @@ const AccountScreen: React.FC = () => {
         </View>
 
         <View style={styles.icons}>  
-          <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
-            <Ionicons name="notifications-outline" size={24} color="#333" style={styles.icon} />
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
             <Ionicons name="settings-outline" size={24} color="#333" />
           </TouchableOpacity>
