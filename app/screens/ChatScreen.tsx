@@ -171,16 +171,10 @@ const ChatScreen = () => {
       <View style={styles.inputContainer}>
         <View style={styles.leftButtons}>
           <TouchableOpacity style={styles.iconButton}>
-            <Image source={require('../../assets/images/action.png')} style={styles.iconImage} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
             <Image source={require('../../assets/images/camera.png')} style={styles.iconImage} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
             <Image source={require('../../assets/images/picture.png')} style={styles.iconImage} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Image source={require('../../assets/images/mic.png')} style={styles.iconImage} />
           </TouchableOpacity>
         </View>
 
@@ -194,10 +188,6 @@ const ChatScreen = () => {
         />
 
         <View style={styles.rightButtons}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Image source={require('../../assets/images/Emoji.png')} style={styles.iconImage} />
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
             <Image
               source={

@@ -1,18 +1,18 @@
 // screens/ProductDetailScreen.tsx
-import React, { useState, useEffect, FC } from 'react';
+import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { FC, useEffect, useState } from 'react';
 import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  ImageBackground,
-  ScrollView,
-  TouchableOpacity,
   FlatList,
   Image,
+  ImageBackground,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 
 // --- Data Interfaces & Sample Data ---
 interface Variation { id: string; image: any; }
@@ -165,6 +165,17 @@ const RelatedGrid: FC = () => (
 // --- Main Screen ---
 const ProductDetailScreen: FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const pet = route.params?.pet;
+
+  // Nếu có pet thì lấy dữ liệu từ pet, không thì dùng mẫu
+  const productTitle = pet?.name || 'Cute Pomeranian Dog';
+  const productPrice = pet?.price ? `${pet.price.toLocaleString('vi-VN')}₫` : '$25.00';
+  const productImage = pet?.images?.[0]?.url
+    ? { uri: pet.images[0].url }
+    : require('@/assets/images/dog.png');
+  const breed = pet?.breed_id?.name || 'Pomeranian';
+
   const [selectedVar, setSelectedVar] = useState(VARIATIONS[0]);
   const [isFavorite, setIsFavorite] = useState(false);
   const { h, m, s } = useCountdown(36 * 60 + 58);
@@ -186,18 +197,30 @@ const ProductDetailScreen: FC = () => {
       </View>
 
       <ScrollView>
-        <Header />
+        {/* Header sửa lại để lấy ảnh pet */}
+        <ImageBackground source={productImage} style={styles.headerImage}>
+          <View style={styles.topIcons}>
+            <TouchableOpacity style={styles.iconBtn}>
+              <Ionicons name="share-social-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.carouselDots}>
+            {VARIATIONS.map((_, i) => (
+              <View key={i} style={[styles.dot, i === 0 && styles.dotActive]} />
+            ))}
+          </View>
+        </ImageBackground>
 
         <View style={styles.content}>
-          <Text style={styles.productTitle}>Cute Pomeranian Dog</Text>
-          <Text style={styles.productPrice}>$25.00</Text>
+          <Text style={styles.productTitle}>{productTitle}</Text>
+          <Text style={styles.productPrice}>{productPrice}</Text>
           <Text style={styles.countdownText}>
             Sale ends in {h}h {m}m {s}s
           </Text>
 
           <VariationSelector selectedId={selectedVar.id} onSelect={setSelectedVar} />
           <DeliveryOptions />
-          <InfoRow label="Breed" value="Pomeranian" />
+          <InfoRow label="Breed" value={breed} />
           <InfoRow label="Availability" value="In stock" />
 
           <Text style={styles.sectionHeading}>Reviews</Text>

@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
   ActivityIndicator,
   Alert,
+  Dimensions,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 // 1. Thêm import cho useNavigation
 import { useNavigation } from '@react-navigation/native';
 import { useAuth, useCart } from '../../hooks/redux';
-import { 
-  getCart, 
-  updateCartItem, 
-  removeFromCart, 
-  clearCart 
+import {
+  clearCart,
+  getCart,
+  removeFromCart,
+  updateCartItem
 } from '../redux/slices/cartSlice';
 
 type Item = {
@@ -67,22 +67,23 @@ export default function CartScreen() {
     return items.map(apiItem => {
       const itemData = apiItem.pet_id || apiItem.product_id;
       const primaryImage = itemData?.images?.find(img => img.is_primary) || itemData?.images?.[0];
-      
+
       return {
         id: parseInt(apiItem._id.replace(/\D/g, '')) || Math.random(),
         image: primaryImage?.url ? { uri: primaryImage.url } : require('../../assets/images/dog.png'),
         title: itemData?.name || 'Unknown Item',
-        description: apiItem.pet_id ? 
-          `${apiItem.pet_id.breed_id?.name} - ${apiItem.pet_id.gender} - ${apiItem.pet_id.age}y`:'Pet product',
-        price: itemData?.price || 0,
-        quantity: apiItem.quantity,
-        _apiId: apiItem._id, 
+        description: apiItem.pet_id
+          ? `${apiItem.pet_id.breed_id?.name || 'Unknown Breed'} - ${apiItem.pet_id.gender || 'Unknown'} - ${apiItem.pet_id.age || 0}y`
+          : 'Pet product',
+        price: Number(itemData?.price) || 0, // Ensure price is a number
+        quantity: apiItem.quantity || 1,
+        _apiId: apiItem._id,
       };
     });
   };
 
   const cartItems = getDisplayItems();
-
+  console.log('cartItems:', JSON.stringify(cartItems, null, 2));
   const updateQuantity = async (id: number, delta: number) => {
     const item = cartItems.find(item => item.id === id);
     if (!item || !item._apiId) return;
@@ -156,13 +157,15 @@ export default function CartScreen() {
       Alert.alert('Empty Cart', 'Please add items to your cart first');
       return;
     }
-    Alert.alert('Checkout', 'Checkout functionality coming soon!');
+    console.log('Navigating to Payment with:', { cartItems, total }); // Debug
+    navigation.navigate('Payment', { cartItems, total });
   };
 
   const total = totalAmount || cartItems.reduce(
     (sum, x) => sum + x.price * (x.quantity || 1),
     0
   );
+  console.log('total:', total);
 
   const renderCard = (item: Item, isCart: boolean) => (
     <View key={item.id} style={styles.card}>
@@ -194,7 +197,8 @@ export default function CartScreen() {
           </Text>
         )}
         <Text style={styles.cardPrice}>
-          {item.price.toLocaleString('vi-VN')}₫
+          {(item.price * (item.quantity || 1)).toLocaleString('vi-VN')}₫
+
         </Text>
       </View>
 
@@ -296,7 +300,7 @@ export default function CartScreen() {
         <View style={styles.footer}>
           <View style={styles.totalContainer}>
             <Text style={styles.totalText}>
-              Total: ${(total / 23000).toFixed(2)}
+              Total: {(total).toLocaleString('vi-VN')}₫
             </Text>
             {isLoading && (
               <ActivityIndicator size="small" color="#007AFF" style={styles.footerLoader} />

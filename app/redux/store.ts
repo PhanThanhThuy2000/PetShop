@@ -3,6 +3,8 @@ import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import authReducer from './slices/authSlice';
 import cartReducer from './slices/cartSlice';
+import petsReducer from './slices/petsSlice'; // Thêm pets slice
+import productsReducer from './slices/productsSlice'; // Thêm products slice
 
 const persistConfig = {
   key: 'root',
@@ -13,6 +15,8 @@ const persistConfig = {
 const rootReducer = combineReducers({
   auth: authReducer,
   cart: cartReducer,
+  pets: petsReducer, // Thêm pets reducer
+  products: productsReducer, // Thêm products reducer
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
