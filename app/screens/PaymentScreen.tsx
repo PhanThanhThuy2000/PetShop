@@ -1,41 +1,86 @@
 import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useNavigationContainerRef } from '@react-navigation/native'; // Thêm useNavigation
+import { useNavigation, useNavigationContainerRef, useRoute } from '@react-navigation/native'; // Thêm useNavigation
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 // tai khoan test ngan hang noi dia
 // Ngân hàng: NCB
 // Số thẻ: 9704198526191432198
-// Tên chủ thẻ:NGUYEN VAN A
-// Ngày phát hành:07 / 15
+// Tên chủ thẻ: NGUYEN VAN A
+// Ngày phát hành: 07/15
 // Mật khẩu OTP: 123456
 const PaymentScreen = () => {
-  const navigation = useNavigation<any>(); // Khởi tạo navigation
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  
+  // Lấy dữ liệu từ params (nếu có)
+  const { cartItems, total } = route.params || { cartItems: [], total: 0 }; // Fallback
+  const totalFromCart = route.params?.total;
+
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'wallet' | 'vnpay'>('cod');
   const SERVER_URLS = [
     'http://10.0.2.2:5000',
     'http://127.0.0.1:5000',
     // 'http://192.168.0.103',
-    'http://192.168.0.103:5000', // Nhâp địa chỉ IP của máy bạn
+    'http://192.168.0.104:5000', // Nhâp địa chỉ IP của máy bạn
     'http://localhost:5000',
   ];
 
+  // Trong PaymentScreen, thay thế phần liên quan đến summaryData, parseCurrency, và calculateTotal
   const summaryData = {
-    merchandiseSubtotal: "20.000 đ",
-    shippingSubtotal: shippingMethod === 'standard' ? "0 đ" : "100.000 đ",
-    discount: "-100.000 đ",
+    merchandiseSubtotal: total && !isNaN(total) && total > 0 ? total.toLocaleString('vi-VN') + ' đ' : '0 đ', // Thêm kiểm tra total > 0
+    shippingSubtotal: shippingMethod === 'standard' ? '0 đ' : '50.000 đ', // Đã đúng
+    discount: '10.000 đ',
   };
 
   const parseCurrency = (currency: string): number => {
-    return parseInt(currency.replace(/[^0-9]/g, ''), 10);
+    try {
+      // Loại bỏ tất cả ký tự không phải số và dấu trừ, đồng thời bỏ dấu chấm ngăn cách hàng nghìn
+      const cleaned = currency.replace(/[^\d-]/g, '');
+      const value = Number(cleaned);
+      if (isNaN(value)) {
+        console.warn(`Invalid currency format: ${currency}`);
+        return 0;
+      }
+      return value;
+    } catch (error) {
+      console.error(`Error parsing currency: ${currency}`, error);
+      return 0;
+    }
   };
 
+  // Hàm tính tổng
   const calculateTotal = () => {
     const merchandise = parseCurrency(summaryData.merchandiseSubtotal);
     const shipping = parseCurrency(summaryData.shippingSubtotal);
     const discount = parseCurrency(summaryData.discount);
-    return merchandise + shipping - discount;
+
+    // Ghi log để kiểm tra
+    console.log('Calculating total:', {
+      merchandise,
+      shipping,
+      discount,
+      inputTotal: total,
+    });
+
+    // Kiểm tra nếu merchandise không hợp lệ
+    if (!total || isNaN(total) || total <= 0) {
+      console.warn('Invalid total from route.params:', total);
+      Alert.alert('Lỗi', 'Tổng tiền giỏ hàng không hợp lệ. Vui lòng kiểm tra giỏ hàng.');
+      return 0;
+    }
+
+    const totalCalculated = merchandise + shipping - discount;
+    return isNaN(totalCalculated) ? 0 : Math.max(totalCalculated, 0); // Đảm bảo tổng không âm
   };
+
+  // Thêm kiểm tra total trong useEffect
+  useEffect(() => {
+    if (!total || isNaN(total) || total <= 0) {
+      console.warn('Invalid total from route.params:', total);
+      Alert.alert('Lỗi', 'Tổng tiền giỏ hàng không hợp lệ. Vui lòng kiểm tra giỏ hàng.');
+    }
+  }, [total]);
 
   const handleVNPAYPayment = async () => {
     if (paymentMethod !== 'vnpay') {
@@ -201,8 +246,14 @@ const PaymentScreen = () => {
             <Entypo name="cross" size={12} color="#fff" />
           </View>
         </View>
-        <ItemRow name="Dog munuô" price="1.000.000 đ" image="https://azpet.com.vn/wp-content/uploads/2019/01/pomeranian.jpg" />
-        <ItemRow name="Cat" price="1.000.000 đ" image="https://aquariumcare.vn/upload/user/images/M%C3%A8o%20Ragdoll%206(1).jpg" />
+        {cartItems.map((item: any) => (
+          <ItemRow
+            key={item.id}
+            name={item.title}
+            price={item.price * (item.quantity).toLocaleString('vi-VN') + '₫'}
+            image={item.image?.uri || item.image}
+          />
+        ))}
       </View>
 
       {/* Shipping Options */}
@@ -232,7 +283,7 @@ const PaymentScreen = () => {
             <Text style={styles.shippingText}>Express</Text>
             <Text style={styles.shippingTime}>1-2 days</Text>
           </View>
-          <Text style={styles.shippingPrice}>100.000 đ</Text>
+          <Text style={styles.shippingPrice}>50.000 đ</Text>
         </TouchableOpacity>
         <Text style={styles.deliveryNote}>Delivered on or before Thursday, 23 April 2020</Text>
       </View>
