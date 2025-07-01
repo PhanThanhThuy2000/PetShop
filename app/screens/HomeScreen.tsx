@@ -208,7 +208,7 @@ const HomeScreen = () => {
     return (
       <TouchableOpacity
         style={styles.petItemContainer}
-        onPress={() => safeNavigate(navigation, 'ProductDetail', { productId: item._id })}
+        onPress={() => safeNavigate(navigation, 'ProductDetail', { pet: item })} // truyền object pet
       >
         <Image
           source={{ uri: imageUrl }}
