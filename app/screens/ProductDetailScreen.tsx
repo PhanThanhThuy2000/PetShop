@@ -1,5 +1,5 @@
 // screens/ProductDetailScreen.tsx
-import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { FC, useEffect, useState } from 'react';
 import {
@@ -79,42 +79,6 @@ const VariationSelector: FC<{ onSelect: (v: Variation) => void; selectedId: stri
   />
 );
 
-const DeliveryOptions: FC = () => {
-  const [selectedOption, setSelectedOption] = useState<string>('Standard');
-  const options = [
-    { id: 'Standard', label: 'Standard', days: '5-7 days', price: '$3.00' },
-    { id: 'Express', label: 'Express', days: '1-2 days', price: '$12.00' },
-  ];
-
-  return (
-    <View style={styles.deliveryContainer}>
-      {options.map((opt) => (
-        <TouchableOpacity
-          key={opt.id}
-          style={styles.deliveryBar}
-          onPress={() => setSelectedOption(opt.id)}
-        >
-          <View style={styles.radioRow}>
-            <MaterialIcons
-              name={selectedOption === opt.id ? 'radio-button-checked' : 'radio-button-unchecked'}
-              size={20}
-              color="#2563EB"
-              style={{ marginRight: 10 }}
-            />
-            <View>
-              <Text style={styles.deliveryLabel}>{opt.label}</Text>
-              <View style={styles.datePill}>
-                <Text style={styles.dateText}>{opt.days}</Text>
-              </View>
-            </View>
-          </View>
-          <Text style={styles.delPrice}>{opt.price}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-};
-
 const InfoRow: FC<{ label: string; value: string }> = ({ label, value }) => (
   <View style={styles.infoRow}>
     <Text style={styles.infoKey}>{label}</Text>
@@ -187,11 +151,10 @@ const ProductDetailScreen: FC = () => {
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Product Detail</Text>
-        <TouchableOpacity onPress={() => setIsFavorite(f => !f)} style={styles.headerFav}>
+        <TouchableOpacity  style={styles.headerFav}>
           <Ionicons
-            name={isFavorite ? 'heart' : 'heart-outline'}
+            name='cart-outline'
             size={24}
-            color={isFavorite ? 'red' : '#000'}
           />
         </TouchableOpacity>
       </View>
@@ -219,9 +182,10 @@ const ProductDetailScreen: FC = () => {
           </Text>
 
           <VariationSelector selectedId={selectedVar.id} onSelect={setSelectedVar} />
-          <DeliveryOptions />
           <InfoRow label="Breed" value={breed} />
-          <InfoRow label="Availability" value="In stock" />
+          <InfoRow label="age" value="2 year" />
+          <InfoRow label="weight" value="2 kg" />
+          <InfoRow label="gender" value="Male" />
 
           <Text style={styles.sectionHeading}>Reviews</Text>
           {/* 3. Truyền navigation vào cho ReviewCard */}
@@ -235,9 +199,9 @@ const ProductDetailScreen: FC = () => {
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.favBtn}
-          onPress={() => setIsFavorite(true)}
+          onPress={() => setIsFavorite(f => !f)}
         >
-          <Ionicons
+          <Ionicons 
             name={isFavorite ? 'heart' : 'heart-outline'}
             size={24}
             color={isFavorite ? 'red' : '#000'}
