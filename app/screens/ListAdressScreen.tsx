@@ -48,6 +48,16 @@ const ListAddressScreen: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    fetchAddresses();
+    // Add listener to refresh addresses when screen is focused
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchAddresses();
+    });
+    // Cleanup listener on unmount
+    return unsubscribe;
+  }, [navigation]);
+
   const setAsDefault = async (id: string) => {
     try {
       await api.put(`/addresses/${id}`, { is_default: true });
@@ -86,7 +96,7 @@ const ListAddressScreen: React.FC = () => {
           {item.is_default && <View style={styles.defaultTag}><Text style={styles.defaultText}>Default</Text></View>}
         </View>
         <View style={styles.actions}>
-          <TouchableOpacity onPress={() => navigation.navigate('EditAdress', { address: item })}>
+          <TouchableOpacity onPress={() => navigation.navigate('EditAddress', { address: item })}>
             <Ionicons name="pencil-outline" size={20} color="#3182CE" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => deleteAddress(item._id)} style={{ marginLeft: 10 }}>
@@ -109,10 +119,6 @@ const ListAddressScreen: React.FC = () => {
       )}
     </View>
   );
-
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
