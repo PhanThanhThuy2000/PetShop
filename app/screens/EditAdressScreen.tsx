@@ -87,7 +87,7 @@ const EditAddressScreen = () => {
 
 
       await axios.put(
-        `http://192.168.0.101:5000/api/addresses/${address._id}`,
+        `http://192.168.177.162:5000/api/addresses/${address._id}`,
         updatedData,
         {
           headers: { Authorization: token },

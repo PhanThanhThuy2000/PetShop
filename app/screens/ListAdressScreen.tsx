@@ -52,7 +52,7 @@ const ListAddressScreen: React.FC = () => {
       const token = await getToken();
       if (!token) return;
 
-      const res = await axios.get('http://192.168.0.101:5000/api/addresses', {
+      const res = await axios.get('http://172.20.10.7:5000/api/addresses', {
         headers: { Authorization: token },
       });
 
@@ -70,7 +70,7 @@ const ListAddressScreen: React.FC = () => {
       const token = await getToken();
       if (!token) return;
 
-      await axios.put(`http://192.168.0.101:5000/api/addresses/${id}`, {
+      await axios.put(`http://172.20.10.7:5000/api/addresses/${id}`, {
         is_default: true,
       }, {
         headers: { Authorization: token },
@@ -92,7 +92,7 @@ const ListAddressScreen: React.FC = () => {
             const token = await getToken();
             if (!token) return;
 
-            await axios.delete(`http://192.168.0.101:5000/api/addresses/${id}`, {
+            await axios.delete(`http://172.20.10.7:5000/api/addresses/${id}`, {
               headers: { Authorization: token },
             });
 
