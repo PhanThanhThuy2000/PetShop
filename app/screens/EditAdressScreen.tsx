@@ -7,17 +7,20 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import api from '../utils/api-client'; // Import the configured axios instance
 
 const countries = [
   { code: '+84', name: 'Vietnam', flag: '🇻🇳' },
 ];
 
+const PROVINCES_API_BASE_URL = 'https://provinces.open-api.vn/api';
 const EditAddressScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -37,31 +40,100 @@ const EditAddressScreen = () => {
   const [districts, setDistricts] = useState<any[]>([]);
   const [wards, setWards] = useState<any[]>([]);
 
-  const [province, setProvince] = useState<string>(address?.province || '');
-  const [district, setDistrict] = useState<string>(address?.district || '');
-  const [ward, setWard] = useState<string>(address?.ward || '');
+  const [province, setProvince] = useState<string>('');
+  const [district, setDistrict] = useState<string>('');
+  const [ward, setWard] = useState<string>('');
 
-
-  // Fetch provinces on load
+  // Fetch provinces on load and set initial province code
   useEffect(() => {
-    axios.get('https://provinces.open-api.vn/api/?depth=1').then(res => setProvinces(res.data));
-  }, []);
-
-  useEffect(() => {
-    if (province) {
-      axios.get(`https://provinces.open-api.vn/api/p/${province}?depth=2`).then(res => {
-        setDistricts(res.data.districts);
+    axios
+      .get(`${PROVINCES_API_BASE_URL}/?depth=1`)
+      .then(res => {
+        if (Array.isArray(res.data)) {
+          setProvinces(res.data);
+          // Match address?.province (name) to province code
+          if (address?.province) {
+            const matchedProvince = res.data.find(
+              (p: any) => p.name === address.province
+            );
+            if (matchedProvince) {
+              setProvince(matchedProvince.code.toString());
+            }
+          }
+        } else {
+          console.error('Provinces data is not an array:', res.data);
+          setProvinces([]);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching provinces:', err);
+        setProvinces([]);
       });
-    }
-  }, [province]);
+  }, [address?.province]);
 
+  // Fetch districts when province changes
   useEffect(() => {
-    if (district) {
-      axios.get(`https://provinces.open-api.vn/api/d/${district}?depth=2`).then(res => {
-        setWards(res.data.wards);
-      });
+    if (province && !isNaN(parseInt(province))) {
+      axios
+        .get(`${PROVINCES_API_BASE_URL}/p/${province}?depth=2`)
+        .then(res => {
+          if (res.data?.districts && Array.isArray(res.data.districts)) {
+            setDistricts(res.data.districts);
+            // Match address?.district (name) to district code
+            if (address?.district && res.data.districts.length > 0) {
+              const matchedDistrict = res.data.districts.find(
+                (d: any) => d.name === address.district
+              );
+              if (matchedDistrict) {
+                setDistrict(matchedDistrict.code.toString());
+              }
+            }
+          } else {
+            console.error('Districts data is not valid:', res.data);
+            setDistricts([]);
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching districts:', err);
+          setDistricts([]);
+        });
+    } else {
+      setDistricts([]);
+      setDistrict('');
     }
-  }, [district]);
+  }, [province, address?.district]);
+
+  // Fetch wards when district changes
+  useEffect(() => {
+    if (district && !isNaN(parseInt(district))) {
+      axios
+        .get(`${PROVINCES_API_BASE_URL}/d/${district}?depth=2`)
+        .then(res => {
+          if (res.data?.wards && Array.isArray(res.data.wards)) {
+            setWards(res.data.wards);
+            // Match address?.ward (name) to ward code
+            if (address?.ward && res.data.wards.length > 0) {
+              const matchedWard = res.data.wards.find(
+                (w: any) => w.name === address.ward
+              );
+              if (matchedWard) {
+                setWard(matchedWard.code.toString());
+              }
+            }
+          } else {
+            console.error('Wards data is not valid:', res.data);
+            setWards([]);
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching wards:', err);
+          setWards([]);
+        });
+    } else {
+      setWards([]);
+      setWard('');
+    }
+  }, [district, address?.ward]);
 
   const handleUpdateAddress = async () => {
     if (!userName || !phone || !province || !district || !ward || !postalCode || !note) {
@@ -73,26 +145,24 @@ const EditAddressScreen = () => {
       if (!token) return Alert.alert('Không tìm thấy token');
       if (!token.startsWith('Bearer ')) token = 'Bearer ' + token;
 
+      // Map codes back to names for the API update
+      const selectedProvince = provinces.find(p => p.code.toString() === province);
+      const selectedDistrict = districts.find(d => d.code.toString() === district);
+      const selectedWard = wards.find(w => w.code.toString() === ward);
+
       const updatedData = {
         name: userName,
         phone,
-        province,
-        district,
-        ward,
+        province: selectedProvince?.name || '',
+        district: selectedDistrict?.name || '',
+        ward: selectedWard?.name || '',
         postal_code: postalCode,
         country: selectedCountry.name,
         note,
         is_default: address?.is_default || false,
       };
 
-
-      await axios.put(
-        `http://192.168.177.162:5000/api/addresses/${address._id}`,
-        updatedData,
-        {
-          headers: { Authorization: token },
-        }
-      );
+      await api.put(`/addresses/${address._id}`, updatedData);
 
       Alert.alert('✅ Thành công', 'Cập nhật địa chỉ thành công');
       navigation.navigate('ListAdress');
@@ -108,60 +178,80 @@ const EditAddressScreen = () => {
         <Ionicons name="arrow-back" size={24} color="#000" />
       </TouchableOpacity>
 
-      <Text style={styles.title}>Update Shipping Address</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.title}>Update Shipping Address</Text>
 
-      <Text style={styles.labelSmall}>Country</Text>
-      <View style={styles.rowBetween}>
-        <Text style={styles.labelLarge}>{selectedCountry.name}</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
-          <Ionicons name="arrow-forward-circle" size={24} color="#007AFF" />
+        <Text style={styles.labelSmall}>Country</Text>
+        <View style={styles.rowBetween}>
+          <Text style={styles.labelLarge}>{selectedCountry.name}</Text>
+          <TouchableOpacity onPress={() => setModalVisible(true)}>
+            <Ionicons name="arrow-forward-circle" size={24} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.label}>Full Name</Text>
+        <TextInput style={styles.input} value={userName} onChangeText={setUserName} placeholder="Full Name" />
+
+        <Text style={styles.label}>Phone</Text>
+        <View style={styles.phoneRow}>
+          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.flagBox}>
+            <Text style={{ fontSize: 20 }}>{selectedCountry.flag}</Text>
+          </TouchableOpacity>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            keyboardType="phone-pad"
+            value={phone}
+            onChangeText={setPhone}
+            placeholder={selectedCountry.code}
+          />
+        </View>
+
+        <Text style={styles.label}>Province</Text>
+        <Picker selectedValue={province} onValueChange={v => setProvince(v)}>
+          <Picker.Item label="Chọn tỉnh" value="" />
+          {provinces.map(p => (
+            <Picker.Item
+              key={p.code || `province-${p.name}`}
+              label={p.name || 'Unknown'}
+              value={p.code ? p.code.toString() : ''}
+            />
+          ))}
+        </Picker>
+
+        <Text style={styles.label}>District</Text>
+        <Picker selectedValue={district} onValueChange={v => setDistrict(v)} enabled={!!province}>
+          <Picker.Item label="Chọn huyện" value="" />
+          {districts.map(d => (
+            <Picker.Item
+              key={d.code || `district-${d.name}`}
+              label={d.name || 'Unknown'}
+              value={d.code ? d.code.toString() : ''}
+            />
+          ))}
+        </Picker>
+
+        <Text style={styles.label}>Ward</Text>
+        <Picker selectedValue={ward} onValueChange={v => setWard(v)} enabled={!!district}>
+          <Picker.Item label="Chọn xã" value="" />
+          {wards.map(w => (
+            <Picker.Item
+              key={w.code || `ward-${w.name}`}
+              label={w.name || 'Unknown'}
+              value={w.code ? w.code.toString() : ''}
+            />
+          ))}
+        </Picker>
+
+        <Text style={styles.label}>Ghi chú địa chỉ</Text>
+        <TextInput style={styles.input} placeholder="VD: số nhà, tên đường..." value={note} onChangeText={setNote} />
+
+        <Text style={styles.label}>Postal Code</Text>
+        <TextInput style={styles.input} placeholder="VD: 700000" value={postalCode} onChangeText={setPostalCode} />
+
+        <TouchableOpacity style={styles.saveButton} onPress={handleUpdateAddress}>
+          <Text style={styles.saveButtonText}>Update Address</Text>
         </TouchableOpacity>
-      </View>
-
-      <Text style={styles.label}>Full Name</Text>
-      <TextInput style={styles.input} value={userName} onChangeText={setUserName} placeholder="Full Name" />
-
-      <Text style={styles.label}>Phone</Text>
-      <View style={styles.phoneRow}>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.flagBox}>
-          <Text style={{ fontSize: 20 }}>{selectedCountry.flag}</Text>
-        </TouchableOpacity>
-        <TextInput
-          style={[styles.input, { flex: 1 }]}
-          keyboardType="phone-pad"
-          value={phone}
-          onChangeText={setPhone}
-          placeholder={selectedCountry.code}
-        />
-      </View>
-
-      <Text style={styles.label}>Province</Text>
-      <Picker selectedValue={province} onValueChange={v => setProvince(v)}>
-        <Picker.Item label="Chọn tỉnh" value="" />
-        {provinces.map(p => <Picker.Item key={p.code} label={p.name} value={p.code} />)}
-      </Picker>
-
-      <Text style={styles.label}>District</Text>
-      <Picker selectedValue={district} onValueChange={v => setDistrict(v)} enabled={!!province}>
-        <Picker.Item label="Chọn huyện" value="" />
-        {districts.map(d => <Picker.Item key={d.code} label={d.name} value={d.code} />)}
-      </Picker>
-
-      <Text style={styles.label}>Ward</Text>
-      <Picker selectedValue={ward} onValueChange={v => setWard(v)} enabled={!!district}>
-        <Picker.Item label="Chọn xã" value="" />
-        {wards.map(w => <Picker.Item key={w.code} label={w.name} value={w.code} />)}
-      </Picker>
-
-      <Text style={styles.label}>Ghi chú địa chỉ</Text>
-      <TextInput style={styles.input} placeholder="VD: số nhà, tên đường..." value={note} onChangeText={setNote} />
-
-      <Text style={styles.label}>Postal Code</Text>
-      <TextInput style={styles.input} placeholder="VD: 700000" value={postalCode} onChangeText={setPostalCode} />
-
-      <TouchableOpacity style={styles.saveButton} onPress={handleUpdateAddress}>
-        <Text style={styles.saveButtonText}>Update Address</Text>
-      </TouchableOpacity>
+      </ScrollView>
 
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -190,14 +280,20 @@ const EditAddressScreen = () => {
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: '#fff', flex: 1 },
   backButton: { position: 'absolute', top: 40, left: 20, zIndex: 10 },
+  scrollContent: { paddingBottom: 20 },
   title: { fontSize: 22, fontWeight: 'bold', alignSelf: 'center', marginBottom: 20, marginTop: 20 },
   label: { fontSize: 14, marginTop: 15 },
   labelSmall: { fontSize: 12, color: '#777' },
   labelLarge: { fontSize: 16, fontWeight: '600' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   input: {
-    borderWidth: 1, borderColor: '#ccc', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#f7f7f7', marginBottom: 5
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#f7f7f7',
+    marginBottom: 5,
   },
   phoneRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   flagBox: { padding: 10, backgroundColor: '#e6e6e6', borderRadius: 10, marginRight: 10 },

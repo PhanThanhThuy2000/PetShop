@@ -7,18 +7,19 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
-  ScrollView, // Thêm ScrollView
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
+import api from '../utils/api-client'; // Import the configured axios instance
 
 const countries = [
   { code: '+84', name: 'Vietnam', flag: '🇻🇳' },
 ];
-
+const PROVINCES_API_BASE_URL = 'https://provinces.open-api.vn/api';
 const ShippingAddressScreen = () => {
   const navigation = useNavigation<any>();
 
@@ -39,12 +40,12 @@ const ShippingAddressScreen = () => {
   const [ward, setWard] = useState<string>('');
 
   useEffect(() => {
-    axios.get('https://provinces.open-api.vn/api/?depth=1').then(res => setProvinces(res.data));
+    axios.get(`${PROVINCES_API_BASE_URL}/?depth=1`).then(res => setProvinces(res.data));
   }, []);
 
   useEffect(() => {
     if (province) {
-      axios.get(`https://provinces.open-api.vn/api/p/${province}?depth=2`).then(res => {
+      axios.get(`${PROVINCES_API_BASE_URL}/p/${province}?depth=2`).then(res => {
         setDistricts(res.data.districts);
         setDistrict('');
         setWards([]);
@@ -55,7 +56,7 @@ const ShippingAddressScreen = () => {
 
   useEffect(() => {
     if (district) {
-      axios.get(`https://provinces.open-api.vn/api/d/${district}?depth=2`).then(res => {
+      axios.get(`${PROVINCES_API_BASE_URL}/d/${district}?depth=2`).then(res => {
         setWards(res.data.wards);
         setWard('');
       });
@@ -84,9 +85,7 @@ const ShippingAddressScreen = () => {
         is_default: false,
       };
 
-      await axios.post('http://192.168.177.162:5000/api/addresses', addressData, {
-        headers: { Authorization: token },
-      });
+      await api.post('/addresses', addressData);
 
       Alert.alert('✅ Thành công', 'Đã lưu địa chỉ');
       navigation.goBack();
@@ -139,7 +138,7 @@ const ShippingAddressScreen = () => {
           onValueChange={(code) => {
             const selected = provinces.find(p => p.code === code);
             setProvince(selected?.name || '');
-            axios.get(`https://provinces.open-api.vn/api/p/${code}?depth=2`).then(res => {
+            axios.get(`${PROVINCES_API_BASE_URL}/p/${code}?depth=2`).then(res => {
               setDistricts(res.data.districts);
               setDistrict('');
               setWards([]);
@@ -157,7 +156,7 @@ const ShippingAddressScreen = () => {
           onValueChange={(code) => {
             const selected = districts.find(d => d.code === code);
             setDistrict(selected?.name || '');
-            axios.get(`https://provinces.open-api.vn/api/d/${code}?depth=2`).then(res => {
+            axios.get(`${PROVINCES_API_BASE_URL}/d/${code}?depth=2`).then(res => {
               setWards(res.data.wards);
               setWard('');
             });
@@ -230,7 +229,7 @@ const ShippingAddressScreen = () => {
 
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: '#fff', flex: 1 },
-  scrollContent: { paddingBottom: 20 }, // Thêm style cho ScrollView
+  scrollContent: { paddingBottom: 20 },
   backButton: { position: 'absolute', top: 40, left: 20, zIndex: 10 },
   title: { fontSize: 22, fontWeight: 'bold', alignSelf: 'center', marginBottom: 20, marginTop: 20 },
   label: { fontSize: 14, marginTop: 15 },
