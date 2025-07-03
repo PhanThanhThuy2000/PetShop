@@ -147,6 +147,7 @@ const ProductDetailScreen: FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedVar, setSelectedVar] = useState<Variation | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false); // New state for description toggle
   const { h, m, s } = useCountdown(36 * 60 + 58);
 
   // Fetch pet data
@@ -211,18 +212,19 @@ const ProductDetailScreen: FC = () => {
   const age = pet.age ? `${pet.age} year${pet.age > 1 ? 's' : ''}` : 'Unknown';
   const gender = pet.gender || 'Unknown';
   const weight = pet.weight ? `${pet.weight} kg` : 'Unknown';
+  const description = pet.description || 'Purus in massa tempor nec feugiat...'; // Use pet.description if available
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Product Detail</Text>
-          <TouchableOpacity style={styles.headerFav}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Product Detail</Text>
+        <TouchableOpacity style={styles.headerFav}>
           <Ionicons name="share-social-outline" size={24} />
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
+      </View>
       <ScrollView>
         <Header image={productImage} images={pet.images || []} />
         <View style={styles.content}>
@@ -265,7 +267,20 @@ const ProductDetailScreen: FC = () => {
           </View>
           <ReviewCard navigation={navigation} />
           <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.descText}>Purus in massa tempor nec feugiat...</Text>
+          <Text
+            style={styles.descText}
+            numberOfLines={isDescriptionExpanded ? undefined : 3} // Truncate to 3 lines when collapsed
+          >
+            {description}
+          </Text>
+          <TouchableOpacity
+            style={styles.toggleDescBtn}
+            onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+          >
+            <Text style={styles.toggleDescText}>
+              {isDescriptionExpanded ? 'Show Less' : 'Show More'}
+            </Text>
+          </TouchableOpacity>
           <Image source={productImage} style={styles.descImage} />
           <Text style={styles.sectionTitle}>Pet Related</Text>
           <RelatedGrid />
@@ -343,6 +358,8 @@ const styles = StyleSheet.create({
   viewAllBtn: { backgroundColor: '#2563EB', borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
   viewAllText: { color: '#fff', fontWeight: '600' },
   descText: { color: '#6B7280', lineHeight: 20, marginTop: 8 },
+  toggleDescBtn: { marginTop: 8, alignSelf: 'flex-start' }, // Style for toggle button
+  toggleDescText: { color: '#2563EB', fontWeight: '600' }, // Style for toggle button text
   descImage: { width: '100%', height: 200, borderRadius: 8, marginVertical: 16 },
   relatedRow: { justifyContent: 'space-between' },
   relatedItem: { width: '48%' },
