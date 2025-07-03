@@ -1,7 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import api from '../utils/api-client'; // Import the configured axios instance
 
 interface Address {
   _id: string;
@@ -29,16 +28,6 @@ interface Address {
   is_default?: boolean;
 }
 
-const getToken = async (): Promise<string | null> => {
-  try {
-    const rawToken = await AsyncStorage.getItem('token');
-    return rawToken ? (rawToken.startsWith('Bearer') ? rawToken : `Bearer ${rawToken}`) : null;
-  } catch (error) {
-    console.error('Lỗi khi lấy token:', error);
-    return null;
-  }
-};
-
 const ListAddressScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -49,13 +38,7 @@ const ListAddressScreen: React.FC = () => {
   const fetchAddresses = async () => {
     setLoading(true);
     try {
-      const token = await getToken();
-      if (!token) return;
-
-      const res = await axios.get('http://192.168.0.101:5000/api/addresses', {
-        headers: { Authorization: token },
-      });
-
+      const res = await api.get('/addresses');
       setAddresses(res.data.data);
     } catch (error: any) {
       console.error('Lỗi khi lấy địa chỉ:', error.message || error);
@@ -67,15 +50,7 @@ const ListAddressScreen: React.FC = () => {
 
   const setAsDefault = async (id: string) => {
     try {
-      const token = await getToken();
-      if (!token) return;
-
-      await axios.put(`http://192.168.0.101:5000/api/addresses/${id}`, {
-        is_default: true,
-      }, {
-        headers: { Authorization: token },
-      });
-
+      await api.put(`/addresses/${id}`, { is_default: true });
       fetchAddresses();
     } catch (error) {
       console.error('Lỗi đặt mặc định:', error);
@@ -87,23 +62,19 @@ const ListAddressScreen: React.FC = () => {
     Alert.alert('Xác nhận', 'Bạn có chắc muốn xóa địa chỉ này?', [
       { text: 'Hủy', style: 'cancel' },
       {
-        text: 'Xóa', style: 'destructive', onPress: async () => {
+        text: 'Xóa',
+        style: 'destructive',
+        onPress: async () => {
           try {
-            const token = await getToken();
-            if (!token) return;
-
-            await axios.delete(`http://192.168.0.101:5000/api/addresses/${id}`, {
-              headers: { Authorization: token },
-            });
-
+            await api.delete(`/addresses/${id}`);
             Alert.alert('Thành công', 'Đã xóa địa chỉ');
             fetchAddresses();
           } catch (error) {
             console.error('Lỗi xóa địa chỉ:', error);
             Alert.alert('Lỗi', 'Không thể xóa địa chỉ');
           }
-        }
-      }
+        },
+      },
     ]);
   };
 
@@ -194,7 +165,6 @@ const ListAddressScreen: React.FC = () => {
           </View>
         </Modal>
       )}
-
     </SafeAreaView>
   );
 };
