@@ -41,7 +41,9 @@ export interface Pet {
   _id: string;
   name: string;
   price: number;
+  weight: number;
   type: string;
+  description: string;
   breed_id?: {
     _id: string;
     name: string;
