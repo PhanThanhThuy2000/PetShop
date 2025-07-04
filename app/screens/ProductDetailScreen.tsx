@@ -117,7 +117,7 @@ const RelatedGrid: FC = () => (
   />
 );
 
-const FooterBar: FC<{ isFavorite: boolean; toggleFavorite: () => void; navigation: any; petId: string }> = ({ isFavorite, toggleFavorite, navigation, petId }) => (
+const FooterBar: FC<{ isFavorite: boolean; toggleFavorite: () => void; navigation: any; petId: string; pet: Pet }> = ({ isFavorite, toggleFavorite, navigation, petId, pet }) => (
   <View style={styles.footer}>
     <TouchableOpacity style={styles.favBtn} onPress={toggleFavorite}>
       <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color={isFavorite ? 'red' : '#000'} />
@@ -130,7 +130,20 @@ const FooterBar: FC<{ isFavorite: boolean; toggleFavorite: () => void; navigatio
     </TouchableOpacity>
     <TouchableOpacity
       style={styles.buyBtn}
-      onPress={() => navigation.navigate('Payment', { petId })}
+      onPress={() => {
+        // Tạo cartItems từ pet hiện tại
+        const cartItems = [{
+          id: pet._id,
+          title: pet.name,
+          price: pet.price,
+          quantity: 1,
+          image: pet.images && pet.images.length > 0 ? { uri: pet.images[0].url } : require('@/assets/images/dog.png'),
+        }];
+        // Tính tổng tiền
+        const total = pet.price;
+        // Điều hướng đến PaymentScreen với cartItems và total
+        navigation.navigate('Payment', { cartItems, total, petId });
+      }}
     >
       <Text style={styles.buyBtnTxt}>Buy now</Text>
     </TouchableOpacity>
@@ -291,6 +304,7 @@ const ProductDetailScreen: FC = () => {
         toggleFavorite={() => setIsFavorite(f => !f)}
         navigation={navigation}
         petId={pet._id}
+        pet={pet} // Thêm prop pet
       />
     </SafeAreaView>
   );
