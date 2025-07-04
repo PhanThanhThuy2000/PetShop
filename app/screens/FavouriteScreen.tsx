@@ -1,18 +1,15 @@
-import React, { useState } from 'react';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
+import React from 'react';
 import {
+    FlatList,
+    Image,
     SafeAreaView,
     StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
-    Modal,
-    FlatList, 
-    Image,   
+    View
 } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Feather';
-import { Calendar } from 'react-native-calendars';
 
 
 const favoriteItems = [
@@ -74,17 +71,6 @@ const FavoriteCard = ({ item }: { item: FavoriteItem }) => {
 const FavouriteScreen = () => {
     const navigation = useNavigation<NavigationProp<RootStackParamList>>();
     
-    const [isCalendarVisible, setCalendarVisible] = useState(false);
-    const [selectedDate, setSelectedDate] = useState('April, 18');
-
-    const handleDateSelect = (day: any) => {
-        const date = new Date(day.dateString);
-        const formattedDate = date.toLocaleString('en-US', { month: 'long', day: 'numeric' });
-        
-        setSelectedDate(formattedDate);
-        setCalendarVisible(false);
-    };
-
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -92,24 +78,6 @@ const FavouriteScreen = () => {
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Favorite</Text>
             </View>
-
-            <View style={styles.filterSection}>
-                <View style={styles.dateContainer}>
-                    <View style={styles.dateFilterPill}>
-                        <Text style={styles.dateFilterText}>{selectedDate}</Text>
-                    </View>
-                </View>
-                
-                <TouchableOpacity 
-                    style={styles.optionsButton}
-                    onPress={() => setCalendarVisible(true)}
-                >
-                    <View style={styles.circleButton}>
-                        <Icon name="chevron-down" size={20} color="#004BFE" />
-                    </View>
-                </TouchableOpacity>
-            </View>
-            
             {/* Thay thế Component cũ bằng FlatList */}
             <FlatList
                 data={favoriteItems}
@@ -120,41 +88,6 @@ const FavouriteScreen = () => {
                 showsVerticalScrollIndicator={false}
             />
 
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={isCalendarVisible}
-                onRequestClose={() => setCalendarVisible(false)}
-            >
-                <TouchableOpacity 
-                    style={styles.modalOverlay} 
-                    activeOpacity={1} 
-                    onPressOut={() => setCalendarVisible(false)}
-                >
-                    <View style={styles.modalView}>
-                        <Calendar
-                            current={new Date().toISOString().split('T')[0]}
-                            onDayPress={handleDateSelect}
-                            theme={{
-                                backgroundColor: '#ffffff',
-                                calendarBackground: '#ffffff',
-                                textSectionTitleColor: '#b6c1cd',
-                                selectedDayBackgroundColor: '#004BFE',
-                                selectedDayTextColor: '#ffffff',
-                                todayTextColor: '#004BFE',
-                                dayTextColor: '#2d4150',
-                                arrowColor: '#004BFE',
-                                monthTextColor: '#202020',
-                                textMonthFontWeight: 'bold',
-                                textDayHeaderFontWeight: '600',
-                                textDayFontSize: 16,
-                                textMonthFontSize: 18,
-                                textDayHeaderFontSize: 14,
-                            }}
-                        />
-                    </View>
-                </TouchableOpacity>
-            </Modal>
         </SafeAreaView>
     );
 };
