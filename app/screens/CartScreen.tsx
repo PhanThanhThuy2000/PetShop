@@ -267,17 +267,6 @@ export default function CartScreen() {
           </View>
         </View>
 
-        <View style={styles.addressCard}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.addressLabel}>Shipping Address</Text>
-            <Text>Vui lòng nhập địa chỉ nhận hàng</Text>
-          </View>
-          {/* 3. Thêm onPress để điều hướng sang màn hình ListAdress */}
-          <TouchableOpacity onPress={() => navigation.navigate('ListAdress')}>
-            <Ionicons name="pencil" size={20} color="#007AFF" />
-          </TouchableOpacity>
-        </View>
-
         {cartItems.length === 0 ? (
           <View style={styles.emptyCart}>
             <Ionicons name="cart-outline" size={60} color="#C0C0C0" />
@@ -288,12 +277,6 @@ export default function CartScreen() {
           cartItems.map(item => renderCard(item, true))
         )}
 
-        {wishlistItems.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>From Your Wishlist</Text>
-            {wishlistItems.map(item => renderCard(item, false))}
-          </>
-        )}
       </ScrollView>
 
       {cartItems.length > 0 && (
