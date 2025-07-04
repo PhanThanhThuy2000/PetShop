@@ -8,6 +8,7 @@ import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, 
 // Tên chủ thẻ: NGUYEN VAN A
 // Ngày phát hành: 07/15
 // Mật khẩu OTP: 123456
+import { API_BASE_URL } from '../utils/api-client'; // Import the configured axios instance
 const PaymentScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -18,12 +19,11 @@ const PaymentScreen = () => {
 
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'wallet' | 'vnpay'>('cod');
+  // const SERVER_URLS = [
+  //   'http://192.168.177.162:5000', // Nhâp địa chỉ IP của máy bạn
+  // ];
   const SERVER_URLS = [
-    'http://10.0.2.2:5000',
-    'http://127.0.0.1:5000',
-    // 'http://192.168.0.103',
-    'http://192.168.177.162:5000', // Nhâp địa chỉ IP của máy bạn
-    'http://localhost:5000',
+    API_BASE_URL.replace(/\/api$/, ''), // Lấy domain gốc, bỏ /api nếu endpoint payment nằm ngoài /api
   ];
 
   // Trong PaymentScreen, thay thế phần liên quan đến summaryData, parseCurrency, và calculateTotal
