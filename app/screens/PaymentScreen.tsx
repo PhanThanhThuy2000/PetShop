@@ -3,7 +3,12 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import api, { API_BASE_URL } from '../utils/api-client';
-
+// tai khoan test ngan hang noi dia
+// Ngân hàng: NCB
+// Số thẻ: 9704198526191432198
+// Tên chủ thẻ: NGUYEN VAN A
+// Ngày phát hành: 07/15
+// Mật khẩu OTP: 123456
 // Define Address interface (consistent with ListAddressScreen)
 interface Address {
   _id: string;
