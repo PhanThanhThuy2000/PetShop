@@ -26,7 +26,7 @@ const PaymentScreen = () => {
   const { cartItems, total, selectedAddress } = route.params || { cartItems: [], total: 0, selectedAddress: null };
 
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'wallet' | 'vnpay'>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
   const [address, setAddress] = useState<Address | null>(selectedAddress);
   const [loadingAddress, setLoadingAddress] = useState<boolean>(true);
 
@@ -211,9 +211,6 @@ const PaymentScreen = () => {
     } else if (paymentMethod === 'cod') {
       Alert.alert('Thành công', 'Đặt hàng với phương thức thanh toán COD thành công!');
       navigation.navigate('OrderSuccess');
-    } else if (paymentMethod === 'wallet') {
-      Alert.alert('Thành công', 'Thanh toán bằng ví thành công!');
-      navigation.navigate('OrderSuccess');
     } else {
       Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán');
     }
@@ -341,7 +338,6 @@ const PaymentScreen = () => {
         <Text style={styles.sectionTitle}>Payment Method</Text>
         {[
           { id: 'cod', label: 'Cash on Delivery', icon: 'money-check' },
-          { id: 'wallet', label: 'Wallet', icon: 'wallet' },
           { id: 'vnpay', label: 'Vn Pay', icon: 'money-bill-wave' },
         ].map((method) => (
           <TouchableOpacity
