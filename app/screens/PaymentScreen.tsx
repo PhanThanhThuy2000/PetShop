@@ -1,41 +1,86 @@
 import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useNavigationContainerRef, useRoute } from '@react-navigation/native'; // Thêm useNavigation
+import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-// tai khoan test ngan hang noi dia
-// Ngân hàng: NCB
-// Số thẻ: 9704198526191432198
-// Tên chủ thẻ: NGUYEN VAN A
-// Ngày phát hành: 07/15
-// Mật khẩu OTP: 123456
-import { API_BASE_URL } from '../utils/api-client'; // Import the configured axios instance
+import api, { API_BASE_URL } from '../utils/api-client';
+
+// Define Address interface (consistent with ListAddressScreen)
+interface Address {
+  _id: string;
+  name: string;
+  phone: string;
+  note: string;
+  province: string;
+  district: string;
+  ward: string;
+  postal_code: string;
+  country: string;
+  is_default?: boolean;
+}
+
 const PaymentScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  
-  // Lấy dữ liệu từ params (nếu có)
-  const { cartItems, total } = route.params || { cartItems: [], total: 0 }; // Fallback
-  const totalFromCart = route.params?.total;
+
+  // Extract data from params with fallback
+  const { cartItems, total, selectedAddress } = route.params || { cartItems: [], total: 0, selectedAddress: null };
 
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'wallet' | 'vnpay'>('cod');
-  // const SERVER_URLS = [
-  //   'http://192.168.177.162:5000', // Nhâp địa chỉ IP của máy bạn
-  // ];
-  const SERVER_URLS = [
-    API_BASE_URL.replace(/\/api$/, ''), // Lấy domain gốc, bỏ /api nếu endpoint payment nằm ngoài /api
-  ];
+  const [address, setAddress] = useState<Address | null>(selectedAddress);
+  const [loadingAddress, setLoadingAddress] = useState<boolean>(true);
 
-  // Trong PaymentScreen, thay thế phần liên quan đến summaryData, parseCurrency, và calculateTotal
+  const SERVER_URLS = [API_BASE_URL.replace(/\/api$/, '')];
+
+  // Fetch default address
+  const fetchDefaultAddress = async () => {
+    setLoadingAddress(true);
+    try {
+      const res = await api.get('/addresses');
+      const addresses = res.data.data as Address[];
+      const defaultAddress = addresses.find(addr => addr.is_default) || addresses[0] || null;
+      setAddress(defaultAddress);
+    } catch (error: any) {
+      console.error('Lỗi khi lấy địa chỉ:', error.message || error);
+      Alert.alert('Lỗi', 'Không thể tải địa chỉ');
+    } finally {
+      setLoadingAddress(false);
+    }
+  };
+
+  useEffect(() => {
+    // If a selectedAddress is passed, use it; otherwise, fetch the default address
+    if (selectedAddress) {
+      setAddress(selectedAddress);
+      setLoadingAddress(false);
+    } else {
+      fetchDefaultAddress();
+    }
+
+    // Add focus listener to refresh address when returning to PaymentScreen
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (!selectedAddress) {
+        fetchDefaultAddress(); // Refresh address if no selectedAddress is provided
+      }
+    });
+
+    // Validate total
+    if (!total || isNaN(total) || total <= 0) {
+      console.warn('Invalid total from route.params:', total);
+      Alert.alert('Lỗi', 'Tổng tiền giỏ hàng không hợp lệ. Vui lòng kiểm tra giỏ hàng.');
+    }
+
+    return () => unsubscribe;
+  }, [navigation, selectedAddress, total]);
+
   const summaryData = {
-    merchandiseSubtotal: total && !isNaN(total) && total > 0 ? total.toLocaleString('vi-VN') + ' đ' : '0 đ', // Thêm kiểm tra total > 0
-    shippingSubtotal: shippingMethod === 'standard' ? '0 đ' : '50.000 đ', // Đã đúng
-    discount: '10.000 đ',
+    merchandiseSubtotal: total && !isNaN(total) && total > 0 ? total.toLocaleString('vi-VN') + ' ₫' : '0 ₫',
+    shippingSubtotal: shippingMethod === 'standard' ? '0 ₫' : '50.000 ₫',
+    discount: '10.000 ₫',
   };
 
   const parseCurrency = (currency: string): number => {
     try {
-      // Loại bỏ tất cả ký tự không phải số và dấu trừ, đồng thời bỏ dấu chấm ngăn cách hàng nghìn
       const cleaned = currency.replace(/[^\d-]/g, '');
       const value = Number(cleaned);
       if (isNaN(value)) {
@@ -49,21 +94,13 @@ const PaymentScreen = () => {
     }
   };
 
-  // Hàm tính tổng
   const calculateTotal = () => {
     const merchandise = parseCurrency(summaryData.merchandiseSubtotal);
     const shipping = parseCurrency(summaryData.shippingSubtotal);
     const discount = parseCurrency(summaryData.discount);
 
-    // Ghi log để kiểm tra
-    console.log('Calculating total:', {
-      merchandise,
-      shipping,
-      discount,
-      inputTotal: total,
-    });
+    console.log('Calculating total:', { merchandise, shipping, discount, inputTotal: total });
 
-    // Kiểm tra nếu merchandise không hợp lệ
     if (!total || isNaN(total) || total <= 0) {
       console.warn('Invalid total from route.params:', total);
       Alert.alert('Lỗi', 'Tổng tiền giỏ hàng không hợp lệ. Vui lòng kiểm tra giỏ hàng.');
@@ -71,16 +108,8 @@ const PaymentScreen = () => {
     }
 
     const totalCalculated = merchandise + shipping - discount;
-    return isNaN(totalCalculated) ? 0 : Math.max(totalCalculated, 0); // Đảm bảo tổng không âm
+    return isNaN(totalCalculated) ? 0 : Math.max(totalCalculated, 0);
   };
-
-  // Thêm kiểm tra total trong useEffect
-  useEffect(() => {
-    if (!total || isNaN(total) || total <= 0) {
-      console.warn('Invalid total from route.params:', total);
-      Alert.alert('Lỗi', 'Tổng tiền giỏ hàng không hợp lệ. Vui lòng kiểm tra giỏ hàng.');
-    }
-  }, [total]);
 
   const handleVNPAYPayment = async () => {
     if (paymentMethod !== 'vnpay') {
@@ -90,7 +119,6 @@ const PaymentScreen = () => {
 
     let lastError = null;
     const totalAmount = calculateTotal();
-    console.log('Calculated totalAmount:', totalAmount);
 
     for (const serverUrl of SERVER_URLS) {
       try {
@@ -131,14 +159,12 @@ const PaymentScreen = () => {
         console.log('Can open URL:', supported);
 
         if (supported) {
-          // Mở URL thanh toán
           await Linking.openURL(data.paymentUrl);
 
-          // Lắng nghe deep link (cần cấu hình thêm trong ứng dụng)
           Linking.addEventListener('url', ({ url }) => {
             console.log('Received URL:', url);
             if (url.includes('success')) {
-              navigation.navigate('OrderSuccess'); // Điều hướng đến OrderSuccessScreen
+              navigation.navigate('OrderSuccess');
             } else if (url.includes('failure')) {
               Alert.alert('Lỗi', 'Thanh toán thất bại. Vui lòng thử lại.');
             }
@@ -162,10 +188,7 @@ const PaymentScreen = () => {
     });
 
     let errorMessage =
-      'Không thể kết nối đến máy chủ thanh toán. Vui lòng kiểm tra:\n\n' +
-      '1. Máy chủ đã được khởi động\n' +
-      '2. Kết nối mạng hoạt động\n' +
-      '3. Địa chỉ IP và cổng chính xác\n\n';
+      'Không thể kết nối đến máy chủ thanh toán. Vui lòng kiểm tra:\n';
 
     if (lastError?.name === 'AbortError') {
       errorMessage += 'Lỗi: Kết nối bị timeout sau 5 giây';
@@ -177,20 +200,25 @@ const PaymentScreen = () => {
   };
 
   const handlePay = () => {
+    if (!address) {
+      Alert.alert('Lỗi', 'Vui lòng chọn hoặc thêm địa chỉ giao hàng');
+      navigation.navigate('ListAddress', { selectMode: true, cartItems, total });
+      return;
+    }
+
     if (paymentMethod === 'vnpay') {
       handleVNPAYPayment();
     } else if (paymentMethod === 'cod') {
       Alert.alert('Thành công', 'Đặt hàng với phương thức thanh toán COD thành công!');
-      navigation.navigate('OrderSuccess'); // Điều hướng đến OrderSuccessScreen
+      navigation.navigate('OrderSuccess');
     } else if (paymentMethod === 'wallet') {
       Alert.alert('Thành công', 'Thanh toán bằng ví thành công!');
-      navigation.navigate('OrderSuccess'); // Điều hướng đến OrderSuccessScreen
+      navigation.navigate('OrderSuccess');
     } else {
       Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán');
     }
-  }
+  };
 
-  const navigationRef = useNavigationContainerRef();
   const isHandled = useRef(false);
 
   useEffect(() => {
@@ -198,43 +226,63 @@ const PaymentScreen = () => {
       const url = event.url;
       if (url.includes('payment-result') && !isHandled.current) {
         isHandled.current = true;
-        navigation.navigate('OrderSuccess'); // Điều hướng đến OrderSuccessScreen
+        navigation.navigate('OrderSuccess');
       }
     };
 
     const subscription = Linking.addEventListener('url', handleDeepLink);
 
-    // Xử lý trường hợp app được mở bằng deep link khi đã tắt
     Linking.getInitialURL().then((url) => {
       if (url && url.includes('payment-result') && !isHandled.current) {
         isHandled.current = true;
-        navigation.navigate('OrderSuccess'); // Điều hướng đến OrderSuccessScreen
+        navigation.navigate('OrderSuccess');
       }
     });
 
     return () => {
       subscription.remove();
     };
-  }, [navigationRef]);
+  }, [navigation]);
 
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Ionicons name="arrow-back" size={24} color="#000" />
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {/* Address */}
       <View style={styles.addressBox}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.bold}>Phan Thùy <Text style={styles.gray}>(+84 905304321)</Text></Text>
-          <Text style={styles.gray}>
-            Magnolia MSI B4, next to Pheonix Theatre, Chevasandra, Bengaluru, Karnataka 560023
-          </Text>
-        </View>
-        <MaterialIcons name="edit" size={20} color="#1976D2" />
+        {loadingAddress ? (
+          <Text style={styles.gray}>Đang tải địa chỉ...</Text>
+        ) : address ? (
+          <>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.bold}>
+                {address.name} <Text style={styles.gray}>({address.phone})</Text>
+              </Text>
+              <Text style={styles.gray}>
+                {`${address.note}, ${address.ward}, ${address.district}, ${address.province}, ${address.postal_code}, ${address.country}`}
+              </Text>
+            </View>
+              <TouchableOpacity onPress={() => navigation.navigate('ListAdress', { selectMode: true, cartItems, total })}>
+              <MaterialIcons name="edit" size={20} color="#1976D2" />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.gray}>Chưa có địa chỉ</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('ListAddress', { selectMode: true, cartItems, total })}>
+              <MaterialIcons name="add" size={20} color="#1976D2" />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {/* Items */}
@@ -250,7 +298,7 @@ const PaymentScreen = () => {
           <ItemRow
             key={item.id}
             name={item.title}
-            price={item.price * (item.quantity).toLocaleString('vi-VN') + '₫'}
+            price={(item.price * item.quantity).toLocaleString('vi-VN') + ' ₫'}
             image={item.image?.uri || item.image}
           />
         ))}
@@ -283,7 +331,7 @@ const PaymentScreen = () => {
             <Text style={styles.shippingText}>Express</Text>
             <Text style={styles.shippingTime}>1-2 days</Text>
           </View>
-          <Text style={styles.shippingPrice}>50.000 đ</Text>
+          <Text style={styles.shippingPrice}>50.000 ₫</Text>
         </TouchableOpacity>
         <Text style={styles.deliveryNote}>Delivered on or before Thursday, 23 April 2020</Text>
       </View>
@@ -312,7 +360,7 @@ const PaymentScreen = () => {
 
       {/* Summary */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Information pet</Text>
+        <Text style={styles.sectionTitle}>Summary</Text>
         <SummaryRow label="Merchandise Subtotal" value={summaryData.merchandiseSubtotal} />
         <SummaryRow label="Shipping Subtotal" value={summaryData.shippingSubtotal} />
         <SummaryRow label="Discount" value={summaryData.discount} />
@@ -321,7 +369,7 @@ const PaymentScreen = () => {
       {/* Total */}
       <View style={styles.totalRow}>
         <Text style={styles.totalText}>Total</Text>
-        <Text style={styles.totalPrice}>{calculateTotal().toLocaleString('vi-VN') + ' đ'}</Text>
+        <Text style={styles.totalPrice}>{calculateTotal().toLocaleString('vi-VN') + ' ₫'}</Text>
       </View>
       <TouchableOpacity style={styles.payButton} onPress={handlePay}>
         <Text style={styles.payText}>Pay</Text>
@@ -345,7 +393,6 @@ const SummaryRow = ({ label, value }: { label: string; value: string }) => (
   </View>
 );
 
-// Các styles giữ nguyên
 const styles = StyleSheet.create({
   container: {
     padding: 16,
@@ -416,7 +463,7 @@ const styles = StyleSheet.create({
   },
   itemPrice: {
     fontWeight: 'bold',
-    color: 'red',
+    color: '#000',
   },
   shippingOption: {
     flexDirection: 'row',
@@ -492,7 +539,7 @@ const styles = StyleSheet.create({
   totalPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'red',
+    color: '#000',
   },
   payButton: {
     marginTop: 12,
@@ -500,6 +547,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
+    marginBottom: 20,
   },
   payText: {
     color: '#fff',

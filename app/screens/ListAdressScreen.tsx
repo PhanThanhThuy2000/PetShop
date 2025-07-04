@@ -96,7 +96,7 @@ const ListAddressScreen: React.FC = () => {
           {item.is_default && <View style={styles.defaultTag}><Text style={styles.defaultText}>Default</Text></View>}
         </View>
         <View style={styles.actions}>
-          <TouchableOpacity onPress={() => navigation.navigate('EditAddress', { address: item })}>
+          <TouchableOpacity onPress={() => navigation.navigate('EditAdress', { address: item })}>
             <Ionicons name="pencil-outline" size={20} color="#3182CE" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => deleteAddress(item._id)} style={{ marginLeft: 10 }}>
