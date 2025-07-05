@@ -73,6 +73,15 @@ const HomeScreen = () => {
     { _id: '6', name: 'Shiba Inu Dog', images: [{ url: 'https://i.pinimg.com/236x/e7/8a/d6/e78ad67426f1bc002e9f221e9d0605b9.jpg' }], price: 1000000, breed_id: { name: 'Shiba' } },
   ];
 
+  const fallbackProducts = [
+    { _id: '1', name: 'Dog Food Premium', images: [{ url: 'https://bizweb.dktcdn.net/100/165/948/products/img-5830-jpg.jpg?v=1502808189430' }], price: 250000, category: 'Food' },
+    { _id: '2', name: 'Cat Toy Ball', images: [{ url: 'https://cocapet.net/wp-content/uploads/2018/08/bear-tam-th%E1%BB%83.jpg' }], price: 120000, category: 'Toy' },
+    { _id: '3', name: 'Pet Bed Large', images: [{ url: 'https://file.hstatic.net/200000159621/article/cover_8d54a27928c4408593fa2f4f4e60191b_grande.jpg' }], price: 450000, category: 'Accessory' },
+    { _id: '4', name: 'Fish Tank Filter', images: [{ url: 'https://aquariumcare.vn/upload/user/images/th%E1%BB%8F%20c%E1%BA%A3nh%204(2).jpg' }], price: 320000, category: 'Equipment' },
+    { _id: '5', name: 'Bird Cage Small', images: [{ url: 'https://bizweb.dktcdn.net/100/165/948/products/img-5830-jpg.jpg?v=1502808189430' }], price: 180000, category: 'Cage' },
+    { _id: '6', name: 'Hamster Wheel', images: [{ url: 'https://cocapet.net/wp-content/uploads/2018/08/bear-tam-th%E1%BB%83.jpg' }], price: 95000, category: 'Exercise' },
+  ];
+
   // Load data khi component mount
   useEffect(() => {
     loadInitialData();
@@ -97,6 +106,7 @@ const HomeScreen = () => {
       setCategories(fallbackCategories as Category[]);
       setFlashSaleProducts(fallbackFlashSale);
       setPets(fallbackPets);
+      setProducts(fallbackProducts);
     } finally {
       setLoading(false);
     }
@@ -124,14 +134,19 @@ const HomeScreen = () => {
         productsService.getProducts({ limit: 4, featured: true })
       ]);
 
-      setPets(petsResponse.data || fallbackPets);
-      setProducts(productsResponse.data || []);
-      setFlashSaleProducts(flashSaleResponse.data || fallbackFlashSale);
+      console.log('Pets response:', petsResponse);
+      console.log('Products response:', productsResponse);
+      console.log('Flash sale response:', flashSaleResponse);
+
+      setPets(fallbackPets); // Force use fallback for testing
+      setProducts(fallbackProducts); // Force use fallback for testing  
+      setFlashSaleProducts(fallbackFlashSale); // Force use fallback for testing
 
     } catch (error: any) {
       console.error('Error loading pets and products:', error);
       // Sử dụng fallback data
       setPets(fallbackPets);
+      setProducts(fallbackProducts);
       setFlashSaleProducts(fallbackFlashSale);
       throw error;
     }
@@ -208,7 +223,7 @@ const HomeScreen = () => {
     return (
       <TouchableOpacity
         style={styles.petItemContainer}
-        onPress={() => safeNavigate(navigation, 'ProductDetail', { pet: item })} // truyền object pet
+        onPress={() => safeNavigate(navigation, 'ProductDetail', { productId: item._id })}
       >
         <Image
           source={{ uri: imageUrl }}
@@ -221,6 +236,31 @@ const HomeScreen = () => {
           <Text style={styles.petItemPrice}>{formatPrice(item.price)}</Text>
           <Text style={styles.petItemSold}>
             {item.breed_id?.name || item.type || 'Sold 50+'}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderProductItem = ({ item }: { item: any }) => {
+    const imageUrl = getImageUrl(item.images);
+    console.log('Rendering product item:', item.name, 'ID:', item._id);
+    return (
+      <TouchableOpacity
+        style={styles.itemContainer}
+        onPress={() => safeNavigate(navigation, 'ProductDetail', { productId: item._id })}
+      >
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.itemImage}
+        />
+        <View style={styles.itemDetails}>
+          <Text style={styles.itemName} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+          <Text style={styles.itemSold}>
+            {item.category || 'Sold 25+'}
           </Text>
         </View>
       </TouchableOpacity>
@@ -339,6 +379,39 @@ const HomeScreen = () => {
           )}
         </View>
 
+        {/* Items Section - Thanh cuộn ngang */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Items</Text>
+            <TouchableOpacity onPress={() => safeNavigate(navigation, 'ProductAll')}>
+              <Text style={styles.seeAllText}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#2563EB" />
+            </View>
+          ) : products.length > 0 ? (
+            <View>
+              <Text style={{ paddingHorizontal: 20, marginBottom: 10, color: '#666' }}>
+                Found {products.length} items
+              </Text>
+              <FlatList
+                data={products}
+                renderItem={renderProductItem}
+                keyExtractor={(item) => item._id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.itemScrollList}
+              />
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No items available</Text>
+            </View>
+          )}
+        </View>
+
         {/* Error handling */}
         {error && (
           <View style={styles.errorContainer}>
@@ -427,6 +500,47 @@ const styles = StyleSheet.create({
   petItemName: { fontSize: 15, fontWeight: '600', color: '#2D3748', marginBottom: 8, minHeight: 36 },
   petItemPrice: { fontSize: 16, fontWeight: '700', color: '#D94A4A', marginBottom: 8 },
   petItemSold: { fontSize: 12, color: '#718096' },
+  // Styles cho Items section
+  itemScrollList: { paddingHorizontal: 20 },
+  itemContainer: {
+    width: 160,
+    marginRight: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#4A5568',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  itemImage: {
+    width: '100%',
+    height: 120,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  itemDetails: {
+    padding: 12,
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2D3748',
+    marginBottom: 8,
+    minHeight: 32,
+  },
+  itemPrice: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#2563EB',
+    marginBottom: 6,
+  },
+  itemSold: {
+    fontSize: 12,
+    color: '#718096',
+  },
   loadingContainer: {
     padding: 20,
     alignItems: 'center',
