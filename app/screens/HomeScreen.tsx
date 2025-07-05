@@ -1,8 +1,9 @@
-// HomeScreen.tsx - Giao diện gốc đơn giản với dữ liệu từ API
+// HomeScreen.tsx - Load dữ liệu thực từ API
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -20,6 +21,7 @@ import Icon from 'react-native-vector-icons/Feather';
 // Import API services
 import { petsService, productsService } from '../services/api-services';
 import { categoriesService, Category } from '../services/categoriesService';
+import { Pet, Product } from '../types';
 
 // Safe navigation helper
 const safeNavigate = (navigation: any, routeName: string, params?: any) => {
@@ -27,7 +29,6 @@ const safeNavigate = (navigation: any, routeName: string, params?: any) => {
     navigation.navigate(routeName, params);
   } catch (error) {
     console.warn(`Route '${routeName}' not found, navigating to Search instead`);
-    // Fallback to Search or available route
     try {
       navigation.navigate('Search', params);
     } catch (fallbackError) {
@@ -40,12 +41,16 @@ const HomeScreen = () => {
   const navigation = useNavigation() as any;
 
   // State cho dữ liệu API
-  const [pets, setPets] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [flashSaleProducts, setFlashSaleProducts] = useState([]);
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [flashSaleProducts, setFlashSaleProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  
+  // Loading states
   const [loading, setLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [petsLoading, setPetsLoading] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,29 +62,14 @@ const HomeScreen = () => {
     { _id: '4', name: 'Hamsters', images: [{ url: 'https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQXXutfOGiZ6MYhA4L47gBE3kR-giotG2iF-j5aMMSIlEJrnOTLCdhovShKPCVofxINNjxIYw0b9KAuIKrYqKAbHA' }] },
   ];
 
-  const fallbackFlashSale = [
-    { _id: '1', images: [{ url: 'https://aquariumcare.vn/upload/user/images/th%E1%BB%8F%20c%E1%BA%A3nh%204(2).jpg' }], price: 850000 },
-    { _id: '2', images: [{ url: 'https://bizweb.dktcdn.net/100/165/948/products/img-5830-jpg.jpg?v=1502808189430' }], price: 1200000 },
-    { _id: '3', images: [{ url: 'https://cocapet.net/wp-content/uploads/2018/08/bear-tam-th%E1%BB%83.jpg' }], price: 500000 },
-    { _id: '4', images: [{ url: 'https://file.hstatic.net/200000159621/article/cover_8d54a27928c4408593fa2f4f4e60191b_grande.jpg' }], price: 900000 },
-  ];
-
   const fallbackPets = [
     { _id: '1', name: 'British Longhair Cat', images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSgjs2sCO0xh0Ve1Sf8mDtBt2UhO9GRZImDw&s' }], price: 1000000, breed_id: { name: 'British' } },
     { _id: '2', name: 'Shiba Inu Dog', images: [{ url: 'https://thuvienmeme.com/wp-content/uploads/2024/07/cho-husky-luom-hinh-su-meme.jpg' }], price: 1000000, breed_id: { name: 'Shiba' } },
-    { _id: '3', name: 'British Longhair Cat', images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQv44j8zRpM29qyJqHyCC55qdoqwtnUSmswRA&s' }], price: 1000000, breed_id: { name: 'British' } },
-    { _id: '4', name: 'Shiba Inu Dog', images: [{ url: 'https://pethouse.com.vn/wp-content/uploads/2022/12/Ngoai-hinh-husky-768x1024-1-600x800.jpg' }], price: 1000000, breed_id: { name: 'Shiba' } },
-    { _id: '5', name: 'British Longhair Cat', images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTajAsFf6UunJlFGmB-Y6W1Gyk3oqPkpnOCOA&s' }], price: 1000000, breed_id: { name: 'British' } },
-    { _id: '6', name: 'Shiba Inu Dog', images: [{ url: 'https://i.pinimg.com/236x/e7/8a/d6/e78ad67426f1bc002e9f221e9d0605b9.jpg' }], price: 1000000, breed_id: { name: 'Shiba' } },
   ];
 
   const fallbackProducts = [
     { _id: '1', name: 'Dog Food Premium', images: [{ url: 'https://bizweb.dktcdn.net/100/165/948/products/img-5830-jpg.jpg?v=1502808189430' }], price: 250000, category: 'Food' },
     { _id: '2', name: 'Cat Toy Ball', images: [{ url: 'https://cocapet.net/wp-content/uploads/2018/08/bear-tam-th%E1%BB%83.jpg' }], price: 120000, category: 'Toy' },
-    { _id: '3', name: 'Pet Bed Large', images: [{ url: 'https://file.hstatic.net/200000159621/article/cover_8d54a27928c4408593fa2f4f4e60191b_grande.jpg' }], price: 450000, category: 'Accessory' },
-    { _id: '4', name: 'Fish Tank Filter', images: [{ url: 'https://aquariumcare.vn/upload/user/images/th%E1%BB%8F%20c%E1%BA%A3nh%204(2).jpg' }], price: 320000, category: 'Equipment' },
-    { _id: '5', name: 'Bird Cage Small', images: [{ url: 'https://bizweb.dktcdn.net/100/165/948/products/img-5830-jpg.jpg?v=1502808189430' }], price: 180000, category: 'Cage' },
-    { _id: '6', name: 'Hamster Wheel', images: [{ url: 'https://cocapet.net/wp-content/uploads/2018/08/bear-tam-th%E1%BB%83.jpg' }], price: 95000, category: 'Exercise' },
   ];
 
   // Load data khi component mount
@@ -91,22 +81,27 @@ const HomeScreen = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('🚀 Starting to load initial data...');
 
-      // Load categories và pets/products song song
+      // Load tất cả dữ liệu song song
       await Promise.all([
         loadCategories(),
-        loadPetsAndProducts()
+        loadPets(),
+        loadProducts(),
+        loadFlashSaleProducts()
       ]);
 
+      console.log('✅ All initial data loaded successfully');
     } catch (error: any) {
-      console.error('Error loading initial data:', error);
+      console.error('❌ Error loading initial data:', error);
       setError(error.message || 'Failed to load data');
       
-      // Sử dụng fallback data khi có lỗi
-      setCategories(fallbackCategories as Category[]);
-      setFlashSaleProducts(fallbackFlashSale);
-      setPets(fallbackPets);
-      setProducts(fallbackProducts);
+      // Show alert to user about the error
+      Alert.alert(
+        'Loading Error',
+        'Some data could not be loaded. Using offline data.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setLoading(false);
     }
@@ -115,44 +110,103 @@ const HomeScreen = () => {
   const loadCategories = async () => {
     try {
       setCategoriesLoading(true);
+      console.log('📁 Loading categories...');
+      
       const response = await categoriesService.getCategories();
-      setCategories(response.data || fallbackCategories);
+      
+      if (response.success && response.data && response.data.length > 0) {
+        console.log('✅ Categories loaded:', response.data.length, 'items');
+        setCategories(response.data);
+      } else {
+        console.log('⚠️ No categories from API, using fallback');
+        setCategories(fallbackCategories as Category[]);
+      }
     } catch (error: any) {
-      console.error('Error loading categories:', error);
+      console.error('❌ Error loading categories:', error);
       setCategories(fallbackCategories as Category[]);
     } finally {
       setCategoriesLoading(false);
     }
   };
 
-  const loadPetsAndProducts = async () => {
+  const loadPets = async () => {
     try {
-      // Load pets và products song song
-      const [petsResponse, productsResponse, flashSaleResponse] = await Promise.all([
-        petsService.getPets({ page: 1, limit: 6 }),
-        productsService.getProducts({ page: 1, limit: 10 }),
-        productsService.getProducts({ limit: 4, featured: true })
-      ]);
-
-      console.log('Pets response:', petsResponse);
-      console.log('Products response:', productsResponse);
-      console.log('Flash sale response:', flashSaleResponse);
-
-      setPets(fallbackPets); // Force use fallback for testing
-      setProducts(fallbackProducts); // Force use fallback for testing  
-      setFlashSaleProducts(fallbackFlashSale); // Force use fallback for testing
-
+      setPetsLoading(true);
+      console.log('🐕 Loading pets...');
+      
+      const response = await petsService.getPets({ page: 1, limit: 6 });
+      
+      if (response.success && response.data && response.data.length > 0) {
+        console.log('✅ Pets loaded:', response.data.length, 'items');
+        console.log('🔍 First pet:', response.data[0]);
+        setPets(response.data);
+      } else {
+        console.log('⚠️ No pets from API, using fallback');
+        setPets(fallbackPets as Pet[]);
+      }
     } catch (error: any) {
-      console.error('Error loading pets and products:', error);
-      // Sử dụng fallback data
-      setPets(fallbackPets);
-      setProducts(fallbackProducts);
-      setFlashSaleProducts(fallbackFlashSale);
-      throw error;
+      console.error('❌ Error loading pets:', error);
+      console.log('🔄 Using fallback pets data');
+      setPets(fallbackPets as Pet[]);
+    } finally {
+      setPetsLoading(false);
+    }
+  };
+
+  const loadProducts = async () => {
+    try {
+      setProductsLoading(true);
+      console.log('🛍️ Loading products...');
+      
+      const response = await productsService.getProducts({ page: 1, limit: 10 });
+      
+      if (response.success && response.data && response.data.length > 0) {
+        console.log('✅ Products loaded:', response.data.length, 'items');
+        console.log('🔍 First product:', response.data[0]);
+        setProducts(response.data);
+      } else {
+        console.log('⚠️ No products from API, using fallback');
+        setProducts(fallbackProducts as Product[]);
+      }
+    } catch (error: any) {
+      console.error('❌ Error loading products:', error);
+      console.log('🔄 Using fallback products data');
+      setProducts(fallbackProducts as Product[]);
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  const loadFlashSaleProducts = async () => {
+    try {
+      console.log('⚡ Loading flash sale products...');
+      
+      // Try to get featured products for flash sale
+      const response = await productsService.getProducts({ limit: 4, featured: true });
+      
+      if (response.success && response.data && response.data.length > 0) {
+        console.log('✅ Flash sale products loaded:', response.data.length, 'items');
+        setFlashSaleProducts(response.data);
+      } else {
+        // If no featured products, get first 4 regular products
+        console.log('⚠️ No featured products, getting regular products for flash sale');
+        const regularResponse = await productsService.getProducts({ limit: 4 });
+        
+        if (regularResponse.success && regularResponse.data && regularResponse.data.length > 0) {
+          setFlashSaleProducts(regularResponse.data);
+        } else {
+          console.log('🔄 Using fallback for flash sale');
+          setFlashSaleProducts(fallbackProducts.slice(0, 4) as Product[]);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Error loading flash sale products:', error);
+      setFlashSaleProducts(fallbackProducts.slice(0, 4) as Product[]);
     }
   };
 
   const onRefresh = async () => {
+    console.log('🔄 Refreshing data...');
     setRefreshing(true);
     await loadInitialData();
     setRefreshing(false);
@@ -161,17 +215,19 @@ const HomeScreen = () => {
   // Helper function để lấy hình ảnh đầu tiên
   const getImageUrl = (images: any[] = []) => {
     if (images && images.length > 0) {
-      return images.find(img => img.is_primary)?.url || images[0]?.url;
+      const primaryImage = images.find(img => img.is_primary);
+      return primaryImage?.url || images[0]?.url;
     }
     return 'https://via.placeholder.com/150?text=No+Image';
   };
 
   // Helper function để format giá
   const formatPrice = (price: number) => {
-    return price?.toLocaleString('vi-VN') || '0';
+    if (!price) return '0';
+    return price.toLocaleString('vi-VN') + '₫';
   };
 
-  // Render functions với giao diện gốc đơn giản
+  // Render functions
   const renderCategoryItem = ({ item }: { item: Category }) => {
     const imageUrl = getImageUrl(item.images);
 
@@ -190,7 +246,7 @@ const HomeScreen = () => {
             source={{ uri: imageUrl }}
             style={styles.categoryImage}
             onError={(error) => {
-              console.log('Image load error for category:', item.name, error);
+              console.log('❌ Image load error for category:', item.name, error);
             }}
           />
         </View>
@@ -199,13 +255,19 @@ const HomeScreen = () => {
     );
   };
 
-  const renderFlashSaleItem = ({ item }: { item: any }) => {
+  const renderFlashSaleItem = ({ item }: { item: Product }) => {
     const imageUrl = getImageUrl(item.images);
     return (
-      <TouchableOpacity style={styles.flashSaleItem}>
+      <TouchableOpacity 
+        style={styles.flashSaleItem}
+        onPress={() => safeNavigate(navigation, 'ProductDetail', { productId: item._id })}
+      >
         <Image
           source={{ uri: imageUrl }}
           style={styles.flashSaleImage}
+          onError={(error) => {
+            console.log('❌ Flash sale image error:', item.name, error);
+          }}
         />
         <View style={styles.flashSaleDetails}>
           <Text style={styles.flashSalePrice}>{formatPrice(item.price)}</Text>
@@ -218,16 +280,19 @@ const HomeScreen = () => {
     );
   };
 
-  const renderPetItem = ({ item }: { item: any }) => {
+  const renderPetItem = ({ item }: { item: Pet }) => {
     const imageUrl = getImageUrl(item.images);
     return (
       <TouchableOpacity
         style={styles.petItemContainer}
-        onPress={() => safeNavigate(navigation, 'ProductDetail', { productId: item._id })}
+        onPress={() => safeNavigate(navigation, 'PetDetail', { petId: item._id })}
       >
         <Image
           source={{ uri: imageUrl }}
           style={styles.petItemImage}
+          onError={(error) => {
+            console.log('❌ Pet image error:', item.name, error);
+          }}
         />
         <View style={styles.petItemDetails}>
           <Text style={styles.petItemName} numberOfLines={2}>
@@ -235,16 +300,17 @@ const HomeScreen = () => {
           </Text>
           <Text style={styles.petItemPrice}>{formatPrice(item.price)}</Text>
           <Text style={styles.petItemSold}>
-            {item.breed_id?.name || item.type || 'Sold 50+'}
+            {item.breed_id?.name || item.type || 'Available'}
           </Text>
         </View>
       </TouchableOpacity>
     );
   };
 
-  const renderProductItem = ({ item }: { item: any }) => {
+  const renderProductItem = ({ item }: { item: Product }) => {
     const imageUrl = getImageUrl(item.images);
-    console.log('Rendering product item:', item.name, 'ID:', item._id);
+    console.log('🎨 Rendering product:', item.name, 'with image:', imageUrl);
+    
     return (
       <TouchableOpacity
         style={styles.itemContainer}
@@ -253,6 +319,9 @@ const HomeScreen = () => {
         <Image
           source={{ uri: imageUrl }}
           style={styles.itemImage}
+          onError={(error) => {
+            console.log('❌ Product image error:', item.name, error);
+          }}
         />
         <View style={styles.itemDetails}>
           <Text style={styles.itemName} numberOfLines={2}>
@@ -260,7 +329,7 @@ const HomeScreen = () => {
           </Text>
           <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
           <Text style={styles.itemSold}>
-            {item.category || 'Sold 25+'}
+            Stock: {(item as any).stock || 'Available'}
           </Text>
         </View>
       </TouchableOpacity>
@@ -274,12 +343,17 @@ const HomeScreen = () => {
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.container}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            colors={['#2563EB']}
+            tintColor="#2563EB"
+          />
         }
       >
 
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Home</Text>
+          <Text style={styles.headerTitle}>Pet Store</Text>
           <TouchableOpacity onPress={() => safeNavigate(navigation, 'Chat')}>
             <Icon name="message-circle" size={26} color="#2D3748" />
           </TouchableOpacity>
@@ -289,7 +363,7 @@ const HomeScreen = () => {
         <View style={styles.searchContainer}>
           <Icon name="search" size={20} color="#A0AEC0" style={styles.searchIcon} />
           <TextInput 
-            placeholder="Search for pets..." 
+            placeholder="Search for pets & products..." 
             style={styles.searchInput} 
             placeholderTextColor="#A0AEC0" 
             onFocus={() => safeNavigate(navigation, 'Search')}
@@ -299,6 +373,7 @@ const HomeScreen = () => {
           </TouchableOpacity>
         </View>
 
+        {/* Banner */}
         <View style={styles.bannerContainer}>
           <Image
             source={{ uri: 'https://lh3.googleusercontent.com/proxy/YGBdiGmx0h-riNmW-TPMA_o5BY-9hLAuEmu3CwdtbG7BN8yo2AevyQgu5TM49Bwuo0GM1eNd1XNVOqoIvF1IVHhFHTDzuy-xPBdGZXfQlK2AY2Xrspkrlz0-8nvwkMagvkGE0JFNUx0gK9O0' }}
@@ -306,13 +381,15 @@ const HomeScreen = () => {
           />
         </View>
 
+        {/* Categories Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Category</Text>
+            <Text style={styles.sectionTitle}>Categories</Text>
           </View>
           {categoriesLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color="#2563EB" />
+              <Text style={styles.loadingText}>Loading categories...</Text>
             </View>
           ) : (
             <FlatList
@@ -326,6 +403,7 @@ const HomeScreen = () => {
           )}
         </View>
 
+        {/* Flash Sale Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Flash Sale</Text>
@@ -334,6 +412,7 @@ const HomeScreen = () => {
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color="#D94A4A" />
+              <Text style={styles.loadingText}>Loading flash sale...</Text>
             </View>
           ) : flashSaleProducts.length > 0 ? (
             <FlatList
@@ -351,17 +430,18 @@ const HomeScreen = () => {
           )}
         </View>
         
-        {/* All Pets */}
+        {/* Pets Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>For You</Text>
+            <Text style={styles.sectionTitle}>For You - Pets</Text>
             <TouchableOpacity onPress={() => safeNavigate(navigation, 'PetAll')}>
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
-          {loading ? (
+          {petsLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color="#2563EB" />
+              <Text style={styles.loadingText}>Loading pets...</Text>
             </View>
           ) : pets.length > 0 ? (
             <FlatList
@@ -379,23 +459,22 @@ const HomeScreen = () => {
           )}
         </View>
 
-        {/* Items Section - Thanh cuộn ngang */}
+        {/* Products Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Items</Text>
+            <Text style={styles.sectionTitle}>Pet Products</Text>
             <TouchableOpacity onPress={() => safeNavigate(navigation, 'ProductAll')}>
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
-          {loading ? (
+          {productsLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color="#2563EB" />
+              <Text style={styles.loadingText}>Loading products...</Text>
             </View>
           ) : products.length > 0 ? (
             <View>
-              <Text style={{ paddingHorizontal: 20, marginBottom: 10, color: '#666' }}>
-                Found {products.length} items
-              </Text>
+     
               <FlatList
                 data={products}
                 renderItem={renderProductItem}
@@ -407,7 +486,7 @@ const HomeScreen = () => {
             </View>
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No items available</Text>
+              <Text style={styles.emptyText}>No products available</Text>
             </View>
           )}
         </View>
@@ -415,6 +494,7 @@ const HomeScreen = () => {
         {/* Error handling */}
         {error && (
           <View style={styles.errorContainer}>
+            <Icon name="alert-circle" size={24} color="#D32F2F" />
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
               style={styles.retryButton}
@@ -424,33 +504,88 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
         )}
+
+  
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// Styles của giao diện gốc đơn giản
+// Styles
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
   container: { paddingBottom: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 30, paddingBottom: 10 },
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 20, 
+    paddingTop: 30, 
+    paddingBottom: 10 
+  },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#2D3748' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, marginHorizontal: 20, paddingHorizontal: 15, marginTop: 10, borderWidth: 1, borderColor: '#E2E8F0' },
+  
+  searchContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 12, 
+    marginHorizontal: 20, 
+    paddingHorizontal: 15, 
+    marginTop: 10, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
   searchIcon: { marginRight: 10 },
   cameraIcon: { marginLeft: 10 },
   searchInput: { flex: 1, height: 48, fontSize: 16, color: '#2D3748' },
+  
   bannerContainer: { marginHorizontal: 20, marginTop: 20 },
-  bannerImage: { width: '100%', height: 150, borderRadius: 16 },
+  bannerImage: { 
+    width: '100%', 
+    height: 150, 
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9' // Placeholder color while loading
+  },
+  
   section: { marginTop: 24 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 16 },
+  sectionHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 20, 
+    marginBottom: 16 
+  },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#2D3748' },
   seeAllText: { fontSize: 15, color: '#2563EB', fontWeight: '600' },
   timerText: { fontSize: 15, color: '#D94A4A', fontWeight: '600' },
+  
   categoryList: { paddingHorizontal: 20 },
   categoryItem: { alignItems: 'center', marginRight: 20 },
-  categoryImageContainer: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#E2E8F0' },
+  categoryImageContainer: { 
+    width: 64, 
+    height: 64, 
+    borderRadius: 32, 
+    backgroundColor: '#FFFFFF', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginBottom: 8, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
   categoryImage: { width: '90%', height: '90%', borderRadius: 30 },
   categoryText: { fontSize: 14, color: '#4A5568', fontWeight: '500' },
+  
   flashSaleList: { paddingHorizontal: 20 },
   flashSaleItem: {
     width: 140,
@@ -460,14 +595,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  flashSaleImage: {
-    width: '100%',
-    height: 140,
-  },
-  flashSaleDetails: {
-    padding: 10,
-  },
+  flashSaleImage: { width: '100%', height: 140, backgroundColor: '#F1F5F9' },
+  flashSaleDetails: { padding: 10 },
   flashSalePrice: {
     fontSize: 16,
     fontWeight: '700',
@@ -493,14 +628,44 @@ const styles = StyleSheet.create({
     color: '#991B1B',
     alignSelf: 'center',
   },
+  
   petListRow: { justifyContent: 'space-between', paddingHorizontal: 20 },
-  petItemContainer: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#4A5568', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
-  petItemImage: { width: '100%', height: 160, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  petItemContainer: { 
+    width: '48%', 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 16, 
+    marginBottom: 20, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0', 
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  petItemImage: { 
+    width: '100%', 
+    height: 160, 
+    borderTopLeftRadius: 16, 
+    borderTopRightRadius: 16,
+    backgroundColor: '#F1F5F9'
+  },
   petItemDetails: { padding: 12 },
-  petItemName: { fontSize: 15, fontWeight: '600', color: '#2D3748', marginBottom: 8, minHeight: 36 },
-  petItemPrice: { fontSize: 16, fontWeight: '700', color: '#D94A4A', marginBottom: 8 },
+  petItemName: { 
+    fontSize: 15, 
+    fontWeight: '600', 
+    color: '#2D3748', 
+    marginBottom: 8, 
+    minHeight: 36 
+  },
+  petItemPrice: { 
+    fontSize: 16, 
+    fontWeight: '700', 
+    color: '#D94A4A', 
+    marginBottom: 8 
+  },
   petItemSold: { fontSize: 12, color: '#718096' },
-  // Styles cho Items section
+  
   itemScrollList: { paddingHorizontal: 20 },
   itemContainer: {
     width: 160,
@@ -509,21 +674,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    shadowColor: '#4A5568',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   itemImage: {
     width: '100%',
     height: 120,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
+    backgroundColor: '#F1F5F9'
   },
-  itemDetails: {
-    padding: 12,
-  },
+  itemDetails: { padding: 12 },
   itemName: {
     fontSize: 14,
     fontWeight: '600',
@@ -537,14 +701,28 @@ const styles = StyleSheet.create({
     color: '#2563EB',
     marginBottom: 6,
   },
-  itemSold: {
-    fontSize: 12,
-    color: '#718096',
+  itemSold: { fontSize: 12, color: '#718096' },
+  
+  resultCount: { 
+    paddingHorizontal: 20, 
+    marginBottom: 10, 
+    color: '#666',
+    fontSize: 14,
+    fontStyle: 'italic'
   },
+  
   loadingContainer: {
     padding: 20,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#666',
+  },
+  
   emptyContainer: {
     padding: 20,
     alignItems: 'center',
@@ -554,30 +732,48 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
+  
   errorContainer: {
     padding: 20,
     alignItems: 'center',
-    backgroundColor: '#fee',
+    backgroundColor: '#FEF2F2',
     marginHorizontal: 20,
     borderRadius: 10,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   errorText: {
     fontSize: 14,
-    color: '#d32f2f',
+    color: '#DC2626',
     textAlign: 'center',
+    marginTop: 8,
     marginBottom: 10,
   },
   retryButton: {
-    backgroundColor: '#D94A4A',
+    backgroundColor: '#DC2626',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
+    marginTop: 8,
   },
   retryText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '500',
+  },
+  
+  debugContainer: {
+    padding: 15,
+    backgroundColor: '#F3F4F6',
+    marginHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'monospace',
   },
 });
 
