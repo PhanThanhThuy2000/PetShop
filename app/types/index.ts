@@ -21,6 +21,7 @@ export interface Product {
   _id: string;
   name: string;
   price: number;
+  description: string;
   user_id: string;
   images?: ProductImage[];
   created_at: string;
