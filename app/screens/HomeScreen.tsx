@@ -285,13 +285,14 @@ const HomeScreen = () => {
     return (
       <TouchableOpacity
         style={styles.petItemContainer}
-        onPress={() => safeNavigate(navigation, 'PetDetail', { petId: item._id })}
+        onPress={() => safeNavigate(navigation, 'ProductDetail', { pet: item })} // truyền object pet
       >
+        
         <Image
           source={{ uri: imageUrl }}
           style={styles.petItemImage}
           onError={(error) => {
-            console.log('❌ Pet image error:', item.name, error);
+            console.log('❌ Pet image error:', item.name, error); 
           }}
         />
         <View style={styles.petItemDetails}>

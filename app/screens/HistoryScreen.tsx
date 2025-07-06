@@ -1,6 +1,7 @@
-// HistoryScreen.tsx (Đã thiết kế lại)
-
-import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Thêm để debug token
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import {
     Dimensions,
     FlatList,
@@ -12,88 +13,63 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { ordersService } from '../services/api-services';
+import { OrderItem } from '../types';
 
 const { width } = Dimensions.get('window');
 
-type OrderHistoryItem = {
-  id: string;
-  orderNumber: string;
-  petName: string;
-  image: any;
-  date: string;
-  price: string;
-  status: string;
-};
-
-const orderHistory: OrderHistoryItem[] = [
-  // ... dữ liệu không đổi
-  {
-    id: '1',
-    orderNumber: '#23982',
-    petName: 'Yorkshire Terrier',
-    image: require('@/assets/images/imageDog.png'),
-    date: 'September 21, 2023',
-    price: '1.000.000 đ',
-    status: 'Completed',
-  },
-  {
-    id: '2',
-    orderNumber: '#23983',
-    petName: 'Golden Retriever',
-    image: require('@/assets/images/imageDog.png'),
-    date: 'September 18, 2023',
-    price: '1.000.000 đ',
-    status: 'Completed',
-  },
-  {
-    id: '3',
-    orderNumber: '#23984',
-    petName: 'Persian Cat',
-    image: require('@/assets/images/imageDog.png'),
-    date: 'September 15, 2023',
-    price: '1.000.000 đ',
-    status: 'Completed',
-  },
-];
-
-type OrderItemProps = {
-  item: OrderHistoryItem;
-};
-
-const OrderItem = ({ item }: OrderItemProps) => {
+const OrderItemComponent = ({ item }: { item: OrderItem }) => {
     const navigation = useNavigation<any>();
 
-    const handleReview = (itemId: string) => {
-        console.log('Review item:', itemId);
-        navigation.navigate('Reviews', { itemId: itemId });
+    const handleReview = (orderItemId: string) => {
+        console.log('Đánh giá mục đơn hàng:', orderItemId);
+        navigation.navigate('Reviews', { orderItemId: orderItemId });
     };
+
+    // Lấy tên và ảnh từ pet_id hoặc product_id
+    const itemName = item.pet_id?.name || item.product_id?.name || 'Mục không xác định';
+    const itemImage = item.pet_id?.images?.find(img => img.is_primary)?.url ||
+        item.product_id?.images?.find(img => img.is_primary)?.url ||
+        null;
 
     return (
         <View style={styles.orderItem}>
             <View style={styles.orderHeader}>
-                <Text style={styles.orderNumber}>{item.orderNumber}</Text>
-                <Text style={styles.orderDate}>{item.date}</Text>
+                <Text style={styles.orderNumber}>#{item._id.slice(-6)}</Text>
+                <Text style={styles.orderDate}>
+                    {new Date(item.created_at).toLocaleDateString('vi-VN', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                    })}
+                </Text>
             </View>
 
             <View style={styles.orderContent}>
-                <Image source={item.image} style={styles.petImage} />
+                {itemImage ? (
+                    <Image source={{ uri: itemImage }} style={styles.petImage} />
+                ) : (
+                    <View style={[styles.petImage, styles.placeholderImage]} />
+                )}
                 <View style={styles.orderInfo}>
-                    <Text style={styles.petName}>{item.petName}</Text>
-                    <Text style={styles.price}>{item.price}</Text>
+                    <Text style={styles.petName}>{itemName}</Text>
+                    <Text style={styles.price}>
+                        {(item.unit_price * item.quantity).toLocaleString('vi-VN')} đ
+                    </Text>
                 </View>
             </View>
 
             <View style={styles.orderFooter}>
                 <Text style={[
-                    styles.status, 
-                    item.status === 'Completed' ? styles.statusCompleted : styles.statusPending
+                    styles.status,
+                    item.order_id.status === 'completed' ? styles.statusCompleted : styles.statusPending
                 ]}>
-                    {item.status}
+                    {item.order_id.status
+                        ? item.order_id.status.charAt(0).toUpperCase() + item.order_id.status.slice(1)
+                        : 'Không xác định'}
                 </Text>
-                <TouchableOpacity style={styles.reviewButton} onPress={() => handleReview(item.id)}>
-                    <Text style={styles.reviewButtonText}>Review</Text>
+                <TouchableOpacity style={styles.reviewButton} onPress={() => handleReview(item._id)}>
+                    <Text style={styles.reviewButtonText}>Đánh giá</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -101,43 +77,89 @@ const OrderItem = ({ item }: OrderItemProps) => {
 }
 
 const HistoryScreen = () => {
-  // 2. Sử dụng useNavigation
-  const navigation = useNavigation<any>();
+    const navigation = useNavigation<any>();
+    const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = () => {
-    console.log('Search pressed');
-  };
+    useEffect(() => {
+        const fetchOrderItems = async () => {
+            try {
+                setIsLoading(true);
+                // Debug token
+                const token = await AsyncStorage.getItem('token');
+                console.log('Token gửi đi:', token);
+                // Debug tham số
+                const params = { page: 1, limit: 20 };
+                console.log('Tham số API:', params);
+                const response = await ordersService.getMyOrderItems(params);
+                console.log('Phản hồi API đầy đủ:', JSON.stringify(response, null, 2));
+                setOrderItems(response.data);
+                if (response.data.length === 0) {
+                    console.warn('Cảnh báo: Không tìm thấy mục đơn hàng nào');
+                    setError('Không có mục đơn hàng nào để hiển thị');
+                }
+            } catch (err: any) {
+                console.error('Lỗi API:', err.response?.data || err.message);
+                setError('Không thể tải danh sách mục đơn hàng');
+                console.error('Lỗi khi lấy mục đơn hàng:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-        <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                {/* 3. Đổi icon và cách điều hướng */}
-                <Ionicons name="arrow-back" size={24} color="#000000" />
-            </TouchableOpacity>
-            
-            <Text style={styles.headerTitle}>Orders History</Text>
-            
-            <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-                <Ionicons name="search" size={20} color="#000000" />
-            </TouchableOpacity>
-        </View>
-        <FlatList
-            data={orderHistory}
-            renderItem={({item}) => <OrderItem item={item} />}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.listContainer}
-            showsVerticalScrollIndicator={false}
-        />
-    </SafeAreaView>
-  );
+        fetchOrderItems();
+    }, []);
+
+    const handleSearch = () => {
+        console.log('Tìm kiếm được nhấn');
+    };
+
+    if (isLoading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text style={styles.loadingText}>Đang tải danh sách mục đơn hàng...</Text>
+            </SafeAreaView>
+        );
+    }
+
+    if (error) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text style={styles.errorText}>{error}</Text>
+            </SafeAreaView>
+        );
+    }
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+            <View style={styles.header}>
+                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={24} color="#000000" />
+                </TouchableOpacity>
+
+                <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
+
+                <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+                    <Ionicons name="search" size={20} color="#000000" />
+                </TouchableOpacity>
+            </View>
+            <FlatList
+                data={orderItems}
+                renderItem={({ item }) => <OrderItemComponent item={item} />}
+                keyExtractor={item => item._id}
+                contentContainerStyle={styles.listContainer}
+                showsVerticalScrollIndicator={false}
+            />
+        </SafeAreaView>
+    );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa', // Thay đổi màu nền
+        backgroundColor: '#f8f9fa',
     },
     header: {
         flexDirection: 'row',
@@ -148,7 +170,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
         borderBottomColor: '#EFEFEF',
-        paddingTop:30
+        paddingTop: 30
     },
     backButton: {
         padding: 8,
@@ -170,7 +192,6 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 16,
     },
-    // Giao diện thẻ lịch sử mới
     orderItem: {
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
@@ -210,6 +231,9 @@ const styles = StyleSheet.create({
         marginRight: 16,
         backgroundColor: '#f0f0f0'
     },
+    placeholderImage: {
+        backgroundColor: '#f0f0f0'
+    },
     orderInfo: {
         flex: 1,
         justifyContent: 'center'
@@ -237,10 +261,10 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     statusCompleted: {
-        color: '#38A169', // Màu xanh cho trạng thái thành công
+        color: '#38A169',
     },
     statusPending: {
-        color: '#DD6B20', // Màu cam cho trạng thái chờ
+        color: '#DD6B20',
     },
     reviewButton: {
         backgroundColor: '#3182CE',
@@ -253,6 +277,20 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '600',
     },
+    loadingText: {
+        flex: 1,
+        textAlign: 'center',
+        marginTop: 20,
+        fontSize: 16,
+        color: '#2d3748',
+    },
+    errorText: {
+        flex: 1,
+        textAlign: 'center',
+        marginTop: 20,
+        fontSize: 16,
+        color: '#e53e3e',
+    }
 });
 
 export default HistoryScreen;
