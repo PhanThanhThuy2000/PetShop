@@ -1,3 +1,4 @@
+// index.ts
 export interface User {
   id: string;
   username: string;
@@ -16,7 +17,6 @@ export interface AuthState {
   error: string | null;
 }
 
-// Product types (dựa trên server)
 export interface Product {
   _id: string;
   name: string;
@@ -34,7 +34,6 @@ export interface ProductImage {
   product_id: string;
 }
 
-// Pet types (dựa trên server)
 export interface Pet {
   age: any;
   gender: any;
@@ -62,7 +61,6 @@ export interface PetImage {
   pet_id: string;
 }
 
-// Cart types (dựa trên server)
 export interface CartItem {
   _id: string;
   user_id: string;
@@ -80,7 +78,29 @@ export interface CartState {
   error: string | null;
 }
 
-// API Response types
+// Thêm interface cho Order
+export interface Order {
+  _id: string;
+  total_amount: number;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
+
+// Thêm interface cho OrderItem
+export interface OrderItem {
+  _id: string;
+  quantity: number;
+  unit_price: number;
+  pet_id?: Pet;
+  product_id?: Product;
+  order_id: Order;
+  addresses_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   statusCode: number;

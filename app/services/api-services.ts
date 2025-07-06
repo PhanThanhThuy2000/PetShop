@@ -1,4 +1,5 @@
-import { ApiResponse, Pet, Product } from '../types';
+// api-services.ts
+import { ApiResponse, Order, OrderItem, Pet, Product } from '../types';
 import api from '../utils/api-client';
 
 export const petsService = {
@@ -43,6 +44,30 @@ export const productsService = {
 
   async getProductById(id: string) {
     const response = await api.get<ApiResponse<Product>>(`/products/${id}`);
+    return response.data;
+  },
+};
+
+export const ordersService = {
+  async getMyOrders(params: { page?: number; limit?: number } = {}) {
+    const { page = 1, limit = 10 } = params;
+    const response = await api.get<ApiResponse<Order[]>>(`/orders?page=${page}&limit=${limit}`);
+    return response.data;
+  },
+
+  async getOrderById(id: string) {
+    const response = await api.get<ApiResponse<Order>>(`/orders/${id}`);
+    return response.data;
+  },
+
+  async getMyOrderItems(params: { page?: number; limit?: number } = {}) {
+    const { page = 1, limit = 10 } = params;
+    const response = await api.get<ApiResponse<OrderItem[]>>(`/order_items?page=${page}&limit=${limit}`);
+    return response.data;
+  },
+  async getOrderItemsByOrderId(orderId: string, params: { page?: number; limit?: number } = {}) {
+    const { page = 1, limit = 10 } = params;
+    const response = await api.get<ApiResponse<OrderItem[]>>(`/order_items/${orderId}/order_items?page=${page}&limit=${limit}`);
     return response.data;
   },
 };
