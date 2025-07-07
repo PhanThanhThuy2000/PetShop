@@ -1,9 +1,6 @@
 // app/utils/api.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-
-export const API_BASE_URL = 'http://192.168.55.107:5000/api';
-
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -11,7 +8,6 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
-
 // Interceptor để tự động thêm token
 api.interceptors.request.use(
   async (config) => {
