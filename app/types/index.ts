@@ -127,3 +127,25 @@ export interface AddToCartRequest {
   product_id?: string;
   quantity: number;
 }
+export interface Voucher {
+  _id: string;
+  title?: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  min_purchase_amount: number;
+  expiry_date: string;
+  max_usage: number;
+  used_count?: number;
+  status: 'active' | 'inactive' | 'pending' | 'expired';
+  textColor?: string;
+  color?: string;
+  isDashed?: boolean;
+  saved_by_users?: string[];
+  user_id: string;
+  category_id: string;
+  created_by?: string;
+  last_modified_by?: string;
+  created_at: string;
+  updated_at: string;
+  used_at?: string;
+}
