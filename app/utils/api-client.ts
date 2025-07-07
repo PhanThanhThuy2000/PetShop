@@ -2,6 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
+
 export const API_BASE_URL = 'http://192.168.1.134:5000/api';
 //192.168.1.134 - duc
 const api = axios.create({
@@ -11,7 +12,6 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
-
 // Interceptor để tự động thêm token
 api.interceptors.request.use(
   async (config) => {
