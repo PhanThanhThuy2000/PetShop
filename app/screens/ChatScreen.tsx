@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   SafeAreaView,
   ScrollView,
@@ -12,83 +14,195 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
-type Message = {
-  id: number;
-  text?: string;
-  isUser: boolean;
-  timestamp: string;
-  type: 'text' | 'image';
-};
+import { useSelector } from 'react-redux';
+import useChat from '../../hooks/useChat';
+import { RootState } from '../redux/store';
+import { ChatMessage } from '../types';
 
 const ChatScreen = () => {
   const navigation = useNavigation<any>();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      text: "Hello, and welcome to Customer Care Service...",
-      isUser: false,
-      timestamp: "9:41",
-      type: 'text'
-    },
-    {
-      id: 2,
-      text: "Order Issues",
-      isUser: true,
-      timestamp: "9:42",
-      type: 'text'
-    },
-    {
-      id: 3,
-      text: "I didn't receive my parcel",
-      isUser: true,
-      timestamp: "9:42",
-      type: 'text'
-    },
-    {
-      id: 4,
-      isUser: false,
-      timestamp: "9:42",
-      type: 'image'
-    },
-    {
-      id: 5,
-      text: "Hello, Amanda! I'm Maggy, your personal assistant from Customer Care Service. Let me go through your order and check its current status. Wait a moment please.",
-      isUser: false,
-      timestamp: "9:43",
-      type: 'text'
-    },
-    {
-      id: 6,
-      text: "Hello, Maggy! Sure!",
-      isUser: true,
-      timestamp: "9:43",
-      type: 'text'
-    }
-  ]);
+  // Redux state
+  const authState = useSelector((state: RootState) => state.auth);
 
+  // Chat hook
+  const {
+    currentRoom,
+    messages,
+    isConnected,
+    isLoadingMessages,
+    isSendingMessage,
+    typingUsers,
+    error,
+    createNewChatRoom,
+    joinChatRoom,
+    sendMessage,
+    startTyping,
+    stopTyping,
+    clearChatError,
+    getTypingText
+  } = useChat();
+
+  // Local state
   const [inputText, setInputText] = useState('');
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  const sendMessage = () => {
-    if (inputText.trim()) {
-      const newMessage: Message = {
-        id: messages.length + 1,
-        text: inputText,
-        isUser: true,
-        timestamp: new Date().toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: false,
-        }),
-        type: 'text'
-      };
-      setMessages([...messages, newMessage]);
-      setInputText('');
+  // ================================
+  // LIFECYCLE & INITIALIZATION
+  // ================================
+
+  useEffect(() => {
+    initializeChat();
+  }, []);
+
+  useEffect(() => {
+    // Auto scroll to bottom when new messages arrive
+    if (messages.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    // Show error alerts
+    if (error) {
+      Alert.alert('Chat Error', error, [
+        { text: 'OK', onPress: () => clearChatError() }
+      ]);
+    }
+  }, [error]);
+  
+
+  const initializeChat = async () => {
+    try {
+      setIsInitializing(true);
+
+      if (!authState.token) {
+        Alert.alert('Authentication Required', 'Please login to use chat');
+        navigation.goBack();
+        return;
+      }
+
+      // Wait a bit for socket connection to initialize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Try to create or get existing chat room
+      const room = await createNewChatRoom('Customer Support', 'medium');
+
+      if (room) {
+        console.log('✅ Chat room ready:', room._id);
+        // joinChatRoom is called automatically in createNewChatRoom
+      } else {
+        console.log('❌ Failed to create/get chat room');
+        Alert.alert('Chat Error', 'Unable to start chat. Please try again.');
+      }
+
+    } catch (error) {
+      console.error('Chat initialization error:', error);
+      Alert.alert('Chat Error', 'Failed to initialize chat');
+    } finally {
+      setIsInitializing(false);
     }
   };
 
-  const MessageBubble = ({ message }: { message: Message }) => {
+  // ================================
+  // MESSAGE HANDLING
+  // ================================
+
+  const handleSendMessage = () => {
+    if (!inputText.trim()) {
+      return;
+    }
+
+    if (!isConnected) {
+      Alert.alert('Connection Error', 'Not connected to chat server');
+      return;
+    }
+
+    if (!currentRoom) {
+      Alert.alert('Error', 'No active chat room');
+      return;
+    }
+
+    // Send message via chat hook
+    sendMessage(inputText.trim(), 'text');
+
+    // Clear input
+    setInputText('');
+
+    // Stop typing indicator
+    handleStopTyping();
+  };
+
+  const handleInputChange = (text: string) => {
+    setInputText(text);
+
+    if (text.trim() && isConnected && currentRoom) {
+      handleStartTyping();
+    } else {
+      handleStopTyping();
+    }
+  };
+
+  const handleStartTyping = () => {
+    startTyping();
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Auto-stop typing after 2 seconds of no input
+    typingTimeoutRef.current = setTimeout(() => {
+      handleStopTyping();
+    }, 2000);
+  };
+
+  const handleStopTyping = () => {
+    stopTyping();
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  };
+
+  // ================================
+  // MESSAGE RENDERING
+  // ================================
+
+  const formatMessageForUI = (message: ChatMessage) => {
+    const isUser = message.sender_id.role === 'User';
+
+    return {
+      id: message._id,
+      text: message.content,
+      isUser: isUser,
+      timestamp: new Date(message.created_at).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: false,
+      }),
+      type: message.message_type === 'image' ? 'image' : 'text',
+      sender: message.sender_id,
+      isSystem: message.message_type === 'system'
+    };
+  };
+
+  const MessageBubble = ({ message }: { message: ReturnType<typeof formatMessageForUI> }) => {
+    // System message
+    if (message.isSystem) {
+      return (
+        <View style={styles.systemMessageContainer}>
+          <Text style={styles.systemMessageText}>{message.text}</Text>
+        </View>
+      );
+    }
+
+    // Special handling for "Order Issues" (keep existing design)
     if (message.isUser && message.text === 'Order Issues') {
       return (
         <View style={styles.specialUserMessageContainer}>
@@ -101,6 +215,7 @@ const ChatScreen = () => {
       );
     }
 
+    // Image message
     if (message.type === 'image') {
       return (
         <View
@@ -121,6 +236,7 @@ const ChatScreen = () => {
       );
     }
 
+    // Regular text message
     return (
       <View
         style={[
@@ -136,13 +252,72 @@ const ChatScreen = () => {
         >
           {message.text}
         </Text>
+
+        {/* Show sender name for staff messages */}
+        {!message.isUser && message.sender && (
+          <Text style={styles.senderName}>
+            {message.sender.username}
+          </Text>
+        )}
       </View>
     );
   };
 
+  // ================================
+  // RENDER METHODS
+  // ================================
+
+  const renderConnectionStatus = () => {
+    if (!isConnected) {
+      return (
+        <View style={styles.connectionBanner}>
+          <Text style={styles.connectionText}>Reconnecting...</Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  const renderTypingIndicator = () => {
+    const typingText = getTypingText();
+    if (typingText) {
+      return (
+        <View style={styles.typingContainer}>
+          <Text style={styles.typingText}>{typingText}</Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  const renderLoadingState = () => {
+    if (isInitializing) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4A90E2" />
+          <Text style={styles.loadingText}>Connecting to chat...</Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  // Show loading screen during initialization
+  if (isInitializing) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        {renderLoadingState()}
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+      {/* Connection Status Banner */}
+      {renderConnectionStatus()}
 
       {/* Header */}
       <View style={styles.header}>
@@ -153,50 +328,96 @@ const ChatScreen = () => {
         <View style={styles.headerLeft}>
           <Image source={require('../../assets/images/avata.png')} style={styles.avatar} />
           <View style={styles.headerInfo}>
-            <Text style={styles.headerName}>Maggy Lee</Text>
-            <Text style={styles.headerSubtitle}>Customer Care Service</Text>
+            <Text style={styles.headerName}>
+              {currentRoom?.assigned_staff_id?.username || 'Customer Support'}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {currentRoom?.status === 'active' ? 'Online' : 'Waiting for staff...'}
+            </Text>
           </View>
         </View>
-        <Text style={styles.typingIndicator}>typing</Text>
+
+        {/* Connection indicator */}
+        <View style={[
+          styles.statusIndicator,
+          { backgroundColor: isConnected ? '#4CAF50' : '#FF5722' }
+        ]} />
       </View>
 
       {/* Messages */}
-      <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.messagesContainer}
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+      >
+        {isLoadingMessages && (
+          <View style={styles.loadingMessagesContainer}>
+            <ActivityIndicator size="small" color="#4A90E2" />
+            <Text style={styles.loadingMessagesText}>Loading messages...</Text>
+          </View>
+        )}
+
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble key={message._id} message={formatMessageForUI(message)} />
         ))}
+
+        {/* Typing indicator */}
+        {renderTypingIndicator()}
       </ScrollView>
 
       {/* Input */}
       <View style={styles.inputContainer}>
         <View style={styles.leftButtons}>
           <TouchableOpacity style={styles.iconButton}>
+            <Image source={require('../../assets/images/action.png')} style={styles.iconImage} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
             <Image source={require('../../assets/images/camera.png')} style={styles.iconImage} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
             <Image source={require('../../assets/images/picture.png')} style={styles.iconImage} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Image source={require('../../assets/images/mic.png')} style={styles.iconImage} />
           </TouchableOpacity>
         </View>
 
         <TextInput
           style={styles.textInput}
           value={inputText}
-          onChangeText={setInputText}
+          onChangeText={handleInputChange}
           placeholder="Nhập tin nhắn..."
           multiline
-          onSubmitEditing={sendMessage}
+          onSubmitEditing={handleSendMessage}
+          editable={isConnected && currentRoom && !isSendingMessage}
         />
 
         <View style={styles.rightButtons}>
-          <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-            <Image
-              source={
-                inputText.trim()
-                  ? require('../../assets/images/send.png') // Có nội dung: icon gửi
-                  : require('../../assets/images/Like.png') // Không có: icon like
-              }
-              style={styles.iconImage}
-            />
+          <TouchableOpacity style={styles.iconButton}>
+            <Image source={require('../../assets/images/Emoji.png')} style={styles.iconImage} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              (!inputText.trim() || !isConnected || isSendingMessage) && styles.sendButtonDisabled
+            ]}
+            onPress={handleSendMessage}
+            disabled={!inputText.trim() || !isConnected || isSendingMessage}
+          >
+            {isSendingMessage ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Image
+                source={
+                  inputText.trim()
+                    ? require('../../assets/images/send.png')
+                    : require('../../assets/images/Like.png')
+                }
+                style={styles.iconImage}
+              />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -238,11 +459,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
-  },
-  typingIndicator: {
-    fontSize: 12,
-    color: '#4A90E2',
-    fontStyle: 'italic',
   },
   messagesContainer: {
     flex: 1,
@@ -298,6 +514,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconButton: {
+    borderRadius: 20,
     padding: 6,
     marginHorizontal: 2,
   },
@@ -354,6 +571,83 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     marginLeft: 8,
+  },
+
+  // 🔥 NEW STYLES FOR REAL-TIME FEATURES
+  connectionBanner: {
+    backgroundColor: '#FF5722',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  connectionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  statusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  typingContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
+  },
+  typingText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  systemMessageContainer: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  systemMessageText: {
+    fontSize: 12,
+    color: '#666',
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  senderName: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  loadingMessagesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  loadingMessagesText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#666',
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
+  },
+
+  typingIndicator: {
+    fontSize: 12,
+    color: '#4A90E2',
+    fontStyle: 'italic',
   },
 });
 
