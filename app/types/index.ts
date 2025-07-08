@@ -106,3 +106,177 @@ export interface AddToCartRequest {
   product_id?: string;
   quantity: number;
 }
+
+
+export interface ChatRoom {
+  _id: string;
+  customer_id: {
+    _id: string;
+    username: string;
+    email: string;
+    avatar_url?: string;
+  };
+  assigned_staff_id?: {
+    _id: string;
+    username: string;
+    email: string;
+  } | null;
+  status: 'waiting' | 'active' | 'closed';
+  subject: string;
+  priority: 'low' | 'medium' | 'high';
+  last_message_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessage {
+  _id: string;
+  room_id: string;
+  sender_id: {
+    _id: string;
+    username: string;
+    avatar_url?: string;
+    role: 'User' | 'Staff' | 'Admin';
+  };
+  content: string;
+  message_type: 'text' | 'image' | 'file' | 'system';
+  is_read: boolean;
+  read_by: Array<{
+    user_id: string;
+    read_at: string;
+  }>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatState {
+  // Current active room
+  currentRoom: ChatRoom | null;
+  
+  // All user's rooms
+  rooms: ChatRoom[];
+  
+  // Messages for current room
+  messages: ChatMessage[];
+  
+  // Socket connection state
+  isConnected: boolean;
+  
+  // Loading states
+  isLoadingRooms: boolean;
+  isLoadingMessages: boolean;
+  isSendingMessage: boolean;
+  
+  // Typing indicator
+  typingUsers: string[]; // usernames đang gõ
+  
+  // Unread counts
+  unreadCount: number;
+  
+  // Error handling
+  error: string | null;
+}
+
+// API Request/Response types cho Chat
+export interface CreateChatRoomRequest {
+  subject?: string;
+  priority?: 'low' | 'medium' | 'high';
+}
+
+export interface SendMessageRequest {
+  roomId: string;
+  content: string;
+  messageType?: 'text' | 'image' | 'file';
+}
+
+export interface ChatRoomsResponse {
+  rooms: ChatRoom[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+}
+
+export interface ChatHistoryResponse {
+  room: ChatRoom;
+  messages: ChatMessage[];
+  unread_count: number;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+}
+
+export interface UnreadCountResponse {
+  total_unread: number;
+  rooms_with_unread: Array<{
+    room_id: string;
+    unread_count: number;
+  }>;
+}
+
+// Socket Events Types
+export interface SocketAuthData {
+  token: string;
+}
+
+export interface SocketJoinRoomData {
+  roomId: string;
+}
+
+export interface SocketSendMessageData {
+  roomId: string;
+  content: string;
+  messageType?: 'text' | 'image' | 'file';
+}
+
+export interface SocketTypingData {
+  roomId: string;
+  isTyping: boolean;
+}
+
+// Socket Event Listeners Types
+export interface SocketNewMessageData {
+  id: string;
+  roomId: string;
+  content: string;
+  messageType: string;
+  sender: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+    role: string;
+  };
+  timestamp: string;
+  isRead: boolean;
+}
+
+export interface SocketUserTypingData {
+  userId: string;
+  username: string;
+  isTyping: boolean;
+}
+
+export interface SocketStaffJoinedData {
+  staffName: string;
+  message: string;
+}
+
+export interface SocketRoomUpdatedData {
+  roomId: string;
+  updates: {
+    status?: string;
+    assignedStaff?: {
+      id: string;
+      username: string;
+    };
+  };
+}
