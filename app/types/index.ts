@@ -300,7 +300,7 @@ export interface SocketRoomUpdatedData {
       username: string;
     };
   };
-=======
+}
 export interface Voucher {
   _id: string;
   title?: string;

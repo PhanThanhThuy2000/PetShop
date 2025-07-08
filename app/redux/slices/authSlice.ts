@@ -65,7 +65,7 @@ export const updateUserAvatar = createAsyncThunk(
     try {
       const state = getState() as { auth: AuthState };
       const user = state.auth.user;
-      const userId = user?.id || user?._id;
+      const userId = user?.id || user?.id;
       
       if (!userId) {
         return rejectWithValue('User ID not found');
@@ -91,7 +91,7 @@ export const updateUserAvatar = createAsyncThunk(
       try {
         const state = getState() as { auth: AuthState };
         const user = state.auth.user;
-        const userId = user?.id || user?._id;
+        const userId = user?.id || user?.id;
         
         const response = await api.put<ApiResponse<{ user: User }>>(`/users/${userId}`, {
           avatar_url: avatarUri
@@ -113,7 +113,7 @@ export const updateUserProfile = createAsyncThunk(
     try {
       const state = getState() as { auth: AuthState };
       const user = state.auth.user;
-      const userId = user?.id || user?._id;
+      const userId = user?.id || user?.id;
       
       if (!userId) {
         return rejectWithValue('User ID not found');
@@ -206,12 +206,12 @@ const authSlice = createSlice({
       })
       .addCase(getCurrentUser.fulfilled, (state, action) => {
         state.isLoading = false;
-        // Normalize the user object to ensure we have both id and _id
+        // Normalize the user object to ensure we have both id and id
         const user = action.payload;
-        if (user._id && !user.id) {
-          user.id = user._id;
-        } else if (user.id && !user._id) {
-          user._id = user.id;
+        if (user.id && !user.id) {
+          user.id = user.id;
+        } else if (user.id && !user.id) {
+          user.id = user.id;
         }
         state.user = user;
         state.error = null;
@@ -230,10 +230,10 @@ const authSlice = createSlice({
         state.isLoading = false;
         // Update user with new avatar
         const user = action.payload;
-        if (user._id && !user.id) {
-          user.id = user._id;
-        } else if (user.id && !user._id) {
-          user._id = user.id;
+        if (user.id && !user.id) {
+          user.id = user.id;
+        } else if (user.id && !user.id) {
+          user.id = user.id;
         }
         state.user = user;
         state.error = null;
