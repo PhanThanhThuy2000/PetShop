@@ -40,6 +40,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import ShippingAddressScreen from './screens/ShippingAddressScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
+import UniversalSearchScreen from './screens/UniversalSearchScreen';
 
 const Stack = createStackNavigator();
 
@@ -210,6 +211,12 @@ const AppNavigator = () => {
       <Stack.Screen
         name="EditInfomation"
         component={EditInfomationScreen}
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="UniversalSearch"
+        component={UniversalSearchScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
