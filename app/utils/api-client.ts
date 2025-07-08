@@ -1,8 +1,14 @@
 // app/utils/api.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+// Ngân hàng: NCB
+// Số thẻ: 9704198526191432198
+// Tên chủ thẻ: NGUYEN VAN A
+// Ngày phát hành: 07/15
+// Mật khẩu OTP: 123456
 
-export const API_BASE_URL = 'http://10.0.2.2:5000/api';
+
+export const API_BASE_URL = 'http://192.168.0.101:5000/api';
 
 //192.168.1.134 - duc
 const api = axios.create({

@@ -75,9 +75,11 @@ export default function CartScreen() {
         description: apiItem.pet_id
           ? `${apiItem.pet_id.breed_id?.name || 'Unknown Breed'} - ${apiItem.pet_id.gender || 'Unknown'} - ${apiItem.pet_id.age || 0}y`
           : 'Pet product',
-        price: Number(itemData?.price) || 0, // Ensure price is a number
+        price: Number(itemData?.price) || 0,
         quantity: apiItem.quantity || 1,
         _apiId: apiItem._id,
+        petId: apiItem.pet_id?._id || null, // Thêm petId
+        productId: apiItem.product_id?._id || null, // Thêm productId
       };
     });
   };
@@ -157,7 +159,7 @@ export default function CartScreen() {
       Alert.alert('Empty Cart', 'Please add items to your cart first');
       return;
     }
-    console.log('Navigating to Payment with:', { cartItems, total }); // Debug
+    console.log('Navigating to Payment with:', { cartItems, total });
     navigation.navigate('Payment', { cartItems, total });
   };
 
