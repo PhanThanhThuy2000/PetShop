@@ -13,8 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { petsService } from '../services/api-services';
-import { Pet, PetImage } from '../types';
+import { petsService, productsService } from '../services/api-services';
+import { Pet, PetImage, Product, ProductImage } from '../types';
 
 // --- Data Interfaces ---
 interface Variation { id: string; image: any; }
@@ -44,17 +44,22 @@ function useCountdown(initialSeconds: number) {
 }
 
 // --- Subcomponents ---
-const Header: FC<{ image: any; images: PetImage[] }> = ({ image, images }) => (
-  <ImageBackground source={image} style={styles.headerImage}>
-    <View style={styles.carouselDots}>
-      {images.map((_, i) => (
-        <View key={i} style={[styles.dot, i === 0 && styles.dotActive]} />
-      ))}
-    </View>
-  </ImageBackground>
-);
+const Header: FC<{ image: any; images: (PetImage | ProductImage)[]; selectedImageId: string }> = ({ image, images, selectedImageId }) => {
+  const selectedImage = images.find(img => img._id === selectedImageId) || images[0];
+  const displayImage = selectedImage ? { uri: selectedImage.url } : image;
 
-const VariationSelector: FC<{ images: PetImage[]; onSelect: (v: Variation) => void; selectedId: string }> = ({ images, onSelect, selectedId }) => (
+  return (
+    <ImageBackground source={displayImage} style={styles.headerImage}>
+      <View style={styles.carouselDots}>
+        {images.map((_, i) => (
+          <View key={i} style={[styles.dot, selectedImageId === images[i]._id && styles.dotActive]} />
+        ))}
+      </View>
+    </ImageBackground>
+  );
+};
+
+const VariationSelector: FC<{ images: (PetImage | ProductImage)[]; onSelect: (v: Variation) => void; selectedId: string }> = ({ images, onSelect, selectedId }) => (
   <FlatList
     data={images.map((img) => ({ id: img._id, image: { uri: img.url } }))}
     horizontal
@@ -117,32 +122,29 @@ const RelatedGrid: FC = () => (
   />
 );
 
-const FooterBar: FC<{ isFavorite: boolean; toggleFavorite: () => void; navigation: any; petId: string; pet: Pet }> = ({ isFavorite, toggleFavorite, navigation, petId, pet }) => (
+const FooterBar: FC<{ isFavorite: boolean; toggleFavorite: () => void; navigation: any; petId?: string; productId?: string; item: Pet | Product }> = ({ isFavorite, toggleFavorite, navigation, petId, productId, item }) => (
   <View style={styles.footer}>
     <TouchableOpacity style={styles.favBtn} onPress={toggleFavorite}>
       <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color={isFavorite ? 'red' : '#000'} />
     </TouchableOpacity>
     <TouchableOpacity
       style={styles.cartBtn}
-      onPress={() => navigation.navigate('Cart', { petId })}
+      onPress={() => navigation.navigate('Cart', { petId, productId })}
     >
       <Text style={styles.cartBtnTxt}>Add to cart</Text>
     </TouchableOpacity>
     <TouchableOpacity
       style={styles.buyBtn}
       onPress={() => {
-        // Tạo cartItems từ pet hiện tại
         const cartItems = [{
-          id: pet._id,
-          title: pet.name,
-          price: pet.price,
+          id: item._id,
+          title: item.name,
+          price: item.price,
           quantity: 1,
-          image: pet.images && pet.images.length > 0 ? { uri: pet.images[0].url } : require('@/assets/images/dog.png'),
+          image: item.images && item.images.length > 0 ? { uri: item.images[0].url } : require('@/assets/images/dog.png'),
         }];
-        // Tính tổng tiền
-        const total = pet.price;
-        // Điều hướng đến PaymentScreen với cartItems và total
-        navigation.navigate('Payment', { cartItems, total, petId });
+        const total = item.price;
+        navigation.navigate('Payment', { cartItems, total, petId, productId });
       }}
     >
       <Text style={styles.buyBtnTxt}>Buy now</Text>
@@ -154,40 +156,59 @@ const ProductDetailScreen: FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const petId = route.params?.pet?._id || route.params?.petId;
+  const productId = route.params?.productId;
 
-  const [pet, setPet] = useState<Pet | null>(null);
+  const [item, setItem] = useState<Pet | Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedVar, setSelectedVar] = useState<Variation | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false); // New state for description toggle
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const { h, m, s } = useCountdown(36 * 60 + 58);
 
-  // Fetch pet data
-  const fetchPet = async () => {
+  // Fetch item data (Pet or Product) with retry logic
+  const fetchItem = async (retryCount: number = 0) => {
+    const maxRetries = 3;
     try {
       setIsLoading(true);
       setError(null);
-      const response = await petsService.getPetById(petId);
-      setPet(response.data);
-      if (response.data.images && response.data.images.length > 0) {
-        setSelectedVar({ id: response.data.images[0]._id, image: { uri: response.data.images[0].url } });
+      let response;
+      if (petId) {
+        response = await petsService.getPetById(petId);
+        setItem(response.data);
+        if (response.data.images && response.data.images.length > 0) {
+          setSelectedVar({ id: response.data.images[0]._id, image: { uri: response.data.images[0].url } });
+        }
+        console.log('Pet data fetched:', response.data);
+      } else if (productId) {
+        response = await productsService.getProductById(productId);
+        setItem(response.data);
+        if (response.data.images && response.data.images.length > 0) {
+          setSelectedVar({ id: response.data.images[0]._id, image: { uri: response.data.images[0].url } });
+        }
+        console.log('Product data fetched:', response.data);
+      } else {
+        throw new Error('No pet or product ID provided');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load pet data');
+      if (err.response?.status === 404 && retryCount < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1))); // Exponential backoff
+        return fetchItem(retryCount + 1);
+      }
+      setError(err.response?.status === 404 ? 'Item not found on server (404). Check the ID or server endpoint.' : err.message || 'Failed to load item data');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (petId) {
-      fetchPet();
+    if (petId || productId) {
+      fetchItem();
     } else {
-      setError('No pet ID provided');
+      setError('No item ID provided');
       setIsLoading(false);
     }
-  }, [petId]);
+  }, [petId, productId]);
 
   // Handle loading state
   if (isLoading) {
@@ -201,13 +222,13 @@ const ProductDetailScreen: FC = () => {
     );
   }
 
-  // Handle error or no pet
-  if (error || !pet) {
+  // Handle error or no item
+  if (error || !item) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error || 'Pet not found'}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchPet}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => fetchItem()}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -215,17 +236,18 @@ const ProductDetailScreen: FC = () => {
     );
   }
 
-  // Pet data
-  const productTitle = pet.name || 'Unknown Pet';
-  const productPrice = pet.price ? `${pet.price.toLocaleString('vi-VN')}₫` : 'N/A';
-  const productImage = pet.images && pet.images.length > 0
-    ? { uri: pet.images[0].url }
+  // Item data (Pet or Product)
+  const productTitle = item.name || 'Unknown Item';
+  const productPrice = item.price ? `${item.price.toLocaleString('vi-VN')}₫` : 'N/A';
+  const productImage = item.images && item.images.length > 0
+    ? { uri: item.images[0].url }
     : require('@/assets/images/dog.png');
-  const breed = pet.breed_id?.name || 'Unknown';
-  const age = pet.age ? `${pet.age} year${pet.age > 1 ? 's' : ''}` : 'Unknown';
-  const gender = pet.gender || 'Unknown';
-  const weight = pet.weight ? `${pet.weight} kg` : 'Unknown';
-  const description = pet.description || 'Purus in massa tempor nec feugiat...'; // Use pet.description if available
+  const isPet = 'breed_id' in item;
+  const breed = isPet ? item.breed_id?.name || 'Unknown' : 'N/A';
+  const age = isPet ? (item.age ? `${item.age} year${item.age > 1 ? 's' : ''}` : 'Unknown') : 'N/A';
+  const gender = isPet ? item.gender || 'Unknown' : 'N/A';
+  const weight = isPet ? (item.weight ? `${item.weight} kg` : 'Unknown') : 'N/A';
+  const description = item.description || (isPet ? 'Purus in massa tempor nec feugiat...' : 'No description available');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -239,7 +261,11 @@ const ProductDetailScreen: FC = () => {
         </TouchableOpacity>
       </View>
       <ScrollView>
-        <Header image={productImage} images={pet.images || []} />
+        <Header
+          image={productImage}
+          images={item.images || []}
+          selectedImageId={selectedVar?.id || (item.images && item.images[0]?._id) || ''}
+        />
         <View style={styles.content}>
           <View style={[styles.rowCenter, styles.spaceBetween]}>
             <Text style={styles.badge}>Sale</Text>
@@ -258,20 +284,27 @@ const ProductDetailScreen: FC = () => {
           </View>
           <Text style={styles.title}>{productTitle}</Text>
           <Text style={styles.sectionTitle}>Variations</Text>
-          {pet.images && pet.images.length > 0 && (
+          {item.images && item.images.length > 0 && (
             <VariationSelector
-              images={pet.images}
+              images={item.images}
               onSelect={setSelectedVar}
               selectedId={selectedVar?.id || ''}
             />
           )}
-          <Text style={styles.sectionTitle}>Information pet</Text>
-          <View style={styles.infoBox}>
-            <InfoRow label="Gender" value={gender} />
-            <InfoRow label="Age" value={age} />
-            <InfoRow label="Weight" value={weight} />
-            <InfoRow label="Breed" value={breed} />
-          </View>
+          {!isPet && (
+            <></> // Không hiển thị phần Information khi là sản phẩm
+          )}
+          {isPet && (
+            <>
+              <Text style={styles.sectionTitle}>Information</Text>
+              <View style={styles.infoBox}>
+                <InfoRow label="Gender" value={gender} />
+                <InfoRow label="Age" value={age} />
+                <InfoRow label="Weight" value={weight} />
+                <InfoRow label="Breed" value={breed} />
+              </View>
+            </>
+          )}
           <Text style={styles.sectionTitle}>Rating & Reviews</Text>
           <View style={styles.reviewHeader}>
             <Text style={styles.avgRating}>4.5</Text>
@@ -282,9 +315,9 @@ const ProductDetailScreen: FC = () => {
           <Text style={styles.sectionTitle}>Description</Text>
           <Text
             style={styles.descText}
-            numberOfLines={isDescriptionExpanded ? undefined : 3} // Truncate to 3 lines when collapsed
+            numberOfLines={isDescriptionExpanded ? undefined : 3}
           >
-            {description}
+            {description || 'No description available'}
           </Text>
           <TouchableOpacity
             style={styles.toggleDescBtn}
@@ -295,7 +328,7 @@ const ProductDetailScreen: FC = () => {
             </Text>
           </TouchableOpacity>
           <Image source={productImage} style={styles.descImage} />
-          <Text style={styles.sectionTitle}>Pet Related</Text>
+          <Text style={styles.sectionTitle}>Related Items</Text>
           <RelatedGrid />
         </View>
       </ScrollView>
@@ -303,8 +336,9 @@ const ProductDetailScreen: FC = () => {
         isFavorite={isFavorite}
         toggleFavorite={() => setIsFavorite(f => !f)}
         navigation={navigation}
-        petId={pet._id}
-        pet={pet} // Thêm prop pet
+        petId={petId}
+        productId={productId}
+        item={item}
       />
     </SafeAreaView>
   );
@@ -372,8 +406,8 @@ const styles = StyleSheet.create({
   viewAllBtn: { backgroundColor: '#2563EB', borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
   viewAllText: { color: '#fff', fontWeight: '600' },
   descText: { color: '#6B7280', lineHeight: 20, marginTop: 8 },
-  toggleDescBtn: { marginTop: 8, alignSelf: 'flex-start' }, // Style for toggle button
-  toggleDescText: { color: '#2563EB', fontWeight: '600' }, // Style for toggle button text
+  toggleDescBtn: { marginTop: 8, alignSelf: 'flex-start' },
+  toggleDescText: { color: '#2563EB', fontWeight: '600' },
   descImage: { width: '100%', height: 200, borderRadius: 8, marginVertical: 16 },
   relatedRow: { justifyContent: 'space-between' },
   relatedItem: { width: '48%' },

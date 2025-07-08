@@ -1,10 +1,45 @@
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import React, { useEffect, useCallback } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../../hooks/useAuth';
+import { getCurrentUser } from '../redux/slices/authSlice';
 
 const AccountScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { user, token, dispatch } = useAuth();
+
+  // Load user info when component mounts or when screen comes into focus
+  useEffect(() => {
+    if (token && !user) {
+      dispatch(getCurrentUser());
+    }
+  }, [token, user, dispatch]);
+
+  // Refresh user data when screen comes into focus (to get updated avatar)
+  useFocusEffect(
+    useCallback(() => {
+      if (token) {
+        dispatch(getCurrentUser());
+      }
+    }, [token, dispatch])
+  );
+
+  // Display user's name or default greeting
+  const getUserGreeting = () => {
+    if (user?.username) {
+      return `Hello, ${user.username}!`;
+    }
+    return 'Hello, Amanda!';
+  };
+
+  // Get user avatar URL with real-time updates
+  const getUserAvatar = () => {
+    if (user?.avatar_url) {
+      return { uri: user.avatar_url };
+    }
+    return { uri: 'https://randomuser.me/api/portraits/women/1.jpg' };
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -12,8 +47,9 @@ const AccountScreen: React.FC = () => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
-            source={{ uri: 'https://randomuser.me/api/portraits/women/1.jpg' }}
+            source={getUserAvatar()}
             style={styles.avatar}
+            key={user?.avatar_url || 'default'} // Force re-render when avatar changes
           />
           <TouchableOpacity style={styles.activityBtn} onPress={() => navigation.navigate('EditInfomation')}>
             <Text style={styles.activityText}>My Activity</Text>
@@ -27,7 +63,7 @@ const AccountScreen: React.FC = () => {
         </View>
       </View>
 
-      <Text style={styles.greeting}>Hello, Amanda!</Text>
+      <Text style={styles.greeting}>{getUserGreeting()}</Text>
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>

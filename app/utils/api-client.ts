@@ -4,6 +4,7 @@ import axios from 'axios';
 
 export const API_BASE_URL = 'http://10.0.2.2:5000/api';
 
+//192.168.1.134 - duc
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -11,7 +12,6 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
-
 // Interceptor để tự động thêm token
 api.interceptors.request.use(
   async (config) => {
@@ -42,5 +42,12 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
+api.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem('token');
+  console.log('Gửi yêu cầu với token:', token); // Debug
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 export default api;

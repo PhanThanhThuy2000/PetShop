@@ -1,5 +1,5 @@
 // HomeScreen.tsx - Load dữ liệu thực từ API
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -39,6 +39,7 @@ const safeNavigate = (navigation: any, routeName: string, params?: any) => {
 
 const HomeScreen = () => {
   const navigation = useNavigation() as any;
+  const route = useRoute();
 
   // State cho dữ liệu API
   const [pets, setPets] = useState<Pet[]>([]);
@@ -77,6 +78,10 @@ const HomeScreen = () => {
     loadInitialData();
   }, []);
 
+  useEffect(() => {
+    console.log('route.params:', route.params);
+  }, [route.params]);
+
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -91,7 +96,6 @@ const HomeScreen = () => {
         loadFlashSaleProducts()
       ]);
 
-      console.log('✅ All initial data loaded successfully');
     } catch (error: any) {
       console.error('❌ Error loading initial data:', error);
       setError(error.message || 'Failed to load data');
@@ -110,19 +114,13 @@ const HomeScreen = () => {
   const loadCategories = async () => {
     try {
       setCategoriesLoading(true);
-      console.log('📁 Loading categories...');
-      
       const response = await categoriesService.getCategories();
-      
       if (response.success && response.data && response.data.length > 0) {
-        console.log('✅ Categories loaded:', response.data.length, 'items');
         setCategories(response.data);
       } else {
-        console.log('⚠️ No categories from API, using fallback');
         setCategories(fallbackCategories as Category[]);
       }
     } catch (error: any) {
-      console.error('❌ Error loading categories:', error);
       setCategories(fallbackCategories as Category[]);
     } finally {
       setCategoriesLoading(false);
@@ -132,21 +130,13 @@ const HomeScreen = () => {
   const loadPets = async () => {
     try {
       setPetsLoading(true);
-      console.log('🐕 Loading pets...');
-      
       const response = await petsService.getPets({ page: 1, limit: 6 });
-      
       if (response.success && response.data && response.data.length > 0) {
-        console.log('✅ Pets loaded:', response.data.length, 'items');
-        console.log('🔍 First pet:', response.data[0]);
         setPets(response.data);
       } else {
-        console.log('⚠️ No pets from API, using fallback');
         setPets(fallbackPets as Pet[]);
       }
     } catch (error: any) {
-      console.error('❌ Error loading pets:', error);
-      console.log('🔄 Using fallback pets data');
       setPets(fallbackPets as Pet[]);
     } finally {
       setPetsLoading(false);
@@ -161,16 +151,16 @@ const HomeScreen = () => {
       const response = await productsService.getProducts({ page: 1, limit: 10 });
       
       if (response.success && response.data && response.data.length > 0) {
-        console.log('✅ Products loaded:', response.data.length, 'items');
-        console.log('🔍 First product:', response.data[0]);
+        console.log(' Products loaded:', response.data.length, 'items');
+        console.log(' First product:', response.data[0]);
         setProducts(response.data);
       } else {
-        console.log('⚠️ No products from API, using fallback');
+        console.log(' No products from API, using fallback');
         setProducts(fallbackProducts as Product[]);
       }
     } catch (error: any) {
-      console.error('❌ Error loading products:', error);
-      console.log('🔄 Using fallback products data');
+      console.error(' Error loading products:', error);
+      console.log(' Using fallback products data');
       setProducts(fallbackProducts as Product[]);
     } finally {
       setProductsLoading(false);
@@ -185,22 +175,18 @@ const HomeScreen = () => {
       const response = await productsService.getProducts({ limit: 4, featured: true });
       
       if (response.success && response.data && response.data.length > 0) {
-        console.log('✅ Flash sale products loaded:', response.data.length, 'items');
         setFlashSaleProducts(response.data);
       } else {
         // If no featured products, get first 4 regular products
-        console.log('⚠️ No featured products, getting regular products for flash sale');
         const regularResponse = await productsService.getProducts({ limit: 4 });
         
         if (regularResponse.success && regularResponse.data && regularResponse.data.length > 0) {
           setFlashSaleProducts(regularResponse.data);
         } else {
-          console.log('🔄 Using fallback for flash sale');
           setFlashSaleProducts(fallbackProducts.slice(0, 4) as Product[]);
         }
       }
     } catch (error: any) {
-      console.error('❌ Error loading flash sale products:', error);
       setFlashSaleProducts(fallbackProducts.slice(0, 4) as Product[]);
     }
   };
@@ -246,7 +232,6 @@ const HomeScreen = () => {
             source={{ uri: imageUrl }}
             style={styles.categoryImage}
             onError={(error) => {
-              console.log('❌ Image load error for category:', item.name, error);
             }}
           />
         </View>
@@ -266,7 +251,6 @@ const HomeScreen = () => {
           source={{ uri: imageUrl }}
           style={styles.flashSaleImage}
           onError={(error) => {
-            console.log('❌ Flash sale image error:', item.name, error);
           }}
         />
         <View style={styles.flashSaleDetails}>
@@ -285,13 +269,13 @@ const HomeScreen = () => {
     return (
       <TouchableOpacity
         style={styles.petItemContainer}
-        onPress={() => safeNavigate(navigation, 'PetDetail', { petId: item._id })}
+        onPress={() => safeNavigate(navigation, 'ProductDetail', { pet: item })} // truyền object pet
       >
+        
         <Image
           source={{ uri: imageUrl }}
           style={styles.petItemImage}
           onError={(error) => {
-            console.log('❌ Pet image error:', item.name, error);
           }}
         />
         <View style={styles.petItemDetails}>
@@ -314,7 +298,10 @@ const HomeScreen = () => {
     return (
       <TouchableOpacity
         style={styles.itemContainer}
-        onPress={() => safeNavigate(navigation, 'ProductDetail', { productId: item._id })}
+        onPress={() => {
+          console.log('Go to ProductDetail with id:', item._id);
+          safeNavigate(navigation, 'ProductDetail', { productId: item._id });
+        }}
       >
         <Image
           source={{ uri: imageUrl }}
