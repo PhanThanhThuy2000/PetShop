@@ -2,13 +2,9 @@ import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icon
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ApiResponse, Order, OrderItem } from '../types/index'; // Cập nhật import
 import api, { API_BASE_URL } from '../utils/api-client';
-// tai khoan test ngan hang noi dia
-// Ngân hàng: NCB
-// Số thẻ: 9704198526191432198
-// Tên chủ thẻ: NGUYEN VAN A
-// Ngày phát hành: 07/15
-// Mật khẩu OTP: 123456
+
 // Define Address interface (consistent with ListAddressScreen)
 interface Address {
   _id: string;
@@ -27,8 +23,7 @@ const PaymentScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
 
-  // Extract data from params with fallback
-  const { cartItems, total, selectedAddress } = route.params || { cartItems: [], total: 0, selectedAddress: null };
+  const { cartItems, total, selectedAddress, petId, productId } = route.params || { cartItems: [], total: 0, selectedAddress: null, petId: null, productId: null };
 
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
@@ -37,7 +32,6 @@ const PaymentScreen = () => {
 
   const SERVER_URLS = [API_BASE_URL.replace(/\/api$/, '')];
 
-  // Fetch default address
   const fetchDefaultAddress = async () => {
     setLoadingAddress(true);
     try {
@@ -54,7 +48,6 @@ const PaymentScreen = () => {
   };
 
   useEffect(() => {
-    // If a selectedAddress is passed, use it; otherwise, fetch the default address
     if (selectedAddress) {
       setAddress(selectedAddress);
       setLoadingAddress(false);
@@ -62,14 +55,12 @@ const PaymentScreen = () => {
       fetchDefaultAddress();
     }
 
-    // Add focus listener to refresh address when returning to PaymentScreen
     const unsubscribe = navigation.addListener('focus', () => {
       if (!selectedAddress) {
-        fetchDefaultAddress(); // Refresh address if no selectedAddress is provided
+        fetchDefaultAddress();
       }
     });
 
-    // Validate total
     if (!total || isNaN(total) || total <= 0) {
       console.warn('Invalid total from route.params:', total);
       Alert.alert('Lỗi', 'Tổng tiền giỏ hàng không hợp lệ. Vui lòng kiểm tra giỏ hàng.');
@@ -116,9 +107,72 @@ const PaymentScreen = () => {
     return isNaN(totalCalculated) ? 0 : Math.max(totalCalculated, 0);
   };
 
+  const createOrderAndOrderItem = async (vnpayData: any) => {
+    try {
+      console.log('vnpayData:', vnpayData);
+      console.log('cartItems:', JSON.stringify(cartItems, null, 2));
+      console.log('address:', address);
+
+      // Bước 1: Tạo Order
+      const orderData = {
+        total_amount: calculateTotal(),
+        status: 'completed',
+        payment_method: vnpayData.paymentMethod || 'vnpay',
+        vnpay_transaction_id: vnpayData.vnp_TxnRef || null,
+        payment_date: vnpayData.vnp_PayDate || null,
+        user_id: vnpayData.user_id, // Thay bằng user_id thực tế từ context hoặc token
+      };
+      const orderResponse = await api.post<ApiResponse<Order>>('/orders', orderData);
+      const savedOrder = orderResponse.data.data;
+      console.log('Order created:', savedOrder);
+
+      // Bước 2: Tạo OrderItem cho mỗi mục trong cartItems
+      let validItemsCount = 0;
+      for (const item of cartItems) {
+        console.log('Processing item:', JSON.stringify(item, null, 2));
+        const orderItemData = {
+          quantity: item.quantity || 1,
+          unit_price: item.price,
+          pet_id: item.petId || null,
+          product_id: item.productId || null,
+          order_id: savedOrder._id,
+          addresses_id: address?._id,
+        };
+
+        console.log('orderItemData:', orderItemData);
+        if (!orderItemData.pet_id && !orderItemData.product_id) {
+          console.error('Invalid order item: missing both pet_id and product_id', orderItemData);
+          Alert.alert('Lỗi', `Không thể tạo mục đơn hàng cho ${item.title || 'Unknown Item'}: Thiếu pet_id hoặc product_id`);
+          continue;
+        }
+
+        const orderItemResponse = await api.post<ApiResponse<OrderItem>>('/order_items', orderItemData);
+        console.log('OrderItem created:', orderItemResponse.data.data);
+        validItemsCount++;
+      }
+
+      // Kiểm tra xem có OrderItem nào được tạo không
+      if (validItemsCount === 0) {
+        throw new Error('No valid order items were created');
+      }
+
+      // Chuyển hướng đến màn hình thành công
+      navigation.navigate('OrderSuccess', { orderId: savedOrder._id });
+    } catch (error: any) {
+      console.error('Lỗi khi tạo Order/OrderItem:', error.response?.data || error.message);
+      Alert.alert('Lỗi', 'Không thể lưu đơn hàng. Vui lòng kiểm tra giỏ hàng và thử lại.');
+    }
+  };
+
   const handleVNPAYPayment = async () => {
     if (paymentMethod !== 'vnpay') {
       Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán VNPay');
+      return;
+    }
+
+    if (!address) {
+      Alert.alert('Lỗi', 'Vui lòng chọn hoặc thêm địa chỉ giao hàng');
+      navigation.navigate('ListAddress', { selectMode: true, cartItems, total });
       return;
     }
 
@@ -165,15 +219,6 @@ const PaymentScreen = () => {
 
         if (supported) {
           await Linking.openURL(data.paymentUrl);
-
-          Linking.addEventListener('url', ({ url }) => {
-            console.log('Received URL:', url);
-            if (url.includes('success')) {
-              navigation.navigate('OrderSuccess');
-            } else if (url.includes('failure')) {
-              Alert.alert('Lỗi', 'Thanh toán thất bại. Vui lòng thử lại.');
-            }
-          });
           return;
         } else {
           throw new Error('Không thể mở URL thanh toán');
@@ -204,6 +249,53 @@ const PaymentScreen = () => {
     Alert.alert('Lỗi Thanh Toán', errorMessage);
   };
 
+  const isHandled = useRef(false);
+
+  useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      const url = event.url;
+      if (url.includes('payment-result') && !isHandled.current) {
+        isHandled.current = true;
+
+        const urlParams = new URLSearchParams(url.split('?')[1]);
+        const responseCode = urlParams.get('vnp_ResponseCode');
+        const transactionStatus = urlParams.get('vnp_TransactionStatus');
+        const vnpayData = Object.fromEntries(urlParams);
+
+        console.log('VNPay response:', vnpayData); // Thêm log để gỡ lỗi
+
+        if (responseCode === '00' && transactionStatus === '00') {
+          await createOrderAndOrderItem(vnpayData);
+        } else {
+          Alert.alert('Lỗi', 'Thanh toán thất bại. Vui lòng thử lại.');
+        }
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    Linking.getInitialURL().then(async (url) => {
+      if (url && url.includes('payment-result') && !isHandled.current) {
+        isHandled.current = true;
+        const urlParams = new URLSearchParams(url.split('?')[1]);
+        const responseCode = urlParams.get('vnp_ResponseCode');
+        const transactionStatus = urlParams.get('vnp_TransactionStatus');
+        const vnpayData = Object.fromEntries(urlParams);
+
+        console.log('VNPay initial URL response:', vnpayData); // Thêm log để gỡ lỗi
+
+        if (responseCode === '00' && transactionStatus === '00') {
+          await createOrderAndOrderItem(vnpayData);
+        } else {
+          Alert.alert('Lỗi', 'Thanh toán thất bại. Vui lòng thử lại.');
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [navigation, address, cartItems, total]);
   const handlePay = () => {
     if (!address) {
       Alert.alert('Lỗi', 'Vui lòng chọn hoặc thêm địa chỉ giao hàng');
@@ -214,37 +306,11 @@ const PaymentScreen = () => {
     if (paymentMethod === 'vnpay') {
       handleVNPAYPayment();
     } else if (paymentMethod === 'cod') {
-      Alert.alert('Thành công', 'Đặt hàng với phương thức thanh toán COD thành công!');
-      navigation.navigate('OrderSuccess');
+      createOrderAndOrderItem({ paymentMethod: 'cod' });
     } else {
-      Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán');
+      Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán موجود');
     }
   };
-
-  const isHandled = useRef(false);
-
-  useEffect(() => {
-    const handleDeepLink = (event: { url: string }) => {
-      const url = event.url;
-      if (url.includes('payment-result') && !isHandled.current) {
-        isHandled.current = true;
-        navigation.navigate('OrderSuccess');
-      }
-    };
-
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-
-    Linking.getInitialURL().then((url) => {
-      if (url && url.includes('payment-result') && !isHandled.current) {
-        isHandled.current = true;
-        navigation.navigate('OrderSuccess');
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [navigation]);
 
   return (
     <ScrollView style={styles.container}>
@@ -271,7 +337,7 @@ const PaymentScreen = () => {
                 {`${address.note}, ${address.ward}, ${address.district}, ${address.province}, ${address.postal_code}, ${address.country}`}
               </Text>
             </View>
-              <TouchableOpacity onPress={() => navigation.navigate('ListAdress', { selectMode: true, cartItems, total })}>
+            <TouchableOpacity onPress={() => navigation.navigate('ListAddress', { selectMode: true, cartItems, total })}>
               <MaterialIcons name="edit" size={20} color="#1976D2" />
             </TouchableOpacity>
           </>
