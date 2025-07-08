@@ -151,16 +151,16 @@ const HomeScreen = () => {
       const response = await productsService.getProducts({ page: 1, limit: 10 });
       
       if (response.success && response.data && response.data.length > 0) {
-        console.log('✅ Products loaded:', response.data.length, 'items');
-        console.log('🔍 First product:', response.data[0]);
+        console.log(' Products loaded:', response.data.length, 'items');
+        console.log(' First product:', response.data[0]);
         setProducts(response.data);
       } else {
-        console.log('⚠️ No products from API, using fallback');
+        console.log(' No products from API, using fallback');
         setProducts(fallbackProducts as Product[]);
       }
     } catch (error: any) {
-      console.error('❌ Error loading products:', error);
-      console.log('🔄 Using fallback products data');
+      console.error(' Error loading products:', error);
+      console.log(' Using fallback products data');
       setProducts(fallbackProducts as Product[]);
     } finally {
       setProductsLoading(false);
