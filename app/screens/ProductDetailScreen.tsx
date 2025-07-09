@@ -3,6 +3,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { FC, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   ImageBackground,
@@ -13,6 +14,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '../redux/store';
+import { addToCart, getCart } from '../redux/slices/cartSlice';
 import { petsService, productsService } from '../services/api-services';
 import { Pet, PetImage, Product, ProductImage } from '../types';
 
@@ -122,17 +126,43 @@ const RelatedGrid: FC = () => (
   />
 );
 
-const FooterBar: FC<{ isFavorite: boolean; toggleFavorite: () => void; navigation: any; petId?: string; productId?: string; item: Pet | Product }> = ({ isFavorite, toggleFavorite, navigation, petId, productId, item }) => (
+// Updated FooterBar với chức năng Add to Cart thực tế
+const FooterBar: FC<{ 
+  isFavorite: boolean; 
+  toggleFavorite: () => void; 
+  navigation: any; 
+  petId?: string; 
+  productId?: string; 
+  item: Pet | Product;
+  onAddToCart: () => void;
+  isAddingToCart: boolean;
+}> = ({ 
+  isFavorite, 
+  toggleFavorite, 
+  navigation, 
+  petId, 
+  productId, 
+  item, 
+  onAddToCart,
+  isAddingToCart 
+}) => (
   <View style={styles.footer}>
     <TouchableOpacity style={styles.favBtn} onPress={toggleFavorite}>
       <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color={isFavorite ? 'red' : '#000'} />
     </TouchableOpacity>
+    
     <TouchableOpacity
-      style={styles.cartBtn}
-      onPress={() => navigation.navigate('Cart', { petId, productId })}
+      style={[styles.cartBtn, isAddingToCart && { opacity: 0.6 }]}
+      onPress={onAddToCart}
+      disabled={isAddingToCart}
     >
-      <Text style={styles.cartBtnTxt}>Add to cart</Text>
+      {isAddingToCart ? (
+        <ActivityIndicator size="small" color="#fff" />
+      ) : (
+        <Text style={styles.cartBtnTxt}>Add to cart</Text>
+      )}
     </TouchableOpacity>
+    
     <TouchableOpacity
       style={styles.buyBtn}
       onPress={() => {
@@ -142,7 +172,7 @@ const FooterBar: FC<{ isFavorite: boolean; toggleFavorite: () => void; navigatio
           price: item.price,
           quantity: 1,
           image: item.images && item.images.length > 0 ? { uri: item.images[0].url } : require('@/assets/images/dog.png'),
-          type: petId ? 'pet' : 'product', // Đảm bảo có trường type
+          type: petId ? 'pet' : 'product',
         }];
         const total = item.price;
         navigation.navigate('Payment', { cartItems, total, petId, productId });
@@ -156,6 +186,11 @@ const FooterBar: FC<{ isFavorite: boolean; toggleFavorite: () => void; navigatio
 const ProductDetailScreen: FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const dispatch = useDispatch<AppDispatch>();
+  
+  // Lấy state từ Redux
+  const { isLoading: cartLoading } = useSelector((state: RootState) => state.cart);
+  
   const petId = route.params?.pet?._id || route.params?.petId;
   const productId = route.params?.productId;
 
@@ -165,7 +200,67 @@ const ProductDetailScreen: FC = () => {
   const [selectedVar, setSelectedVar] = useState<Variation | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  
   const { h, m, s } = useCountdown(36 * 60 + 58);
+
+  // Hàm xử lý thêm vào giỏ hàng
+  const handleAddToCart = async () => {
+    if (!item) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin sản phẩm');
+      return;
+    }
+
+    setIsAddingToCart(true);
+    
+    try {
+      const cartParams = {
+        quantity: 1,
+        ...(petId ? { pet_id: petId } : { product_id: productId })
+      };
+
+      console.log('Adding to cart with params:', cartParams);
+      
+      // Dispatch action thêm vào giỏ hàng
+      await dispatch(addToCart(cartParams)).unwrap();
+      
+      // Refresh cart data
+      dispatch(getCart());
+      
+      // Hiển thị thông báo thành công
+      Alert.alert(
+        'Thành công', 
+        `${item.name} đã được thêm vào giỏ hàng`,
+        [
+          { text: 'Tiếp tục mua sắm', style: 'cancel' },
+          { 
+            text: 'Xem giỏ hàng', 
+            onPress: () => navigation.navigate('Cart') 
+          }
+        ]
+      );
+      
+    } catch (error: any) {
+      console.error('Add to cart error:', error);
+      
+      // Xử lý các loại lỗi khác nhau
+      let errorMessage = 'Không thể thêm vào giỏ hàng';
+      
+      if (typeof error === 'string') {
+        if (error.includes('already exists in cart')) {
+          errorMessage = 'Sản phẩm đã có trong giỏ hàng';
+        } else if (error.includes('must have either')) {
+          errorMessage = 'Thông tin sản phẩm không hợp lệ';
+        } else if (error.includes('network') || error.includes('timeout')) {
+          errorMessage = 'Lỗi kết nối. Vui lòng thử lại';
+        }
+      }
+      
+      Alert.alert('Lỗi', errorMessage);
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
 
   // Fetch item data (Pet or Product) with retry logic
   const fetchItem = async (retryCount: number = 0) => {
@@ -340,6 +435,8 @@ const ProductDetailScreen: FC = () => {
         petId={petId}
         productId={productId}
         item={item}
+        onAddToCart={handleAddToCart}
+        isAddingToCart={isAddingToCart}
       />
     </SafeAreaView>
   );
