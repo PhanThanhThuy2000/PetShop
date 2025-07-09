@@ -86,7 +86,6 @@ const HomeScreen = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🚀 Starting to load initial data...');
 
       // Load tất cả dữ liệu song song
       await Promise.all([
@@ -97,7 +96,6 @@ const HomeScreen = () => {
       ]);
 
     } catch (error: any) {
-      console.error('❌ Error loading initial data:', error);
       setError(error.message || 'Failed to load data');
       
       // Show alert to user about the error
@@ -146,21 +144,15 @@ const HomeScreen = () => {
   const loadProducts = async () => {
     try {
       setProductsLoading(true);
-      console.log('🛍️ Loading products...');
       
       const response = await productsService.getProducts({ page: 1, limit: 10 });
       
       if (response.success && response.data && response.data.length > 0) {
-        console.log(' Products loaded:', response.data.length, 'items');
-        console.log(' First product:', response.data[0]);
         setProducts(response.data);
       } else {
-        console.log(' No products from API, using fallback');
         setProducts(fallbackProducts as Product[]);
       }
     } catch (error: any) {
-      console.error(' Error loading products:', error);
-      console.log(' Using fallback products data');
       setProducts(fallbackProducts as Product[]);
     } finally {
       setProductsLoading(false);
@@ -169,7 +161,6 @@ const HomeScreen = () => {
 
   const loadFlashSaleProducts = async () => {
     try {
-      console.log('⚡ Loading flash sale products...');
       
       // Try to get featured products for flash sale
       const response = await productsService.getProducts({ limit: 4, featured: true });
@@ -192,7 +183,6 @@ const HomeScreen = () => {
   };
 
   const onRefresh = async () => {
-    console.log('🔄 Refreshing data...');
     setRefreshing(true);
     await loadInitialData();
     setRefreshing(false);
@@ -293,13 +283,11 @@ const HomeScreen = () => {
 
   const renderProductItem = ({ item }: { item: Product }) => {
     const imageUrl = getImageUrl(item.images);
-    console.log('🎨 Rendering product:', item.name, 'with image:', imageUrl);
     
     return (
       <TouchableOpacity
         style={styles.itemContainer}
         onPress={() => {
-          console.log('Go to ProductDetail with id:', item._id);
           safeNavigate(navigation, 'ProductDetail', { productId: item._id });
         }}
       >
@@ -307,7 +295,6 @@ const HomeScreen = () => {
           source={{ uri: imageUrl }}
           style={styles.itemImage}
           onError={(error) => {
-            console.log('❌ Product image error:', item.name, error);
           }}
         />
         <View style={styles.itemDetails}>
