@@ -142,6 +142,7 @@ const FooterBar: FC<{ isFavorite: boolean; toggleFavorite: () => void; navigatio
           price: item.price,
           quantity: 1,
           image: item.images && item.images.length > 0 ? { uri: item.images[0].url } : require('@/assets/images/dog.png'),
+          type: petId ? 'pet' : 'product', // Đảm bảo có trường type
         }];
         const total = item.price;
         navigation.navigate('Payment', { cartItems, total, petId, productId });

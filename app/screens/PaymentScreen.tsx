@@ -106,7 +106,6 @@ const PaymentScreen = () => {
     const totalCalculated = merchandise + shipping - discount;
     return isNaN(totalCalculated) ? 0 : Math.max(totalCalculated, 0);
   };
-
   const createOrderAndOrderItem = async (vnpayData: any) => {
     try {
       console.log('vnpayData:', vnpayData);
@@ -133,11 +132,12 @@ const PaymentScreen = () => {
         const orderItemData = {
           quantity: item.quantity || 1,
           unit_price: item.price,
-          pet_id: item.petId || null,
-          product_id: item.productId || null,
+          pet_id: item.type === 'pet' ? item.id : null, // Gán id vào pet_id nếu type là pet
+          product_id: item.type === 'product' ? item.id : null, // Gán id vào product_id nếu type là product
           order_id: savedOrder._id,
           addresses_id: address?._id,
         };
+
 
         console.log('orderItemData:', orderItemData);
         if (!orderItemData.pet_id && !orderItemData.product_id) {

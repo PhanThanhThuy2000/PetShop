@@ -159,8 +159,21 @@ export default function CartScreen() {
       Alert.alert('Empty Cart', 'Please add items to your cart first');
       return;
     }
-    console.log('Navigating to Payment with:', { cartItems, total });
-    navigation.navigate('Payment', { cartItems, total });
+
+    // Chuẩn hóa dữ liệu cartItems để truyền sang PaymentScreen
+    const formattedCartItems = cartItems.map(item => ({
+      id: item.petId || item.productId || item._apiId, // Sử dụng petId hoặc productId làm id
+      title: item.title,
+      price: item.price,
+      quantity: item.quantity || 1,
+      image: item.image,
+      type: item.petId ? 'pet' : 'product', // Thêm trường type
+      petId: item.petId || null, // Giữ petId
+      productId: item.productId || null, // Giữ productId
+    }));
+
+    console.log('Navigating to Payment with:', { cartItems: formattedCartItems, total });
+    navigation.navigate('Payment', { cartItems: formattedCartItems, total });
   };
 
   const total = totalAmount || cartItems.reduce(
