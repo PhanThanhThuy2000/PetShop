@@ -21,60 +21,77 @@ const { width } = Dimensions.get('window');
 const OrderItemComponent = ({ item }: { item: OrderItem }) => {
     const navigation = useNavigation<any>();
 
+    const handlePress = () => {
+        if (!item.order_id?._id) {
+            console.error('Order ID is missing for item:', item._id);
+            return;
+        }
+        console.log('Navigating to OrderDetail with orderId:', item.order_id._id);
+        navigation.navigate('OrderDetail', { orderId: item.order_id._id });
+    };
     const handleReview = (orderItemId: string) => {
         console.log('Đánh giá mục đơn hàng:', orderItemId);
         navigation.navigate('Reviews', { orderItemId: orderItemId });
     };
 
-    // Lấy tên và ảnh từ pet_id hoặc product_id
     const itemName = item.pet_id?.name || item.product_id?.name || 'Mục không xác định';
     const itemImage = item.pet_id?.images?.find(img => img.is_primary)?.url ||
         item.product_id?.images?.find(img => img.is_primary)?.url ||
         null;
 
     return (
-        <View style={styles.orderItem}>
-            <View style={styles.orderHeader}>
-                <Text style={styles.orderNumber}>#{item._id.slice(-6)}</Text>
-                <Text style={styles.orderDate}>
-                    {new Date(item.created_at).toLocaleDateString('vi-VN', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                    })}
-                </Text>
-            </View>
-
-            <View style={styles.orderContent}>
-                {itemImage ? (
-                    <Image source={{ uri: itemImage }} style={styles.petImage} />
-                ) : (
-                    <View style={[styles.petImage, styles.placeholderImage]} />
-                )}
-                <View style={styles.orderInfo}>
-                    <Text style={styles.petName}>{itemName}</Text>
-                    <Text style={styles.price}>
-                        {(item.unit_price * item.quantity).toLocaleString('vi-VN')} đ
+        <TouchableOpacity onPress={handlePress}>
+            <View style={styles.orderItem}>
+                <View style={styles.orderHeader}>
+                    <Text style={styles.orderNumber}>#{item._id.slice(-6)}</Text>
+                    <Text style={styles.orderDate}>
+                        {new Date(item.created_at).toLocaleDateString('vi-VN', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric'
+                        })}
                     </Text>
                 </View>
-            </View>
 
-            <View style={styles.orderFooter}>
-                <Text style={[
-                    styles.status,
-                    item.order_id.status === 'completed' ? styles.statusCompleted : styles.statusPending
-                ]}>
-                    {item.order_id.status
-                        ? item.order_id.status.charAt(0).toUpperCase() + item.order_id.status.slice(1)
-                        : 'Không xác định'}
-                </Text>
-                <TouchableOpacity style={styles.reviewButton} onPress={() => handleReview(item._id)}>
-                    <Text style={styles.reviewButtonText}>Đánh giá</Text>
-                </TouchableOpacity>
+                <View style={styles.orderContent}>
+                    {itemImage ? (
+                        <Image source={{ uri: itemImage }} style={styles.petImage} />
+                    ) : (
+                        <View style={[styles.petImage, styles.placeholderImage]} />
+                    )}
+                    <View style={styles.orderInfo}>
+                        <Text style={styles.petName}>{itemName}</Text>
+                        <Text
+                            style={[
+                                styles.price,
+                                { color: 'red', textDecorationLine: 'line-through' }
+                            ]}
+                        >
+                            {(item.unit_price * item.quantity).toLocaleString('vi-VN')} đ
+                        </Text>
+                        <Text style={styles.price}>
+                            Tổng tiền : {item.order_id?.total_amount?.toLocaleString('vi-VN')} đ
+                        </Text>
+                    </View>
+                </View>
+
+                <View style={styles.orderFooter}>
+                    <Text style={[
+                        styles.status,
+                        item.order_id.status === 'completed' ? styles.statusCompleted : styles.statusPending
+                    ]}>
+                        {item.order_id.status
+                            ? item.order_id.status.charAt(0).toUpperCase() + item.order_id.status.slice(1)
+                            : 'Không xác định'}
+                    </Text>
+                    <TouchableOpacity style={styles.reviewButton} onPress={() => handleReview(item._id)}>
+                        <Text style={styles.reviewButtonText}>Đánh giá</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
-        </View>
+        </TouchableOpacity>
     );
-}
+};
 
 const HistoryScreen = () => {
     const navigation = useNavigation<any>();

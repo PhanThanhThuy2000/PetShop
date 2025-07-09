@@ -27,6 +27,7 @@ import LanguageScreen from './screens/LanguageScreen';
 import ListAdressScreen from './screens/ListAdressScreen';
 import LoginScreen from './screens/LoginScreen';
 import NewPasswordScreen from './screens/NewPasswordScreen';
+import OrderDetailScreen from './screens/OrderDetailScreen';
 import OrderSuccess from './screens/OrderSuccessScreen';
 import PasswordCodeScreen from './screens/PasswordCodeScreen';
 import PaymentScreen from './screens/PaymentScreen';
@@ -38,9 +39,9 @@ import ReviewsScreen from './screens/ReviewsScreen';
 import SearchScreen from './screens/SearchScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import ShippingAddressScreen from './screens/ShippingAddressScreen';
+import UniversalSearchScreen from './screens/UniversalSearchScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
-import UniversalSearchScreen from './screens/UniversalSearchScreen';
 
 const Stack = createStackNavigator();
 
@@ -217,6 +218,11 @@ const AppNavigator = () => {
       <Stack.Screen
         name="UniversalSearch"
         component={UniversalSearchScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="OrderDetail"
+        component={OrderDetailScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

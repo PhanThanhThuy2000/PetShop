@@ -48,6 +48,7 @@ export const productsService = {
   },
 };
 
+// api-services.ts
 export const ordersService = {
   async getMyOrders(params: { page?: number; limit?: number } = {}) {
     const { page = 1, limit = 10 } = params;
@@ -65,9 +66,14 @@ export const ordersService = {
     const response = await api.get<ApiResponse<OrderItem[]>>(`/order_items?page=${page}&limit=${limit}`);
     return response.data;
   },
-  async getOrderItemsByOrderId(orderId: string, params: { page?: number; limit?: number } = {}) {
-    const { page = 1, limit = 10 } = params;
-    const response = await api.get<ApiResponse<OrderItem[]>>(`/order_items/${orderId}/order_items?page=${page}&limit=${limit}`);
+
+  async getOrderItemById(id: string) {
+    const response = await api.get<ApiResponse<OrderItem>>(`/order_items/${id}`);
+    return response.data;
+  },
+
+  async getOrderItemsByOrderId(orderId: string) {
+    const response = await api.get<ApiResponse<OrderItem[]>>(`/order_items/by-order/${orderId}`);
     return response.data;
   },
 };

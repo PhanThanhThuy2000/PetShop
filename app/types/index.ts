@@ -323,3 +323,17 @@ export interface Voucher {
   updated_at: string;
   used_at?: string;
 }
+
+
+export interface Address {
+  _id: string;
+  name: string;
+  phone: string;
+  note: string;
+  province: string;
+  district: string;
+  ward: string;
+  postal_code: string;
+  country: string;
+  is_default?: boolean;
+}
