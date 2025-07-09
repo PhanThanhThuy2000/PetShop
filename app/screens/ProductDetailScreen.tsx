@@ -15,8 +15,8 @@ import {
   View,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState, AppDispatch } from '../redux/store';
 import { addToCart, getCart } from '../redux/slices/cartSlice';
+import { AppDispatch, RootState } from '../redux/store';
 import { petsService, productsService } from '../services/api-services';
 import { Pet, PetImage, Product, ProductImage } from '../types';
 
