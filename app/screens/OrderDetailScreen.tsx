@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ordersService } from '../services/api-services';
+import { ordersService } from '../services/OrderApiService';
 import { Order, OrderItem } from '../types';
 
 interface OrderDetailScreenProps {
