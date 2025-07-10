@@ -13,7 +13,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { ordersService } from '../services/api-services';
+import { ordersService } from '../services/OrderApiService';
 import { OrderItem } from '../types';
 
 const { width } = Dimensions.get('window');
