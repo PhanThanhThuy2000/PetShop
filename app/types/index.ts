@@ -1,4 +1,15 @@
 // index.ts
+export interface PaginatedResponse<T> {
+  items: T[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+}
 export interface User {
   id: string;
   username: string;
