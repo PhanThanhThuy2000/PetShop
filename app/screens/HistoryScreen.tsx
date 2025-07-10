@@ -1,5 +1,6 @@
+// HistoryScreen.tsx
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Thêm để debug token
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
@@ -10,6 +11,7 @@ import {
     StatusBar,
     StyleSheet,
     Text,
+    TextInput, // Thêm TextInput
     TouchableOpacity,
     View
 } from 'react-native';
@@ -29,6 +31,7 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
         console.log('Navigating to OrderDetail with orderId:', item.order_id._id);
         navigation.navigate('OrderDetail', { orderId: item.order_id._id });
     };
+
     const handleReview = (orderItemId: string) => {
         console.log('Đánh giá mục đơn hàng:', orderItemId);
         navigation.navigate('Reviews', { orderItemId: orderItemId });
@@ -70,7 +73,7 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
                             {(item.unit_price * item.quantity).toLocaleString('vi-VN')} đ
                         </Text>
                         <Text style={styles.price}>
-                            Tổng tiền : {item.order_id?.total_amount?.toLocaleString('vi-VN')} đ
+                            Tổng tiền: {item.order_id?.total_amount?.toLocaleString('vi-VN')} đ
                         </Text>
                     </View>
                 </View>
@@ -98,38 +101,75 @@ const HistoryScreen = () => {
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState<string>(''); // Trạng thái cho tìm kiếm
+    const [isSearching, setIsSearching] = useState<boolean>(false); // Trạng thái tìm kiếm
+
+    // Hàm xử lý tìm kiếm
+    const handleSearch = async () => {
+        if (!searchQuery.trim()) {
+            fetchOrderItems();
+            setIsSearching(false);
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            setIsSearching(true);
+            const params = { query: searchQuery, page: 1, limit: 20 };
+            console.log('Tham số tìm kiếm:', params);
+            const response = await ordersService.searchOrderItems(params);
+            console.log('Phản hồi tìm kiếm đầy đủ:', JSON.stringify(response, null, 2));
+            console.log('Items:', response.data.items || response.data); // Log items
+            setOrderItems(response.data.items || response.data || []); // Fallback to response.data
+            if ((response.data.items || response.data).length === 0) {
+                setError('Không tìm thấy mục đơn hàng nào phù hợp');
+            } else {
+                setError(null);
+            }
+        } catch (err: any) {
+            console.error('Lỗi tìm kiếm:', err.response?.data || err.message);
+            setError('Không thể tìm kiếm mục đơn hàng');
+        } finally {
+            setIsLoading(false);
+        }
+      };
+
+    // Hàm lấy danh sách mục đơn hàng ban đầu
+    const fetchOrderItems = async () => {
+        try {
+            setIsLoading(true);
+            const token = await AsyncStorage.getItem('token');
+            console.log('Token gửi đi:', token);
+            const params = { page: 1, limit: 20 };
+            console.log('Tham số API:', params);
+            const response = await ordersService.getMyOrderItems(params);
+            console.log('Phản hồi API đầy đủ:', JSON.stringify(response, null, 2));
+            setOrderItems(response.data);
+            if (response.data.length === 0) {
+                console.warn('Cảnh báo: Không tìm thấy mục đơn hàng nào');
+                setError('Không có mục đơn hàng nào để hiển thị');
+            } else {
+                setError(null);
+            }
+        } catch (err: any) {
+            console.error('Lỗi API:', err.response?.data || err.message);
+            setError('Không thể tải danh sách mục đơn hàng');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchOrderItems = async () => {
-            try {
-                setIsLoading(true);
-                // Debug token
-                const token = await AsyncStorage.getItem('token');
-                console.log('Token gửi đi:', token);
-                // Debug tham số
-                const params = { page: 1, limit: 20 };
-                console.log('Tham số API:', params);
-                const response = await ordersService.getMyOrderItems(params);
-                console.log('Phản hồi API đầy đủ:', JSON.stringify(response, null, 2));
-                setOrderItems(response.data);
-                if (response.data.length === 0) {
-                    console.warn('Cảnh báo: Không tìm thấy mục đơn hàng nào');
-                    setError('Không có mục đơn hàng nào để hiển thị');
-                }
-            } catch (err: any) {
-                console.error('Lỗi API:', err.response?.data || err.message);
-                setError('Không thể tải danh sách mục đơn hàng');
-                console.error('Lỗi khi lấy mục đơn hàng:', err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchOrderItems();
     }, []);
 
-    const handleSearch = () => {
-        console.log('Tìm kiếm được nhấn');
+    // Xử lý khi nhấn nút tìm kiếm hoặc xóa tìm kiếm
+    const toggleSearch = () => {
+        if (isSearching && searchQuery) {
+            setSearchQuery('');
+            fetchOrderItems(); // Lấy lại danh sách gốc khi xóa tìm kiếm
+        }
+        setIsSearching(!isSearching);
     };
 
     if (isLoading) {
@@ -156,10 +196,23 @@ const HistoryScreen = () => {
                     <Ionicons name="arrow-back" size={24} color="#000000" />
                 </TouchableOpacity>
 
-                <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
+                {isSearching ? (
+                    <View style={styles.searchContainer}>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Tìm kiếm theo tên hoặc mã đơn hàng"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            onSubmitEditing={handleSearch} // Gọi tìm kiếm khi nhấn Enter
+                            autoFocus
+                        />
+                    </View>
+                ) : (
+                    <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
+                )}
 
-                <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-                    <Ionicons name="search" size={20} color="#000000" />
+                <TouchableOpacity style={styles.searchButton} onPress={toggleSearch}>
+                    <Ionicons name={isSearching ? 'close' : 'search'} size={20} color="#000000" />
                 </TouchableOpacity>
             </View>
             <FlatList
@@ -204,6 +257,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#F5F5F5',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    searchContainer: {
+        flex: 1,
+        marginHorizontal: 8,
+    },
+    searchInput: {
+        backgroundColor: '#F5F5F5',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        fontSize: 16,
     },
     listContainer: {
         paddingVertical: 16,
