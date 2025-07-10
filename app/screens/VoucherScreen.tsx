@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../hooks/redux';
-import { vouchersService } from '../services/api-services'; // Import vouchersService
+import { vouchersService } from '../services/vouchersService'; // Import vouchersService
 import { Voucher } from '../types/index'; // Import Voucher interface từ index.ts
 
 const VoucherScreen = () => {
