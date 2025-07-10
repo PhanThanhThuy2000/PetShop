@@ -36,23 +36,51 @@ export interface ProductImage {
 }
 
 export interface Pet {
-  age: any;
-  gender: any;
   _id: string;
   name: string;
   price: number;
-  weight: number;
-  type: string;
-  description: string;
-  breed_id?: {
+  type: string; // 'Dog', 'Cat', 'Rabbit', etc.
+  breed_id: {
     _id: string;
     name: string;
     description?: string;
-  };
-  user_id: string;
-  images?: PetImage[];
+  } | string;
+  user_id?: {
+    _id: string;
+    username: string;
+    email: string;
+  } | string;
+  age?: number;
+  weight?: number;
+  gender?: 'Male' | 'Female';
+  description?: string;
+  status: 'available' | 'sold' | 'reserved';
+  images: Array<{
+    _id?: string;
+    url: string;
+    description?: string;
+  }>;
   created_at: string;
   updated_at: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: T;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
 }
 
 export interface PetImage {

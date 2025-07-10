@@ -6,7 +6,7 @@ import axios from 'axios';
 // Tên chủ thẻ: NGUYEN VAN A
 // Ngày phát hành: 07/15
 // Mật khẩu OTP: 123456
-export const API_BASE_URL = 'http://192.168.0.100:5000/api';
+export const API_BASE_URL = 'http://192.168.1.134:5000/api';
 //192.168.1.134 - duc
 const api = axios.create({
   baseURL: API_BASE_URL,
