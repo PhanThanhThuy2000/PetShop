@@ -1,13 +1,10 @@
-
-"use client"
-
 import { useNavigation } from "@react-navigation/native"
 import { jwtDecode } from "jwt-decode"
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from 'react'
 import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import Icon from "react-native-vector-icons/Ionicons"
 import { useAuth } from "../../hooks/redux"
-import { vouchersService } from "../services/api-services"
+import { vouchersService } from "../services/vouchersService"
 import type { Voucher } from "../types/index"
 
 // Hàm trợ giúp để tạo các thuộc tính hiển thị cho voucher
@@ -53,22 +50,6 @@ const getVoucherDisplayProps = (voucher: Voucher) => {
 
   return { title, textColor, color, isDashed }
 }
-import { useNavigation } from '@react-navigation/native';
-import { jwtDecode } from 'jwt-decode';
-import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import { useAuth } from '../../hooks/redux';
-import { vouchersService } from '../services/vouchersService'; // Import vouchersService
-import { Voucher } from '../types/index'; // Import Voucher interface từ index.ts
 
 const VoucherScreen = () => {
   const navigation = useNavigation<any>()
