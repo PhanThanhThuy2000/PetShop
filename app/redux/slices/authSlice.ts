@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { ApiResponse, AuthState, LoginRequest, RegisterRequest } from '../../types';
+import { ApiResponse, AuthState, LoginRequest, RegisterRequest, User } from '../../types';
 import api from '../../utils/api-client';
 
 const initialState: AuthState = {
@@ -10,7 +10,7 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Login user - sử dụng API có sẵn: POST /api/users/login
+// Login user
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (credentials: LoginRequest, { rejectWithValue }) => {
@@ -27,7 +27,7 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-// Register user - sử dụng API có sẵn: POST /api/users/register  
+// Register user
 export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async (userData: RegisterRequest, { rejectWithValue }) => {
@@ -39,6 +39,90 @@ export const registerUser = createAsyncThunk(
       return { token };
     } catch (error: any) {
       const message = error.response?.data?.message || 'Registration failed';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Get current user info
+export const getCurrentUser = createAsyncThunk(
+  'auth/getCurrentUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get<ApiResponse<{ user: User }>>('/users/me');
+      return response.data.data.user;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to get user info';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Update user avatar
+export const updateUserAvatar = createAsyncThunk(
+  'auth/updateUserAvatar',
+  async (avatarUri: string, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { auth: AuthState };
+      const user = state.auth.user;
+      const userId = user?.id || user?.id;
+      
+      if (!userId) {
+        return rejectWithValue('User ID not found');
+      }
+
+      // Create FormData for image upload
+      const formData = new FormData();
+      formData.append('avatar', {
+        uri: avatarUri,
+        type: 'image/jpeg',
+        name: 'avatar.jpg',
+      } as any);
+
+      const response = await api.put<ApiResponse<{ user: User }>>(`/users/${userId}/avatar`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      return response.data.data.user;
+    } catch (error: any) {
+      // If multipart upload fails, try sending as JSON
+      try {
+        const state = getState() as { auth: AuthState };
+        const user = state.auth.user;
+        const userId = user?.id || user?.id;
+        
+        const response = await api.put<ApiResponse<{ user: User }>>(`/users/${userId}`, {
+          avatar_url: avatarUri
+        });
+        
+        return response.data.data.user;
+      } catch (jsonError: any) {
+        const message = error.response?.data?.message || 'Failed to update avatar';
+        return rejectWithValue(message);
+      }
+    }
+  }
+);
+
+// Update user profile
+export const updateUserProfile = createAsyncThunk(
+  'auth/updateUserProfile',
+  async (userData: Partial<User>, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { auth: AuthState };
+      const user = state.auth.user;
+      const userId = user?.id || user?.id;
+      
+      if (!userId) {
+        return rejectWithValue('User ID not found');
+      }
+
+      const response = await api.put<ApiResponse<{ user: User }>>(`/users/${userId}`, userData);
+      return response.data.data.user;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to update profile';
       return rejectWithValue(message);
     }
   }
@@ -79,6 +163,9 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    setUser: (state, action) => {
+      state.user = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -112,6 +199,65 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       })
       
+      // Get current user
+      .addCase(getCurrentUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getCurrentUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        // Normalize the user object to ensure we have both id and id
+        const user = action.payload;
+        if (user.id && !user.id) {
+          user.id = user.id;
+        } else if (user.id && !user.id) {
+          user.id = user.id;
+        }
+        state.user = user;
+        state.error = null;
+      })
+      .addCase(getCurrentUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Update user avatar
+      .addCase(updateUserAvatar.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateUserAvatar.fulfilled, (state, action) => {
+        state.isLoading = false;
+        // Update user with new avatar
+        const user = action.payload;
+        if (user.id && !user.id) {
+          user.id = user.id;
+        } else if (user.id && !user.id) {
+          user.id = user.id;
+        }
+        state.user = user;
+        state.error = null;
+      })
+      .addCase(updateUserAvatar.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Update user profile
+      .addCase(updateUserProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.error = null;
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      
       // Load token
       .addCase(loadTokenFromStorage.fulfilled, (state, action) => {
         if (action.payload) {
@@ -128,5 +274,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, setUser } = authSlice.actions;
 export default authSlice.reducer;
