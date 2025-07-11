@@ -42,6 +42,7 @@ import ShippingAddressScreen from './screens/ShippingAddressScreen';
 import UniversalSearchScreen from './screens/UniversalSearchScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
+import PetsByBreedScreen from './screens/PetsByBreedScreen';
 
 const Stack = createStackNavigator();
 
@@ -223,6 +224,11 @@ const AppNavigator = () => {
       <Stack.Screen
         name="OrderDetail"
         component={OrderDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PetsByBreed"
+        component={PetsByBreedScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
