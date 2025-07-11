@@ -1,5 +1,5 @@
 // api-services.ts
-import { ApiResponse, Pet, Product } from '../types';
+import { ApiResponse, Pet, Product, Review } from '../types';
 import api from '../utils/api-client';
 
 export const petsService = {
@@ -44,6 +44,14 @@ export const productsService = {
 
   async getProductById(id: string) {
     const response = await api.get<ApiResponse<Product>>(`/products/${id}`);
+    return response.data;
+  },
+};
+
+export const reviewsService = {
+  async getReviews(params: { page?: number; limit?: number } = {}) {
+    const { page = 1, limit = 10 } = params;
+    const response = await api.get<ApiResponse<Review[]>>(`/reviews?page=${page}&limit=${limit}`);
     return response.data;
   },
 };

@@ -275,6 +275,7 @@ export interface ChatHistoryResponse {
   };
 }
 
+
 export interface UnreadCountResponse {
   total_unread: number;
   rooms_with_unread: Array<{
@@ -375,4 +376,21 @@ export interface Address {
   postal_code: string;
   country: string;
   is_default?: boolean;
+}
+// index.ts
+export interface Review {
+  _id: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  pet_id: {
+    _id: string;
+    name: string;
+    breed: string;
+  };
+  user_id: {
+    _id: string;
+    username: string;
+    email: string;
+  };
 }
