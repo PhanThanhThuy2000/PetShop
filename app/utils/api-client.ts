@@ -1,7 +1,7 @@
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-
+// app/utils/api.ts
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 export const API_BASE_URL = "http://192.168.0.104:5000/api"
 // app/utils/api.ts
 
@@ -17,49 +17,38 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-})
+});
 
-// Interceptor duy nhất để tự động thêm token vào mỗi yêu cầu
+// Interceptor request: Tự động thêm token vào mỗi request nếu có
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem("token")
-      console.log("API Client Interceptor: Token retrieved from AsyncStorage:", token) // Debug: Kiểm tra token lấy được
-
-      // Chỉ thêm token nếu nó tồn tại và không phải là chuỗi 'null'
+      const token = await AsyncStorage.getItem("token");
       if (token && token !== "null") {
-        config.headers.Authorization = `Bearer ${token}`
-        console.log("API Client Interceptor: Authorization header set to:", config.headers.Authorization) // Debug: Kiểm tra header đã đặt
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log("Interceptor: Token attached:", config.headers.Authorization);
       } else {
-        console.log(
-          'API Client Interceptor: No valid token found or token is "null" string. Authorization header not set.',
-        )
+        console.log("Interceptor: No valid token found.");
       }
     } catch (error) {
-      console.error("API Client Interceptor Error: Failed to get token from AsyncStorage:", error)
+      console.error("Interceptor Request Error:", error);
     }
-    return config
+    return config;
   },
-  (error) => {
-    // Xử lý lỗi trước khi gửi yêu cầu
-    return Promise.reject(error)
-  },
-)
+  (error) => Promise.reject(error)
+);
 
-// Interceptor để xử lý response (ví dụ: xóa token khi 401 Unauthorized)
+// Interceptor response: Tự động xử lý khi bị 401
 api.interceptors.response.use(
-  (response) => {
-    return response
-  },
+  (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      console.warn("API Response Error: 401 Unauthorized. Removing token from AsyncStorage.")
-      await AsyncStorage.removeItem("token")
-      // Bạn có thể thêm logic điều hướng người dùng về màn hình đăng nhập ở đây nếu cần
+      console.warn("Interceptor: 401 Unauthorized -> clearing token.");
+      await AsyncStorage.removeItem("token");
+      // TODO: Optional - navigate to login screen here
     }
 
-    return Promise.reject(error)
-  },
-)
+    return Promise.reject(error);
+  }
+);
 export default api;
-
