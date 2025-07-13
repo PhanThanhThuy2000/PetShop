@@ -33,6 +33,12 @@ const PaymentScreen = () => {
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
   const [userVouchers, setUserVouchers] = useState<Voucher[]>([]);
   const [showVoucherModal, setShowVoucherModal] = useState(false);
+  const selectedVoucherRef = useRef<Voucher | null>(null);
+
+  // Cập nhật ref mỗi khi selectedVoucher thay đổi
+  useEffect(() => {
+    selectedVoucherRef.current = selectedVoucher;
+  }, [selectedVoucher]);
 
   const SERVER_URLS = [API_BASE_URL.replace(/\/api$/, '')];
 
@@ -143,17 +149,104 @@ const PaymentScreen = () => {
     return isNaN(totalCalculated) ? 0 : Math.max(totalCalculated, 0);
   };
 
+  // Hàm cập nhật voucher thành used (dùng chung cho COD và VNPay)
+  const updateVoucherAsUsed = async () => {
+    console.log('=== updateVoucherAsUsed called ===');
+    console.log('selectedVoucher:', selectedVoucher);
+    console.log('selectedVoucherRef.current:', selectedVoucherRef.current);
+
+    const currentVoucher = selectedVoucherRef.current || selectedVoucher;
+
+    if (!currentVoucher) {
+      console.log('No selectedVoucher, returning...');
+      return;
+    }
+
+    // Kiểm tra nếu voucher đã được sử dụng rồi thì không cập nhật nữa
+    if (currentVoucher.status === 'used' || currentVoucher.status === 'inactive') {
+      console.log('Voucher already used or inactive, skipping update...');
+      return;
+    }
+
+    const isValidVoucher =
+      currentVoucher.status === 'active' &&
+      (currentVoucher.used_count || 0) < currentVoucher.max_usage &&
+      new Date(currentVoucher.expiry_date) > new Date() &&
+      total >= currentVoucher.min_purchase_amount;
+
+    console.log('Voucher validation result:', isValidVoucher);
+    console.log('Voucher validation details:', {
+      status: currentVoucher.status,
+      used_count: currentVoucher.used_count,
+      max_usage: currentVoucher.max_usage,
+      expiry_date: currentVoucher.expiry_date,
+      total,
+      min_purchase_amount: currentVoucher.min_purchase_amount,
+    });
+
+    if (!isValidVoucher) {
+      Alert.alert('Lỗi', 'Voucher không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra chi tiết trong console.');
+      return;
+    }
+
+    try {
+      const newUsedCount = (currentVoucher.used_count || 0) + 1;
+      const updateData = {
+        status: newUsedCount >= currentVoucher.max_usage ? 'inactive' : 'active' as 'pending' | 'active' | 'inactive' | 'expired',
+        used_count: newUsedCount,
+        used_at: new Date().toISOString(),
+      };
+      console.log('Updating voucher with data:', updateData);
+
+      const updatedVoucher = await vouchersService.updateVoucher(currentVoucher._id, updateData);
+      console.log('API response for updateVoucher:', updatedVoucher);
+
+      // Cập nhật cả state và ref với data từ API response
+      const apiResponseVoucher = updatedVoucher.data || updatedVoucher;
+      const newVoucherState = {
+        ...currentVoucher,
+        ...apiResponseVoucher,
+      };
+
+      setSelectedVoucher(newVoucherState);
+      selectedVoucherRef.current = newVoucherState;
+
+      console.log('Updated selectedVoucher state:', newVoucherState);
+
+      await fetchUserVouchers();
+      console.log('=== updateVoucherAsUsed completed successfully ===');
+    } catch (error: any) {
+      console.error('Error using voucher:', error.response?.data || error.message);
+
+      // Nếu lỗi là voucher đã được sử dụng, thì cũng coi như thành công
+      if (error.response?.data?.message === 'Voucher không hoạt động') {
+        console.log('Voucher already used, treating as success...');
+        await fetchUserVouchers();
+        return;
+      }
+
+      Alert.alert('Lỗi', `Không thể cập nhật trạng thái voucher: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
   const createOrderAndOrderItem = async (vnpayData: any) => {
     try {
+      // Xác định payment method và status
+      const isVNPaySuccess = vnpayData.vnp_ResponseCode === '00' && vnpayData.vnp_TransactionStatus === '00';
+      const isCOD = vnpayData.paymentMethod === 'cod';
+
       const orderData = {
         total_amount: calculateTotal(),
-        status: vnpayData.paymentMethod === 'cod' ? 'completed' : (vnpayData.vnp_ResponseCode === '00' && vnpayData.vnp_TransactionStatus === '00' ? 'completed' : 'pending'),
-        payment_method: vnpayData.paymentMethod || 'vnpay',
+        status: (isCOD || isVNPaySuccess) ? 'completed' : 'pending',
+        payment_method: isCOD ? 'cod' : 'vnpay',
         vnpay_transaction_id: vnpayData.vnp_TxnRef || null,
         payment_date: vnpayData.vnp_PayDate || null,
-        voucher_id: selectedVoucher?._id || null,
+        voucher_id: selectedVoucherRef.current?._id || null,
         discount_amount: calculateDiscount(),
       };
+
+      console.log('Creating order with data:', orderData);
+      console.log('selectedVoucherRef.current:', selectedVoucherRef.current);
       const orderResponse = await api.post<ApiResponse<Order>>('/orders', orderData);
       const savedOrder = orderResponse.data.data;
       console.log('Order created:', savedOrder);
@@ -186,53 +279,13 @@ const PaymentScreen = () => {
         throw new Error('No valid order items were created');
       }
 
-      if (selectedVoucher && savedOrder.status === 'completed') {
-        const isValidVoucher =
-          selectedVoucher.status === 'active' &&
-          (selectedVoucher.used_count || 0) < selectedVoucher.max_usage &&
-          new Date(selectedVoucher.expiry_date) > new Date() &&
-          total >= selectedVoucher.min_purchase_amount;
+      // Cập nhật voucher khi đơn hàng completed (cho cả COD và VNPay thành công)
+      console.log('Order status:', savedOrder.status);
+      console.log('Selected voucher before update:', selectedVoucherRef.current);
 
-        if (!isValidVoucher) {
-          console.log('Invalid voucher details:', {
-            status: selectedVoucher.status,
-            used_count: selectedVoucher.used_count,
-            max_usage: selectedVoucher.max_usage,
-            expiry_date: selectedVoucher.expiry_date,
-            total,
-            min_purchase_amount: selectedVoucher.min_purchase_amount,
-          });
-          Alert.alert('Lỗi', 'Voucher không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra chi tiết trong console.');
-          return;
-        }
-
-        try {
-          const updateData = {
-            status: 'used' as 'pending' | 'active' | 'inactive' | 'expired' | 'used',
-            used_count: (selectedVoucher.used_count || 0) + 1,
-            used_at: new Date().toISOString(),
-          };
-          console.log('Updating voucher with data:', updateData);
-          const updatedVoucher = await vouchersService.updateVoucher(selectedVoucher._id, updateData);
-          console.log('API response for updateVoucher:', updatedVoucher);
-
-          setSelectedVoucher({
-            ...selectedVoucher,
-            status: updateData.status,
-            used_count: updateData.used_count,
-            used_at: updateData.used_at,
-          });
-          console.log('Updated selectedVoucher:', {
-            status: updateData.status,
-            used_count: updateData.used_count,
-            used_at: updateData.used_at,
-          });
-
-          fetchUserVouchers();
-        } catch (error: any) {
-          console.error('Error using voucher:', error.response?.data || error.message);
-          Alert.alert('Lỗi', `Không thể cập nhật trạng thái voucher: ${error.response?.data?.message || error.message}`);
-        }
+      if (savedOrder.status === 'completed' && selectedVoucherRef.current) {
+        console.log('Updating voucher for completed order...');
+        await updateVoucherAsUsed();
       }
 
       navigation.navigate('OrderSuccess', { orderId: savedOrder._id });
@@ -383,7 +436,7 @@ const PaymentScreen = () => {
     return () => {
       subscription.remove();
     };
-  }, [navigation, address, cartItems, total]);
+  }, [navigation, address, cartItems, total]); // Không cần selectedVoucher vì đã dùng ref
 
   const handlePay = () => {
     if (!address) {
