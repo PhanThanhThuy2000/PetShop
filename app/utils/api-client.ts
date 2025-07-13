@@ -2,7 +2,7 @@
 // app/utils/api.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-export const API_BASE_URL = "http://192.168.0.104:5000/api"
+export const API_BASE_URL = "http://172.20.192.1:5000/api"
 // app/utils/api.ts
 
 // Ngân hàng: NCB
@@ -10,7 +10,6 @@ export const API_BASE_URL = "http://192.168.0.104:5000/api"
 // Tên chủ thẻ: NGUYEN VAN A
 // Ngày phát hành: 07/15
 // Mật khẩu OTP: 123456
-export const API_BASE_URL = 'http://192.168.1.134:5000/api';
 //192.168.1.134 - duc
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -27,7 +26,6 @@ api.interceptors.request.use(
       const token = await AsyncStorage.getItem("token");
       if (token && token !== "null") {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log("Interceptor: Token attached:", config.headers.Authorization);
       } else {
         console.log("Interceptor: No valid token found.");
       }
@@ -44,7 +42,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      console.warn("Interceptor: 401 Unauthorized -> clearing token.");
+      // console.warn("Interceptor: 401 Unauthorized -> clearing token.");
       await AsyncStorage.removeItem("token");
       // TODO: Optional - navigate to login screen here
     }

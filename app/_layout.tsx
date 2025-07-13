@@ -32,6 +32,7 @@ import OrderSuccess from './screens/OrderSuccessScreen';
 import PasswordCodeScreen from './screens/PasswordCodeScreen';
 import PaymentScreen from './screens/PaymentScreen';
 import PetAllScreen from './screens/PetAllScreen';
+import PetsByBreedScreen from './screens/PetsByBreedScreen';
 import ProductDetailScreen from './screens/ProductDetailScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -42,7 +43,6 @@ import ShippingAddressScreen from './screens/ShippingAddressScreen';
 import UniversalSearchScreen from './screens/UniversalSearchScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
-import PetsByBreedScreen from './screens/PetsByBreedScreen';
 
 const Stack = createStackNavigator();
 
@@ -167,7 +167,7 @@ const AppNavigator = () => {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="ListAdress"
+        name="ListAddress"
         component={ListAdressScreen}
         options={{ headerShown: false }}
       />
