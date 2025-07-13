@@ -1,8 +1,9 @@
-import { Entypo, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ApiResponse, Order, OrderItem } from '../types/index'; // Cập nhật import
+import { Alert, Image, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { vouchersService } from '../services/vouchersService';
+import { ApiResponse, Order, OrderItem, Voucher } from '../types/index';
 import api, { API_BASE_URL } from '../utils/api-client';
 
 // Define Address interface (consistent with ListAddressScreen)
@@ -29,6 +30,9 @@ const PaymentScreen = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
   const [address, setAddress] = useState<Address | null>(selectedAddress);
   const [loadingAddress, setLoadingAddress] = useState<boolean>(true);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
+  const [userVouchers, setUserVouchers] = useState<Voucher[]>([]);
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
 
   const SERVER_URLS = [API_BASE_URL.replace(/\/api$/, '')];
 
@@ -47,7 +51,35 @@ const PaymentScreen = () => {
     }
   };
 
+  const fetchUserVouchers = async () => {
+    try {
+      const response = await api.get('/vouchers');
+      if (response.data.success) {
+        const validVouchers = response.data.data.filter((voucher: Voucher) => {
+          const isNotExpired = new Date(voucher.expiry_date) > new Date();
+          const hasUsageLeft = (voucher.used_count || 0) < voucher.max_usage;
+          const meetsMinAmount = total >= voucher.min_purchase_amount;
+          return isNotExpired && hasUsageLeft && meetsMinAmount && voucher.status === 'active';
+        });
+        setUserVouchers(validVouchers);
+        // console.log('Fetched user vouchers:', validVouchers);
+      }
+    } catch (error) {
+      console.error('Error fetching user vouchers:', error);
+    }
+  };
+
+  const calculateDiscount = () => {
+    if (!selectedVoucher) return 0;
+    if (selectedVoucher.discount_type === 'percentage') {
+      return Math.min(total * (selectedVoucher.discount_value / 100), total * 0.5);
+    } else {
+      return Math.min(selectedVoucher.discount_value, total);
+    }
+  };
+
   useEffect(() => {
+    console.log('Received total from route.params:', total);
     if (selectedAddress) {
       setAddress(selectedAddress);
       setLoadingAddress(false);
@@ -69,10 +101,14 @@ const PaymentScreen = () => {
     return () => unsubscribe;
   }, [navigation, selectedAddress, total]);
 
+  useEffect(() => {
+    fetchUserVouchers();
+  }, [total]);
+
   const summaryData = {
     merchandiseSubtotal: total && !isNaN(total) && total > 0 ? total.toLocaleString('vi-VN') + ' ₫' : '0 ₫',
     shippingSubtotal: shippingMethod === 'standard' ? '0 ₫' : '50.000 ₫',
-    discount: '10.000 ₫',
+    discount: selectedVoucher ? calculateDiscount().toLocaleString('vi-VN') + ' ₫' : '0 ₫',
   };
 
   const parseCurrency = (currency: string): number => {
@@ -93,9 +129,9 @@ const PaymentScreen = () => {
   const calculateTotal = () => {
     const merchandise = parseCurrency(summaryData.merchandiseSubtotal);
     const shipping = parseCurrency(summaryData.shippingSubtotal);
-    const discount = parseCurrency(summaryData.discount);
+    const discount = calculateDiscount();
 
-    console.log('Calculating total:', { merchandise, shipping, discount, inputTotal: total });
+    // console.log('Calculating total:', { merchandise, shipping, discount, inputTotal: total });
 
     if (!total || isNaN(total) || total <= 0) {
       console.warn('Invalid total from route.params:', total);
@@ -106,40 +142,35 @@ const PaymentScreen = () => {
     const totalCalculated = merchandise + shipping - discount;
     return isNaN(totalCalculated) ? 0 : Math.max(totalCalculated, 0);
   };
+
   const createOrderAndOrderItem = async (vnpayData: any) => {
     try {
-      console.log('vnpayData:', vnpayData);
-      console.log('cartItems:', JSON.stringify(cartItems, null, 2));
-      console.log('address:', address);
-
-      // Bước 1: Tạo Order
       const orderData = {
         total_amount: calculateTotal(),
-        status: vnpayData.vnp_ResponseCode === '00' && vnpayData.vnp_TransactionStatus === '00' ? 'completed' : 'pending',
+        status: vnpayData.paymentMethod === 'cod' ? 'completed' : (vnpayData.vnp_ResponseCode === '00' && vnpayData.vnp_TransactionStatus === '00' ? 'completed' : 'pending'),
         payment_method: vnpayData.paymentMethod || 'vnpay',
         vnpay_transaction_id: vnpayData.vnp_TxnRef || null,
         payment_date: vnpayData.vnp_PayDate || null,
-        user_id: vnpayData.user_id, // Thay bằng user_id thực tế từ context hoặc token
+        voucher_id: selectedVoucher?._id || null,
+        discount_amount: calculateDiscount(),
       };
       const orderResponse = await api.post<ApiResponse<Order>>('/orders', orderData);
       const savedOrder = orderResponse.data.data;
       console.log('Order created:', savedOrder);
 
-      // Bước 2: Tạo OrderItem cho mỗi mục trong cartItems
       let validItemsCount = 0;
       for (const item of cartItems) {
         console.log('Processing item:', JSON.stringify(item, null, 2));
         const orderItemData = {
           quantity: item.quantity || 1,
           unit_price: item.price,
-          pet_id: item.type === 'pet' ? item.id : null, // Gán id vào pet_id nếu type là pet
-          product_id: item.type === 'product' ? item.id : null, // Gán id vào product_id nếu type là product
+          pet_id: item.type === 'pet' ? item.id : null,
+          product_id: item.type === 'product' ? item.id : null,
           order_id: savedOrder._id,
           addresses_id: address?._id,
         };
 
-
-        console.log('orderItemData:', orderItemData);
+        // console.log('orderItemData:', orderItemData);
         if (!orderItemData.pet_id && !orderItemData.product_id) {
           console.error('Invalid order item: missing both pet_id and product_id', orderItemData);
           Alert.alert('Lỗi', `Không thể tạo mục đơn hàng cho ${item.title || 'Unknown Item'}: Thiếu pet_id hoặc product_id`);
@@ -147,16 +178,63 @@ const PaymentScreen = () => {
         }
 
         const orderItemResponse = await api.post<ApiResponse<OrderItem>>('/order_items', orderItemData);
-        console.log('OrderItem created:', orderItemResponse.data.data);
+        // console.log('OrderItem created:', orderItemResponse.data.data);
         validItemsCount++;
       }
 
-      // Kiểm tra xem có OrderItem nào được tạo không
       if (validItemsCount === 0) {
         throw new Error('No valid order items were created');
       }
 
-      // Chuyển hướng đến màn hình thành công
+      if (selectedVoucher && savedOrder.status === 'completed') {
+        const isValidVoucher =
+          selectedVoucher.status === 'active' &&
+          (selectedVoucher.used_count || 0) < selectedVoucher.max_usage &&
+          new Date(selectedVoucher.expiry_date) > new Date() &&
+          total >= selectedVoucher.min_purchase_amount;
+
+        if (!isValidVoucher) {
+          console.log('Invalid voucher details:', {
+            status: selectedVoucher.status,
+            used_count: selectedVoucher.used_count,
+            max_usage: selectedVoucher.max_usage,
+            expiry_date: selectedVoucher.expiry_date,
+            total,
+            min_purchase_amount: selectedVoucher.min_purchase_amount,
+          });
+          Alert.alert('Lỗi', 'Voucher không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra chi tiết trong console.');
+          return;
+        }
+
+        try {
+          const updateData = {
+            status: 'used' as 'pending' | 'active' | 'inactive' | 'expired' | 'used',
+            used_count: (selectedVoucher.used_count || 0) + 1,
+            used_at: new Date().toISOString(),
+          };
+          console.log('Updating voucher with data:', updateData);
+          const updatedVoucher = await vouchersService.updateVoucher(selectedVoucher._id, updateData);
+          console.log('API response for updateVoucher:', updatedVoucher);
+
+          setSelectedVoucher({
+            ...selectedVoucher,
+            status: updateData.status,
+            used_count: updateData.used_count,
+            used_at: updateData.used_at,
+          });
+          console.log('Updated selectedVoucher:', {
+            status: updateData.status,
+            used_count: updateData.used_count,
+            used_at: updateData.used_at,
+          });
+
+          fetchUserVouchers();
+        } catch (error: any) {
+          console.error('Error using voucher:', error.response?.data || error.message);
+          Alert.alert('Lỗi', `Không thể cập nhật trạng thái voucher: ${error.response?.data?.message || error.message}`);
+        }
+      }
+
       navigation.navigate('OrderSuccess', { orderId: savedOrder._id });
     } catch (error: any) {
       console.error('Lỗi khi tạo Order/OrderItem:', error.response?.data || error.message);
@@ -262,10 +340,15 @@ const PaymentScreen = () => {
         const transactionStatus = urlParams.get('vnp_TransactionStatus');
         const vnpayData = Object.fromEntries(urlParams);
 
-        console.log('VNPay response:', vnpayData); // Thêm log để gỡ lỗi
+        console.log('VNPay response:', vnpayData);
 
         if (responseCode === '00' && transactionStatus === '00') {
           await createOrderAndOrderItem(vnpayData);
+          if (selectedVoucher) {
+            Alert.alert('Thành công', `Thanh toán hoàn tất! Voucher ${selectedVoucher.title || 'Giảm giá'} đã được sử dụng.`);
+          } else {
+            Alert.alert('Thành công', 'Thanh toán hoàn tất!');
+          }
         } else {
           Alert.alert('Lỗi', 'Thanh toán thất bại. Vui lòng thử lại.');
         }
@@ -282,10 +365,15 @@ const PaymentScreen = () => {
         const transactionStatus = urlParams.get('vnp_TransactionStatus');
         const vnpayData = Object.fromEntries(urlParams);
 
-        console.log('VNPay initial URL response:', vnpayData); // Thêm log để gỡ lỗi
+        console.log('VNPay initial URL response:', vnpayData);
 
         if (responseCode === '00' && transactionStatus === '00') {
           await createOrderAndOrderItem(vnpayData);
+          if (selectedVoucher) {
+            Alert.alert('Thành công', `Thanh toán hoàn tất! Voucher ${selectedVoucher.title || 'Giảm giá'} đã được sử dụng.`);
+          } else {
+            Alert.alert('Thành công', 'Thanh toán hoàn tất!');
+          }
         } else {
           Alert.alert('Lỗi', 'Thanh toán thất bại. Vui lòng thử lại.');
         }
@@ -296,6 +384,7 @@ const PaymentScreen = () => {
       subscription.remove();
     };
   }, [navigation, address, cartItems, total]);
+
   const handlePay = () => {
     if (!address) {
       Alert.alert('Lỗi', 'Vui lòng chọn hoặc thêm địa chỉ giao hàng');
@@ -307,141 +396,257 @@ const PaymentScreen = () => {
       handleVNPAYPayment();
     } else if (paymentMethod === 'cod') {
       createOrderAndOrderItem({ paymentMethod: 'cod' });
+      if (selectedVoucher) {
+        Alert.alert('Thành công', `Đơn hàng đã được tạo! Voucher ${selectedVoucher.title || 'Giảm giá'} đã được sử dụng.`);
+      } else {
+        Alert.alert('Thành công', 'Đơn hàng đã được tạo!');
+      }
     } else {
-      Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán موجود');
+      Alert.alert('Lỗi', 'Vui lòng chọn phương thức thanh toán');
     }
   };
 
+  const VoucherModal = () => (
+    <Modal
+      visible={showVoucherModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => setShowVoucherModal(false)}>
+            <Ionicons name="close" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>Chọn Voucher</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <ScrollView style={styles.modalContent}>
+          <TouchableOpacity
+            style={[styles.voucherOption, !selectedVoucher && styles.voucherSelected]}
+            onPress={() => {
+              setSelectedVoucher(null);
+              setShowVoucherModal(false);
+            }}
+          >
+            <Text style={styles.voucherOptionText}>Không sử dụng voucher</Text>
+            {!selectedVoucher && <Ionicons name="checkmark-circle" size={20} color="#1976D2" />}
+          </TouchableOpacity>
+
+          {userVouchers.map((voucher) => (
+            <TouchableOpacity
+              key={voucher._id}
+              style={[
+                styles.voucherOption,
+                selectedVoucher?._id === voucher._id && styles.voucherSelected
+              ]}
+              onPress={() => {
+                setSelectedVoucher(voucher);
+                setShowVoucherModal(false);
+              }}
+            >
+              <View style={styles.voucherInfo}>
+                <View style={[styles.voucherIcon, { backgroundColor: voucher.textColor || '#ff6b6b' }]}>
+                  <Ionicons name="pricetag" size={16} color="#fff" />
+                </View>
+                <View style={styles.voucherDetails}>
+                  <Text style={styles.voucherTitle}>{voucher.title || 'Voucher'}</Text>
+                  <Text style={styles.voucherDiscount}>
+                    {voucher.discount_type === 'percentage'
+                      ? `Giảm ${voucher.discount_value}%`
+                      : `Giảm ${voucher.discount_value.toLocaleString('vi-VN')} ₫`}
+                  </Text>
+                  <Text style={styles.voucherCondition}>
+                    Đơn tối thiểu: {voucher.min_purchase_amount.toLocaleString('vi-VN')} ₫
+                  </Text>
+                  <Text style={styles.voucherExpiry}>
+                    HSD: {new Date(voucher.expiry_date).toLocaleDateString('vi-VN')}
+                  </Text>
+                </View>
+              </View>
+              {selectedVoucher?._id === voucher._id && (
+                <Ionicons name="checkmark-circle" size={20} color="#1976D2" />
+              )}
+            </TouchableOpacity>
+          ))}
+
+          {userVouchers.length === 0 && (
+            <View style={styles.emptyVoucher}>
+              <Text style={styles.emptyVoucherText}>Không có voucher khả dụng</Text>
+              <TouchableOpacity
+                style={styles.goToVoucherBtn}
+                onPress={() => {
+                  setShowVoucherModal(false);
+                  navigation.navigate('VoucherScreen');
+                }}
+              >
+                <Text style={styles.goToVoucherBtnText}>Xem thêm voucher</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payment</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      {/* Address */}
-      <View style={styles.addressBox}>
-        {loadingAddress ? (
-          <Text style={styles.gray}>Đang tải địa chỉ...</Text>
-        ) : address ? (
-          <>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.bold}>
-                {address.name} <Text style={styles.gray}>({address.phone})</Text>
-              </Text>
-              <Text style={styles.gray}>
-                {`${address.note}, ${address.ward}, ${address.district}, ${address.province}, ${address.postal_code}, ${address.country}`}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => navigation.navigate('ListAddress', { selectMode: true, cartItems, total })}>
-              <MaterialIcons name="edit" size={20} color="#1976D2" />
+    <>
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Payment</Text>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.voucherSelector}
+              onPress={() => setShowVoucherModal(true)}
+            >
+              {selectedVoucher ? (
+                <View style={styles.selectedVoucherTag}>
+                  <Ionicons name="pricetag" size={12} color="#fff" />
+                  <Text style={styles.selectedVoucherText}>
+                    {selectedVoucher.discount_type === 'percentage'
+                      ? `${selectedVoucher.discount_value}% off`
+                      : `${selectedVoucher.discount_value.toLocaleString('vi-VN')} ₫ off`}
+                  </Text>
+                  <Ionicons name="chevron-down" size={12} color="#fff" />
+                </View>
+              ) : (
+                <View style={styles.noVoucherTag}>
+                  <Ionicons name="add" size={12} color="#1976D2" />
+                  <Text style={styles.noVoucherText}>Chọn voucher</Text>
+                  <Ionicons name="chevron-down" size={12} color="#1976D2" />
+                </View>
+              )}
             </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.gray}>Chưa có địa chỉ</Text>
-            </View>
-            <TouchableOpacity onPress={() => navigation.navigate('ListAddress', { selectMode: true, cartItems, total })}>
-              <MaterialIcons name="add" size={20} color="#1976D2" />
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-
-      {/* Items */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Items</Text>
-          <View style={styles.discountTag}>
-            <Text style={styles.discountText}>5% Discount</Text>
-            <Entypo name="cross" size={12} color="#fff" />
           </View>
         </View>
-        {cartItems.map((item: any) => (
-          <ItemRow
-            key={item.id}
-            name={item.title}
-            price={(item.price * item.quantity).toLocaleString('vi-VN') + ' ₫'}
-            image={item.image?.uri || item.image}
-          />
-        ))}
-      </View>
 
-      {/* Shipping Options */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Shipping Options</Text>
-        <TouchableOpacity
-          style={[styles.shippingOption, shippingMethod === 'standard' && styles.shippingActive]}
-          onPress={() => setShippingMethod('standard')}
-        >
-          <View style={styles.radioCircle}>
-            {shippingMethod === 'standard' && <View style={styles.selectedDot} />}
-          </View>
-          <View style={styles.shippingLabel}>
-            <Text style={styles.shippingText}>Standard</Text>
-            <Text style={styles.shippingTime}>5-7 days</Text>
-          </View>
-          <Text style={styles.shippingFree}>FREE</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.shippingOption, shippingMethod === 'express' && styles.shippingActive]}
-          onPress={() => setShippingMethod('express')}
-        >
-          <View style={styles.radioCircle}>
-            {shippingMethod === 'express' && <View style={styles.selectedDot} />}
-          </View>
-          <View style={styles.shippingLabel}>
-            <Text style={styles.shippingText}>Express</Text>
-            <Text style={styles.shippingTime}>1-2 days</Text>
-          </View>
-          <Text style={styles.shippingPrice}>50.000 ₫</Text>
-        </TouchableOpacity>
-        <Text style={styles.deliveryNote}>Delivered on or before Thursday, 23 April 2020</Text>
-      </View>
+        <View style={styles.addressBox}>
+          {loadingAddress ? (
+            <Text style={styles.gray}>Đang tải địa chỉ...</Text>
+          ) : address ? (
+            <>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.bold}>
+                  {address.name} <Text style={styles.gray}>({address.phone})</Text>
+                </Text>
+                <Text style={styles.gray}>
+                  {`${address.note}, ${address.ward}, ${address.district}, ${address.province}, ${address.postal_code}, ${address.country}`}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => navigation.navigate('ListAddress', { selectMode: true, cartItems, total })}>
+                <MaterialIcons name="edit" size={20} color="#1976D2" />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.gray}>Chưa có địa chỉ</Text>
+              </View>
+              <TouchableOpacity onPress={() => navigation.navigate('ListAddress', { selectMode: true, cartItems, total })}>
+                <MaterialIcons name="add" size={20} color="#1976D2" />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
 
-      {/* Payment Method */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payment Method</Text>
-        {[
-          { id: 'cod', label: 'Cash on Delivery', icon: 'money-check' },
-          { id: 'vnpay', label: 'Vn Pay', icon: 'money-bill-wave' },
-        ].map((method) => (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Items</Text>
+          </View>
+          {cartItems.map((item: any) => (
+            <ItemRow
+              key={item.id}
+              name={item.title}
+              price={(item.price * item.quantity).toLocaleString('vi-VN') + ' ₫'}
+              image={item.image?.uri || item.image}
+            />
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Shipping Options</Text>
           <TouchableOpacity
-            key={method.id}
-            style={styles.paymentOption}
-            onPress={() => setPaymentMethod(method.id as any)}
+            style={[styles.shippingOption, shippingMethod === 'standard' && styles.shippingActive]}
+            onPress={() => setShippingMethod('standard')}
           >
-            <FontAwesome5 name={method.icon as any} size={20} color="#1976D2" style={{ width: 30 }} />
-            <Text style={{ flex: 1 }}>{method.label}</Text>
             <View style={styles.radioCircle}>
-              {paymentMethod === method.id && <View style={styles.selectedDot} />}
+              {shippingMethod === 'standard' && <View style={styles.selectedDot} />}
             </View>
+            <View style={styles.shippingLabel}>
+              <Text style={styles.shippingText}>Standard</Text>
+              <Text style={styles.shippingTime}>5-7 days</Text>
+            </View>
+            <Text style={styles.shippingFree}>FREE</Text>
           </TouchableOpacity>
-        ))}
-      </View>
+          <TouchableOpacity
+            style={[styles.shippingOption, shippingMethod === 'express' && styles.shippingActive]}
+            onPress={() => setShippingMethod('express')}
+          >
+            <View style={styles.radioCircle}>
+              {shippingMethod === 'express' && <View style={styles.selectedDot} />}
+            </View>
+            <View style={styles.shippingLabel}>
+              <Text style={styles.shippingText}>Express</Text>
+              <Text style={styles.shippingTime}>1-2 days</Text>
+            </View>
+            <Text style={styles.shippingPrice}>50.000 ₫</Text>
+          </TouchableOpacity>
+          <Text style={styles.deliveryNote}>Delivered on or before Thursday, 23 April 2020</Text>
+        </View>
 
-      {/* Summary */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Summary</Text>
-        <SummaryRow label="Merchandise Subtotal" value={summaryData.merchandiseSubtotal} />
-        <SummaryRow label="Shipping Subtotal" value={summaryData.shippingSubtotal} />
-        <SummaryRow label="Discount" value={summaryData.discount} />
-      </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Method</Text>
+          {[
+            { id: 'cod', label: 'Cash on Delivery', icon: 'money-check' },
+            { id: 'vnpay', label: 'Vn Pay', icon: 'money-bill-wave' },
+          ].map((method) => (
+            <TouchableOpacity
+              key={method.id}
+              style={styles.paymentOption}
+              onPress={() => setPaymentMethod(method.id as any)}
+            >
+              <FontAwesome5 name={method.icon as any} size={20} color="#1976D2" style={{ width: 30 }} />
+              <Text style={{ flex: 1 }}>{method.label}</Text>
+              <View style={styles.radioCircle}>
+                {paymentMethod === method.id && <View style={styles.selectedDot} />}
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      {/* Total */}
-      <View style={styles.totalRow}>
-        <Text style={styles.totalText}>Total</Text>
-        <Text style={styles.totalPrice}>{calculateTotal().toLocaleString('vi-VN') + ' ₫'}</Text>
-      </View>
-      <TouchableOpacity style={styles.payButton} onPress={handlePay}>
-        <Text style={styles.payText}>Pay</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Summary</Text>
+          <SummaryRow label="Merchandise Subtotal" value={summaryData.merchandiseSubtotal} />
+          <SummaryRow label="Shipping Subtotal" value={summaryData.shippingSubtotal} />
+          {selectedVoucher && (
+            <View style={styles.voucherDiscountRow}>
+              <View style={styles.voucherDiscountLabel}>
+                <Ionicons name="pricetag" size={16} color="#1976D2" />
+                <Text style={styles.voucherDiscountText}>
+                  Voucher ({selectedVoucher.title || 'Giảm giá'})
+                </Text>
+              </View>
+              <Text style={styles.voucherDiscountValue}>
+                -{calculateDiscount().toLocaleString('vi-VN')} ₫
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.totalRow}>
+          <Text style={styles.totalText}>Total</Text>
+          <Text style={styles.totalPrice}>{calculateTotal().toLocaleString('vi-VN') + ' ₫'}</Text>
+        </View>
+        <TouchableOpacity style={styles.payButton} onPress={handlePay}>
+          <Text style={styles.payText}>Pay</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      <VoucherModal />
+    </>
   );
 };
 
@@ -462,6 +667,7 @@ const SummaryRow = ({ label, value }: { label: string; value: string }) => (
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: 16,
     backgroundColor: '#fff',
   },
@@ -475,6 +681,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   addressBox: {
     backgroundColor: '#F2F2F2',
@@ -503,8 +713,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  discountTag: {
+  voucherSelector: {
+    marginLeft: 10,
+  },
+  selectedVoucherTag: {
     flexDirection: 'row',
     backgroundColor: '#1976D2',
     paddingHorizontal: 10,
@@ -513,9 +727,148 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  discountText: {
+  selectedVoucherText: {
     color: '#fff',
     fontSize: 12,
+    fontWeight: '500',
+  },
+  noVoucherTag: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f8ff',
+    borderWidth: 1,
+    borderColor: '#1976D2',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    alignItems: 'center',
+    gap: 4,
+  },
+  noVoucherText: {
+    color: '#1976D2',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  voucherOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+  },
+  voucherSelected: {
+    borderColor: '#1976D2',
+    backgroundColor: '#f0f8ff',
+  },
+  voucherOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  voucherInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  voucherIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  voucherDetails: {
+    flex: 1,
+  },
+  voucherTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+  voucherDiscount: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1976D2',
+    marginBottom: 2,
+  },
+  voucherDiscountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#f0f8ff',
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: '#1976D2',
+  },
+  voucherDiscountLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  voucherDiscountText: {
+    color: '#1976D2',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  voucherDiscountValue: {
+    color: '#1976D2',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  voucherCondition: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 1,
+  },
+  voucherExpiry: {
+    fontSize: 12,
+    color: '#999',
+  },
+  emptyVoucher: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyVoucherText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 16,
+  },
+  goToVoucherBtn: {
+    backgroundColor: '#1976D2',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  goToVoucherBtnText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   itemRow: {
     flexDirection: 'row',

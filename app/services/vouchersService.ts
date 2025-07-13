@@ -1,4 +1,3 @@
-// api-services.ts
 import { ApiResponse, Voucher } from '../types';
 import api from '../utils/api-client';
 
@@ -12,6 +11,16 @@ export const vouchersService = {
 
     async saveVoucher(voucherId: string) {
         const response = await api.post<ApiResponse<Voucher>>(`/vouchers/save/${voucherId}`, {});
+        return response.data;
+    },
+
+    async updateVoucher(voucherId: string, updateData: { status: 'pending' | 'active' | 'inactive' | 'expired' | 'used'; used_count: number; used_at: string }) {
+        const response = await api.put<ApiResponse<Voucher>>(`/vouchers/${voucherId}`, {
+            isUsingVoucher: true,
+            status: updateData.status,
+            used_count: updateData.used_count,
+            used_at: updateData.used_at
+        });
         return response.data;
     }
 };
