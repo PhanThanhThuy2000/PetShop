@@ -76,11 +76,15 @@ const PaymentScreen = () => {
   };
 
   const calculateDiscount = () => {
-    if (!selectedVoucher) return 0;
-    if (selectedVoucher.discount_type === 'percentage') {
-      return Math.min(total * (selectedVoucher.discount_value / 100), total * 0.5);
+    // Ưu tiên sử dụng voucher từ ref, fallback về state
+    const currentVoucher = selectedVoucherRef.current || selectedVoucher;
+
+    if (!currentVoucher) return 0;
+
+    if (currentVoucher.discount_type === 'percentage') {
+      return Math.min(total * (currentVoucher.discount_value / 100), total * 0.5);
     } else {
-      return Math.min(selectedVoucher.discount_value, total);
+      return Math.min(currentVoucher.discount_value, total);
     }
   };
 
@@ -135,9 +139,16 @@ const PaymentScreen = () => {
   const calculateTotal = () => {
     const merchandise = parseCurrency(summaryData.merchandiseSubtotal);
     const shipping = parseCurrency(summaryData.shippingSubtotal);
-    const discount = calculateDiscount();
+    const discount = calculateDiscount(); // Sử dụng calculateDiscount() trực tiếp
 
-    // console.log('Calculating total:', { merchandise, shipping, discount, inputTotal: total });
+    console.log('Calculating total:', {
+      merchandise,
+      shipping,
+      discount,
+      inputTotal: total,
+      selectedVoucher: selectedVoucher?._id,
+      voucherDiscount: selectedVoucher ? calculateDiscount() : 0
+    });
 
     if (!total || isNaN(total) || total <= 0) {
       console.warn('Invalid total from route.params:', total);
@@ -146,7 +157,10 @@ const PaymentScreen = () => {
     }
 
     const totalCalculated = merchandise + shipping - discount;
-    return isNaN(totalCalculated) ? 0 : Math.max(totalCalculated, 0);
+    const finalTotal = isNaN(totalCalculated) ? 0 : Math.max(totalCalculated, 0);
+
+    console.log('Final calculated total:', finalTotal);
+    return finalTotal;
   };
 
   // Hàm cập nhật voucher thành used (dùng chung cho COD và VNPay)
