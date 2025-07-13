@@ -61,14 +61,38 @@ const PaymentScreen = () => {
     try {
       const response = await api.get('/vouchers');
       if (response.data.success) {
+        // Nếu có thể lấy được user ID hiện tại, uncomment dòng này và thay thế getCurrentUserId()
+        // const currentUserId = getCurrentUserId(); 
+
         const validVouchers = response.data.data.filter((voucher: Voucher) => {
           const isNotExpired = new Date(voucher.expiry_date) > new Date();
           const hasUsageLeft = (voucher.used_count || 0) < voucher.max_usage;
           const meetsMinAmount = total >= voucher.min_purchase_amount;
-          return isNotExpired && hasUsageLeft && meetsMinAmount && voucher.status === 'active';
+          const isActive = voucher.status === 'active';
+
+          // Kiểm tra user đã lưu voucher này chưa
+          const isSavedByUser = voucher.saved_by_users && voucher.saved_by_users.length > 0;
+
+          // Nếu có currentUserId, có thể check chính xác hơn:
+          // const isSavedByUser = voucher.saved_by_users && voucher.saved_by_users.includes(currentUserId);
+
+          console.log('Filtering voucher:', {
+            voucherId: voucher._id,
+            title: voucher.title,
+            isNotExpired,
+            hasUsageLeft,
+            meetsMinAmount,
+            isActive,
+            isSavedByUser,
+            saved_by_users_count: voucher.saved_by_users?.length || 0
+          });
+
+          return isNotExpired && hasUsageLeft && meetsMinAmount && isActive && isSavedByUser;
         });
+
         setUserVouchers(validVouchers);
-        // console.log('Fetched user vouchers:', validVouchers);
+        console.log('Fetched valid saved vouchers:', validVouchers.length);
+        console.log('Valid vouchers:', validVouchers.map(v => ({ id: v._id, title: v.title })));
       }
     } catch (error) {
       console.error('Error fetching user vouchers:', error);
@@ -539,7 +563,8 @@ const PaymentScreen = () => {
 
           {userVouchers.length === 0 && (
             <View style={styles.emptyVoucher}>
-              <Text style={styles.emptyVoucherText}>Không có voucher khả dụng</Text>
+              <Text style={styles.emptyVoucherText}>Không có voucher đã lưu nào khả dụng</Text>
+              <Text style={styles.emptyVoucherSubText}>Hãy lưu voucher từ trang voucher để sử dụng khi thanh toán</Text>
               <TouchableOpacity
                 style={styles.goToVoucherBtn}
                 onPress={() => {
@@ -547,7 +572,7 @@ const PaymentScreen = () => {
                   navigation.navigate('VoucherScreen');
                 }}
               >
-                <Text style={styles.goToVoucherBtnText}>Xem thêm voucher</Text>
+                <Text style={styles.goToVoucherBtnText}>Xem và lưu voucher</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -925,7 +950,15 @@ const styles = StyleSheet.create({
   emptyVoucherText: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyVoucherSubText: {
+    fontSize: 14,
+    color: '#999',
     marginBottom: 16,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   goToVoucherBtn: {
     backgroundColor: '#1976D2',
