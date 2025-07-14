@@ -26,7 +26,6 @@ api.interceptors.request.use(
       const token = await AsyncStorage.getItem("token");
       if (token && token !== "null") {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log("Interceptor: Token attached:", config.headers.Authorization);
       } else {
         console.log("Interceptor: No valid token found.");
       }
@@ -43,7 +42,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      console.warn("Interceptor: 401 Unauthorized -> clearing token.");
+      // console.warn("Interceptor: 401 Unauthorized -> clearing token.");
       await AsyncStorage.removeItem("token");
       // TODO: Optional - navigate to login screen here
     }

@@ -324,7 +324,7 @@ export interface Voucher {
   expiry_date: string;
   max_usage: number;
   used_count?: number;
-  status: 'active' | 'inactive' | 'pending' | 'expired';
+  status: 'active' | 'inactive' | 'pending' | 'expired' |'used';
   textColor?: string;
   color?: string;
   isDashed?: boolean;

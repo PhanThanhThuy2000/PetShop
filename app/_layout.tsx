@@ -33,6 +33,7 @@ import OrderSuccess from './screens/OrderSuccessScreen';
 import PasswordCodeScreen from './screens/PasswordCodeScreen';
 import PaymentScreen from './screens/PaymentScreen';
 import PetAllScreen from './screens/PetAllScreen';
+import PetsByBreedScreen from './screens/PetsByBreedScreen';
 import ProductDetailScreen from './screens/ProductDetailScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -167,7 +168,7 @@ const AppNavigator = () => {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="ListAdress"
+        name="ListAddress"
         component={ListAdressScreen}
         options={{ headerShown: false }}
       />
@@ -229,6 +230,10 @@ const AppNavigator = () => {
          <Stack.Screen
         name="AddReviewScreen"
         component={AddReviewScreen}
+         />
+      <Stack.Screen
+        name="PetsByBreed"
+        component={PetsByBreedScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
