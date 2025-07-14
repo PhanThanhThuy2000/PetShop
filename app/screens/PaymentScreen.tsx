@@ -91,8 +91,6 @@ const PaymentScreen = () => {
         });
 
         setUserVouchers(validVouchers);
-        console.log('Fetched valid saved vouchers:', validVouchers.length);
-        console.log('Valid vouchers:', validVouchers.map(v => ({ id: v._id, title: v.title })));
       }
     } catch (error) {
       console.error('Error fetching user vouchers:', error);
@@ -589,30 +587,7 @@ const PaymentScreen = () => {
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Payment</Text>
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.voucherSelector}
-              onPress={() => setShowVoucherModal(true)}
-            >
-              {selectedVoucher ? (
-                <View style={styles.selectedVoucherTag}>
-                  <Ionicons name="pricetag" size={12} color="#fff" />
-                  <Text style={styles.selectedVoucherText}>
-                    {selectedVoucher.discount_type === 'percentage'
-                      ? `${selectedVoucher.discount_value}% off`
-                      : `${selectedVoucher.discount_value.toLocaleString('vi-VN')} ₫ off`}
-                  </Text>
-                  <Ionicons name="chevron-down" size={12} color="#fff" />
-                </View>
-              ) : (
-                <View style={styles.noVoucherTag}>
-                  <Ionicons name="add" size={12} color="#1976D2" />
-                  <Text style={styles.noVoucherText}>Chọn voucher</Text>
-                  <Ionicons name="chevron-down" size={12} color="#1976D2" />
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
+          <View style={{ width: 24 }} />
         </View>
 
         <View style={styles.addressBox}>
@@ -647,6 +622,28 @@ const PaymentScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Items</Text>
+            <TouchableOpacity
+              style={styles.voucherSelector}
+              onPress={() => setShowVoucherModal(true)}
+            >
+              {selectedVoucher ? (
+                <View style={styles.selectedVoucherTag}>
+                  <Ionicons name="pricetag" size={12} color="#fff" />
+                  <Text style={styles.selectedVoucherText}>
+                    {selectedVoucher.discount_type === 'percentage'
+                      ? `${selectedVoucher.discount_value}% off`
+                      : `${selectedVoucher.discount_value.toLocaleString('vi-VN')} ₫ off`}
+                  </Text>
+                  <Ionicons name="chevron-down" size={12} color="#fff" />
+                </View>
+              ) : (
+                <View style={styles.noVoucherTag}>
+                  <Ionicons name="add" size={12} color="#1976D2" />
+                  <Text style={styles.noVoucherText}>Chọn voucher</Text>
+                  <Ionicons name="chevron-down" size={12} color="#1976D2" />
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
           {cartItems.map((item: any) => (
             <ItemRow
@@ -774,10 +771,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   addressBox: {
     backgroundColor: '#F2F2F2',
     padding: 14,
@@ -808,7 +801,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   voucherSelector: {
-    marginLeft: 10,
+    flexShrink: 0,
   },
   selectedVoucherTag: {
     flexDirection: 'row',
