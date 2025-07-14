@@ -1,5 +1,6 @@
-import type { ApiResponse, Order, OrderItem, Pet, Product, Voucher } from "../types";
-import api from "../utils/api-client";
+// api-services.ts
+import { ApiResponse, Pet, Product } from '../types';
+import api from '../utils/api-client';
 
 export const petsService = {
   async getPets(params: { page?: number; limit?: number; type?: string } = {}) {
@@ -42,47 +43,7 @@ export const productsService = {
   },
 
   async getProductById(id: string) {
-    const response = await api.get<ApiResponse<Product>>(`/products/${id}`)
-    return response.data
+    const response = await api.get<ApiResponse<Product>>(`/products/${id}`);
+    return response.data;
   },
-}
-
-export const ordersService = {
-  async getMyOrders(params: { page?: number; limit?: number } = {}) {
-    const { page = 1, limit = 10 } = params
-    const response = await api.get<ApiResponse<Order[]>>(`/orders?page=${page}&limit=${limit}`)
-    return response.data
-  },
-
-  async getOrderById(id: string) {
-    const response = await api.get<ApiResponse<Order>>(`/orders/${id}`)
-    return response.data
-  },
-
-  async getMyOrderItems(params: { page?: number; limit?: number } = {}) {
-    const { page = 1, limit = 10 } = params
-    const response = await api.get<ApiResponse<OrderItem[]>>(`/order_items?page=${page}&limit=${limit}`)
-    return response.data
-  },
-  async getOrderItemsByOrderId(orderId: string, params: { page?: number; limit?: number } = {}) {
-    const { page = 1, limit = 10 } = params
-    const response = await api.get<ApiResponse<OrderItem[]>>(
-      `/order_items/${orderId}/order_items?page=${page}&limit=${limit}`,
-    )
-    return response.data
-  },
-}
-
-export const vouchersService = {
-  async getVouchers(params: { page?: number; limit?: number } = {}, isAdmin = false) {
-    const { page = 1, limit = 10 } = params
-    const url = isAdmin ? `/vouchers/admin?page=${page}&limit=${limit}` : `/vouchers?page=${page}&limit=${limit}`
-    const response = await api.get<ApiResponse<Voucher[]>>(url) 
-    return response.data
-  },
-
-  async saveVoucher(voucherId: string) {
-    const response = await api.post<ApiResponse<Voucher>>(`/vouchers/save/${voucherId}`, {})
-    return response.data
-  },
-}
+};

@@ -1,25 +1,18 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity, 
-  StatusBar,
-} from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-const reviews = Array.from({ length: 39 }).map((_, i) => ({
-  id: String(i),
-  name: 'Veronika',
-  avatar: 'https://i.pravatar.cc/150?img=5',
-  rating: 4,
-  text:
-    'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-}));
+import React, { useEffect, useState } from 'react';
+import {
+  FlatList,
+  Image,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { reviewService } from '../services/ReviewServices';
+import { Review } from '../types';
 
 const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
   <View style={styles.stars}>
@@ -35,52 +28,98 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
 );
 
 const ReviewItem: React.FC<{
-  avatar: string;
+  avatar?: string;
   name: string;
   rating: number;
   text: string;
-}> = ({ avatar, name, rating, text }) => (
+  petName?: string;
+  productName?: string;
+}> = ({ avatar, name, rating, text, petName, productName }) => (
   <View style={styles.reviewContainer}>
-    <Image source={{ uri: avatar }} style={styles.avatar} />
+    <Image
+      source={{ uri: avatar || 'https://i.pravatar.cc/150?img=5' }}
+      style={styles.avatar}
+    />
     <View style={styles.reviewContent}>
       <Text style={styles.name}>{name}</Text>
       <StarRating rating={rating} />
       <Text style={styles.text} numberOfLines={3}>
         {text}
       </Text>
+      {petName && <Text style={styles.additionalInfo}>Thú cưng: {petName}</Text>}
+      {productName && <Text style={styles.additionalInfo}>Sản phẩm: {productName}</Text>}
     </View>
   </View>
 );
 
 export default function ReviewsScreen() {
   const navigation = useNavigation<any>();
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchReviews = async () => {
+    try {
+      setIsLoading(true);
+      const response = await reviewService.getReviews(); // Không cần params vì API không hỗ trợ
+      if (response.data) { // Kiểm tra response.data thay vì success
+        setReviews(response.data);
+      } else {
+        setError('Không thể tải danh sách đánh giá.');
+      }
+    } catch (err: any) {
+      setError('Không thể tải đánh giá. Vui lòng thử lại sau.');
+      console.error('Lỗi khi lấy đánh giá:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchReviews();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
-      {/* Header với nút back */}
+
       <View style={styles.headerContainer}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Reviews ({reviews.length})</Text>
-        <View style={{ width: 24 }} /> 
+        <View style={{ width: 24 }} />
       </View>
 
-      <FlatList
-        data={reviews}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ReviewItem
-            avatar={item.avatar}
-            name={item.name}
-            rating={item.rating}
-            text={item.text}
-          />
-        )}
-        contentContainerStyle={styles.list}
-      />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <Text>Đang tải...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={reviews}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item }) => (
+            <ReviewItem
+              avatar={undefined} // API không trả về avatar, sử dụng fallback
+              name={item.user_id.username || 'Người dùng ẩn'}
+              rating={item.rating}
+              text={item.comment}
+              petName={item.pet_id?.name}
+              productName={item.product_id?.name}
+            />
+          )}
+          contentContainerStyle={styles.list}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -90,7 +129,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  // Styles mới cho header
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -125,13 +163,13 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     marginRight: 15,
-    backgroundColor: '#e0e0e0'
+    backgroundColor: '#e0e0e0',
   },
   reviewContent: {
     flex: 1,
   },
   name: {
-    fontWeight: '600', // Đậm hơn một chút
+    fontWeight: '600',
     fontSize: 16,
     marginBottom: 2,
   },
@@ -141,11 +179,30 @@ const styles = StyleSheet.create({
   },
   starIcon: {
     marginRight: 2,
-    color: '#f5b025', 
+    color: '#f5b025',
   },
   text: {
     fontSize: 14,
-    color: '#444', 
-    lineHeight: 20, 
+    color: '#444',
+    lineHeight: 20,
+  },
+  additionalInfo: {
+    fontSize: 12,
+    color: '#718096',
+    marginTop: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
   },
 });

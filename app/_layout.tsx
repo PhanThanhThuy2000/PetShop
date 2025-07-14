@@ -15,6 +15,7 @@ import App from './app';
 // Import all screens
 import About from './screens/AboutScreen';
 import AccountScreen from './screens/AccountScreen';
+import AddReviewScreen from './screens/AddReviewScreen';
 import BreedsScreen from './screens/BreedsScreen';
 import CartScreen from './screens/CartScreen';
 import ChangePassword from './screens/ChangePassword';
@@ -226,12 +227,17 @@ const AppNavigator = () => {
         component={OrderDetailScreen}
         options={{ headerShown: false }}
       />
+         <Stack.Screen
+        name="AddReviewScreen"
+        component={AddReviewScreen}
+         />
       <Stack.Screen
         name="PetsByBreed"
         component={PetsByBreedScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
+
 
   );
 };

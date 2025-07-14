@@ -141,13 +141,6 @@ export interface OrderItem {
   updated_at: string;
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  statusCode: number;
-  message: string;
-  data: T;
-}
-
 export interface LoginRequest {
   email: string;
   password: string;
@@ -166,7 +159,6 @@ export interface AddToCartRequest {
   product_id?: string;
   quantity: number;
 }
-
 
 export interface ChatRoom {
   _id: string;
@@ -210,34 +202,18 @@ export interface ChatMessage {
 }
 
 export interface ChatState {
-  // Current active room
   currentRoom: ChatRoom | null;
-  
-  // All user's rooms
   rooms: ChatRoom[];
-  
-  // Messages for current room
   messages: ChatMessage[];
-  
-  // Socket connection state
   isConnected: boolean;
-  
-  // Loading states
   isLoadingRooms: boolean;
   isLoadingMessages: boolean;
   isSendingMessage: boolean;
-  
-  // Typing indicator
-  typingUsers: string[]; // usernames đang gõ
-  
-  // Unread counts
+  typingUsers: string[];
   unreadCount: number;
-  
-  // Error handling
   error: string | null;
 }
 
-// API Request/Response types cho Chat
 export interface CreateChatRoomRequest {
   subject?: string;
   priority?: 'low' | 'medium' | 'high';
@@ -283,7 +259,6 @@ export interface UnreadCountResponse {
   }>;
 }
 
-// Socket Events Types
 export interface SocketAuthData {
   token: string;
 }
@@ -303,7 +278,6 @@ export interface SocketTypingData {
   isTyping: boolean;
 }
 
-// Socket Event Listeners Types
 export interface SocketNewMessageData {
   id: string;
   roomId: string;
@@ -340,6 +314,7 @@ export interface SocketRoomUpdatedData {
     };
   };
 }
+
 export interface Voucher {
   _id: string;
   title?: string;
@@ -363,7 +338,6 @@ export interface Voucher {
   used_at?: string;
 }
 
-
 export interface Address {
   _id: string;
   name: string;
@@ -375,4 +349,25 @@ export interface Address {
   postal_code: string;
   country: string;
   is_default?: boolean;
+}
+
+export interface Review {
+  _id: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  pet_id: {
+    _id: string;
+    name: string;
+    breed: string;
+  };
+  user_id: {
+    _id: string;
+    username: string;
+    email: string;
+  };
+  product_id?: {
+    _id: string;
+    name: string;
+  };
 }
