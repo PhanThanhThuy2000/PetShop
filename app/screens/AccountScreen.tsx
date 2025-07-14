@@ -1,6 +1,6 @@
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import React, { useEffect, useCallback } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { getCurrentUser } from '../redux/slices/authSlice';
@@ -79,7 +79,7 @@ const AccountScreen: React.FC = () => {
           <TouchableOpacity onPress={() => navigation.navigate('History')}>
             <Item icon="box-open" label="Order" color="#F9A825" iconLib="FontAwesome5" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Reviews')}>
             <Item icon="local-shipping" label="To Receive" color="#2196F3" iconLib="MaterialIcons" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Voucher')}>

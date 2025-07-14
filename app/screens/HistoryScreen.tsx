@@ -1,7 +1,6 @@
-// HistoryScreen.tsx
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
     Dimensions,
@@ -11,7 +10,7 @@ import {
     StatusBar,
     StyleSheet,
     Text,
-    TextInput, // Thêm TextInput
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -22,6 +21,13 @@ const { width } = Dimensions.get('window');
 
 const OrderItemComponent = ({ item }: { item: OrderItem }) => {
     const navigation = useNavigation<any>();
+    const [isReviewed, setIsReviewed] = useState(false); // Trạng thái kiểm tra xem đã đánh giá chưa
+
+    useEffect(() => {
+        // Kiểm tra xem item đã được đánh giá chưa (giả định ban đầu)
+        // Hiện tại, không có dữ liệu từ backend, nên ban đầu là false
+        // Cần cập nhật từ AddReviewScreen sau khi gửi thành công
+    }, [item._id]);
 
     const handlePress = () => {
         if (!item.order_id?._id) {
@@ -32,9 +38,16 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
         navigation.navigate('OrderDetail', { orderId: item.order_id._id });
     };
 
-    const handleReview = (orderItemId: string) => {
-        console.log('Đánh giá mục đơn hàng:', orderItemId);
-        navigation.navigate('Reviews', { orderItemId: orderItemId });
+    const handleReview = () => {
+        console.log('Đánh giá mục đơn hàng:', item._id);
+        const product = {
+            id: item.pet_id?._id || item.product_id?._id || item._id,
+            name: item.pet_id?.name || item.product_id?.name || 'Mục không xác định',
+            image: item.pet_id?.images?.find(img => img.is_primary)?.url ||
+                   item.product_id?.images?.find(img => img.is_primary)?.url ||
+                   'https://via.placeholder.com/100',
+        };
+        navigation.navigate('AddReviewScreen', { product, orderItemId: item._id });
     };
 
     const itemName = item.pet_id?.name || item.product_id?.name || 'Mục không xác định';
@@ -87,9 +100,11 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
                             ? item.order_id.status.charAt(0).toUpperCase() + item.order_id.status.slice(1)
                             : 'Không xác định'}
                     </Text>
-                    <TouchableOpacity style={styles.reviewButton} onPress={() => handleReview(item._id)}>
-                        <Text style={styles.reviewButtonText}>Đánh giá</Text>
-                    </TouchableOpacity>
+                    {!isReviewed && item.order_id.status === 'completed' && (
+                        <TouchableOpacity style={styles.reviewButton} onPress={handleReview}>
+                            <Text style={styles.reviewButtonText}>Đánh giá</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         </TouchableOpacity>
@@ -98,13 +113,13 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
 
 const HistoryScreen = () => {
     const navigation = useNavigation<any>();
+    const isFocused = useIsFocused(); // Sử dụng để phát hiện khi quay lại màn hình
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [searchQuery, setSearchQuery] = useState<string>(''); // Trạng thái cho tìm kiếm
-    const [isSearching, setIsSearching] = useState<boolean>(false); // Trạng thái tìm kiếm
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [isSearching, setIsSearching] = useState<boolean>(false);
 
-    // Hàm xử lý tìm kiếm
     const handleSearch = async () => {
         if (!searchQuery.trim()) {
             fetchOrderItems();
@@ -119,8 +134,8 @@ const HistoryScreen = () => {
             console.log('Tham số tìm kiếm:', params);
             const response = await ordersService.searchOrderItems(params);
             console.log('Phản hồi tìm kiếm đầy đủ:', JSON.stringify(response, null, 2));
-            console.log('Items:', response.data.items || response.data); // Log items
-            setOrderItems(response.data.items || response.data || []); // Fallback to response.data
+            console.log('Items:', response.data.items || response.data);
+            setOrderItems(response.data.items || response.data || []);
             if ((response.data.items || response.data).length === 0) {
                 setError('Không tìm thấy mục đơn hàng nào phù hợp');
             } else {
@@ -132,9 +147,8 @@ const HistoryScreen = () => {
         } finally {
             setIsLoading(false);
         }
-      };
+    };
 
-    // Hàm lấy danh sách mục đơn hàng ban đầu
     const fetchOrderItems = async () => {
         try {
             setIsLoading(true);
@@ -159,15 +173,21 @@ const HistoryScreen = () => {
         }
     };
 
+    // Cập nhật danh sách khi quay lại từ AddReviewScreen
+    useEffect(() => {
+        if (isFocused) {
+            fetchOrderItems(); // Làm mới danh sách để lấy trạng thái mới
+        }
+    }, [isFocused]);
+
     useEffect(() => {
         fetchOrderItems();
     }, []);
 
-    // Xử lý khi nhấn nút tìm kiếm hoặc xóa tìm kiếm
     const toggleSearch = () => {
         if (isSearching && searchQuery) {
             setSearchQuery('');
-            fetchOrderItems(); // Lấy lại danh sách gốc khi xóa tìm kiếm
+            fetchOrderItems();
         }
         setIsSearching(!isSearching);
     };
@@ -203,7 +223,7 @@ const HistoryScreen = () => {
                             placeholder="Tìm kiếm theo tên hoặc mã đơn hàng"
                             value={searchQuery}
                             onChangeText={setSearchQuery}
-                            onSubmitEditing={handleSearch} // Gọi tìm kiếm khi nhấn Enter
+                            onSubmitEditing={handleSearch}
                             autoFocus
                         />
                     </View>

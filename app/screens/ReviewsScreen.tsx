@@ -11,8 +11,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { reviewsService } from '../services/api-services'; // Import service
-import { Review } from '../types'; // Import Review interface
+import { reviewService } from '../services/ReviewServices';
+import { Review } from '../types';
 
 const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
   <View style={styles.stars}>
@@ -32,10 +32,12 @@ const ReviewItem: React.FC<{
   name: string;
   rating: number;
   text: string;
-}> = ({ avatar, name, rating, text }) => (
+  petName?: string;
+  productName?: string;
+}> = ({ avatar, name, rating, text, petName, productName }) => (
   <View style={styles.reviewContainer}>
     <Image
-      source={{ uri: avatar || 'https://i.pravatar.cc/150?img=5' }} // Fallback avatar
+      source={{ uri: avatar || 'https://i.pravatar.cc/150?img=5' }}
       style={styles.avatar}
     />
     <View style={styles.reviewContent}>
@@ -44,6 +46,8 @@ const ReviewItem: React.FC<{
       <Text style={styles.text} numberOfLines={3}>
         {text}
       </Text>
+      {petName && <Text style={styles.additionalInfo}>Thú cưng: {petName}</Text>}
+      {productName && <Text style={styles.additionalInfo}>Sản phẩm: {productName}</Text>}
     </View>
   </View>
 );
@@ -54,33 +58,35 @@ export default function ReviewsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Hàm gọi API để lấy reviews
-  useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        setIsLoading(true);
-        const response = await reviewsService.getReviews({ page: 1, limit: 50 });
-        if (response.success) {
-          setReviews(response.data);
-        } else {
-          setError(response.message);
-        }
-      } catch (err) {
-        setError('Không thể tải đánh giá. Vui lòng thử lại sau.');
-        console.error('Lỗi khi lấy đánh giá:', err);
-      } finally {
-        setIsLoading(false);
+  const fetchReviews = async () => {
+    try {
+      setIsLoading(true);
+      const response = await reviewService.getReviews(); // Không cần params vì API không hỗ trợ
+      if (response.data) { // Kiểm tra response.data thay vì success
+        setReviews(response.data);
+      } else {
+        setError('Không thể tải danh sách đánh giá.');
       }
-    };
+    } catch (err: any) {
+      setError('Không thể tải đánh giá. Vui lòng thử lại sau.');
+      console.error('Lỗi khi lấy đánh giá:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchReviews();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchReviews();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      {/* Header với nút back */}
       <View style={styles.headerContainer}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
@@ -103,10 +109,12 @@ export default function ReviewsScreen() {
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
             <ReviewItem
-              avatar={undefined} // API không trả về avatar, sử dụng fallback trong ReviewItem
-              name={item.user_id.username}
+              avatar={undefined} // API không trả về avatar, sử dụng fallback
+              name={item.user_id.username || 'Người dùng ẩn'}
               rating={item.rating}
               text={item.comment}
+              petName={item.pet_id?.name}
+              productName={item.product_id?.name}
             />
           )}
           contentContainerStyle={styles.list}
@@ -177,6 +185,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#444',
     lineHeight: 20,
+  },
+  additionalInfo: {
+    fontSize: 12,
+    color: '#718096',
+    marginTop: 4,
   },
   loadingContainer: {
     flex: 1,
