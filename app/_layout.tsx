@@ -44,6 +44,7 @@ import ShippingAddressScreen from './screens/ShippingAddressScreen';
 import UniversalSearchScreen from './screens/UniversalSearchScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
+import ProductAllScreen from './screens/ProductAllScreen';
 
 const Stack = createStackNavigator();
 
@@ -177,7 +178,11 @@ const AppNavigator = () => {
         component={EditAdressScreen}
         options={{ headerShown: false }}
       />
-
+      <Stack.Screen
+        name="ProductAll"
+        component={ProductAllScreen}
+        options={{ headerShown: false }}
+      />
       {/* Pet & Product screens */}
       <Stack.Screen
         name="PetAll"
