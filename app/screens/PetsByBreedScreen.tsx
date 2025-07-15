@@ -1,4 +1,4 @@
-// app/screens/PetsByBreedScreen.tsx - Screen hiển thị pets theo breed
+// app/screens/PetsByBreedScreen.tsx - Màn hiển thị thú cưng được lọc theo breed
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { petsService, SearchPetsParams } from '../services/petsService';
+import { petsService } from '../services/petsService';
 import { Pet } from '../types';
 
 type RouteParams = {
@@ -38,20 +38,14 @@ const PetsByBreedScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [filters, setFilters] = useState<SearchPetsParams>({
-    breed_id: breedId,
-    status: 'available',
-    sortBy: 'created_at',
-    sortOrder: 'desc',
-  });
 
-  // Load pets when component mounts
+  // Load pets khi component mount
   useEffect(() => {
-    loadPets(true);
+    loadPetsByBreed(true);
   }, [breedId]);
 
-  // Load pets by breed
-  const loadPets = async (reset: boolean = false) => {
+  // Load pets theo breed từ API
+  const loadPetsByBreed = async (reset: boolean = false) => {
     if (loading && !refreshing) return;
     
     try {
@@ -62,15 +56,27 @@ const PetsByBreedScreen = () => {
 
       const currentPage = reset ? 1 : page;
       
+      console.log('🔍 Loading pets for breed:', breedName, 'Page:', currentPage);
+      
       const response = await petsService.searchPets({
-        ...filters,
+        breed_id: breedId,
+        status: 'available', // Chỉ lấy pets có sẵn
         page: currentPage,
         limit: 10,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
       });
 
       if (response.success) {
         const newPets = response.data.pets;
         const pagination = response.data.pagination;
+        
+        console.log('✅ Pets loaded:', {
+          breed: breedName,
+          count: newPets.length,
+          total: pagination.totalCount,
+          page: currentPage
+        });
         
         if (reset) {
           setPets(newPets);
@@ -81,14 +87,8 @@ const PetsByBreedScreen = () => {
         setTotalCount(pagination.totalCount);
         setHasMore(pagination.hasNextPage);
         setPage(pagination.currentPage);
-        
-        console.log('✅ Pets loaded:', {
-          breed: breedName,
-          count: newPets.length,
-          total: pagination.totalCount,
-        });
       } else {
-        throw new Error(response.message || 'Failed to load pets');
+        throw new Error(response.message || 'Không thể tải thú cưng');
       }
     } catch (error: any) {
       console.error('❌ Error loading pets:', error);
@@ -106,86 +106,30 @@ const PetsByBreedScreen = () => {
   // Handle refresh
   const handleRefresh = () => {
     setRefreshing(true);
-    loadPets(true);
+    loadPetsByBreed(true);
   };
 
   // Handle load more
   const handleLoadMore = () => {
     if (hasMore && !loading) {
       setPage(prevPage => prevPage + 1);
-      loadPets(false);
+      loadPetsByBreed(false);
     }
   };
 
-  // Handle filter changes
-  const updateFilters = (newFilters: Partial<SearchPetsParams>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-    // Re-load pets with new filters
-    setTimeout(() => loadPets(true), 100);
-  };
-
-  // Handle sort change
-  const handleSortChange = () => {
-    Alert.alert(
-      'Sắp xếp theo',
-      'Chọn cách sắp xếp',
-      [
-        {
-          text: 'Mới nhất',
-          onPress: () => updateFilters({ sortBy: 'created_at', sortOrder: 'desc' })
-        },
-        {
-          text: 'Cũ nhất', 
-          onPress: () => updateFilters({ sortBy: 'created_at', sortOrder: 'asc' })
-        },
-        {
-          text: 'Giá tăng dần',
-          onPress: () => updateFilters({ sortBy: 'price', sortOrder: 'asc' })
-        },
-        {
-          text: 'Giá giảm dần',
-          onPress: () => updateFilters({ sortBy: 'price', sortOrder: 'desc' })
-        },
-        { text: 'Hủy', style: 'cancel' }
-      ]
-    );
-  };
-
-  // Handle filter by status
-  const handleStatusFilter = () => {
-    Alert.alert(
-      'Trạng thái',
-      'Chọn trạng thái thú cưng',
-      [
-        {
-          text: 'Có sẵn',
-          onPress: () => updateFilters({ status: 'available' })
-        },
-        {
-          text: 'Đã bán',
-          onPress: () => updateFilters({ status: 'sold' })
-        },
-        {
-          text: 'Tạm ngưng',
-          onPress: () => updateFilters({ status: 'inactive' })
-        },
-        {
-          text: 'Tất cả',
-          onPress: () => updateFilters({ status: undefined })
-        },
-        { text: 'Hủy', style: 'cancel' }
-      ]
-    );
+  // Navigate to pet detail
+  const navigateToPetDetail = (pet: Pet) => {
+    navigation.navigate('ProductDetail', { 
+      productId: pet._id,
+      productType: 'pet' 
+    });
   };
 
   // Render pet item
   const renderPetItem = ({ item }: { item: Pet }) => (
     <TouchableOpacity
       style={styles.petCard}
-      onPress={() => navigation.navigate('ProductDetail', { 
-        productId: item._id,
-        productType: 'pet' 
-      })}
+      onPress={() => navigateToPetDetail(item)}
       activeOpacity={0.7}
     >
       <Image
@@ -239,6 +183,12 @@ const PetsByBreedScreen = () => {
       <Text style={styles.emptySubtitle}>
         Giống {breedName} hiện chưa có thú cưng nào có sẵn
       </Text>
+      <TouchableOpacity 
+        style={styles.backButton} 
+        onPress={() => navigation.goBack()}
+      >
+        <Text style={styles.backButtonText}>Quay lại</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -261,7 +211,7 @@ const PetsByBreedScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
-          style={styles.backButton}
+          style={styles.headerBackButton}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color="#333" />
@@ -281,29 +231,18 @@ const PetsByBreedScreen = () => {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Filter Bar */}
-      <View style={styles.filterBar}>
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={handleSortChange}
-        >
-          <Ionicons name="swap-vertical-outline" size={16} color="#666" />
-          <Text style={styles.filterButtonText}>Sắp xếp</Text>
-        </TouchableOpacity>
+      {/* Results Summary */}
+      <View style={styles.summaryContainer}>
+        <Text style={styles.summaryText}>
+          {totalCount > 0 
+            ? `${totalCount} thú cưng ${breedName}`
+            : `Đang tìm ${breedName}...`
+          }
+        </Text>
         
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={handleStatusFilter}
-        >
-          <Ionicons name="filter-outline" size={16} color="#666" />
-          <Text style={styles.filterButtonText}>Trạng thái</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.resultsCount}>
-          <Text style={styles.resultsText}>
-            {totalCount} kết quả
-          </Text>
-        </View>
+        {loading && pets.length === 0 && (
+          <ActivityIndicator size="small" color="#0066cc" />
+        )}
       </View>
 
       {/* Pets List */}
@@ -329,7 +268,7 @@ const PetsByBreedScreen = () => {
         ListFooterComponent={renderFooter}
       />
 
-      {/* Loading Overlay for initial load */}
+      {/* Loading Overlay cho lần đầu load */}
       {loading && pets.length === 0 && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#0066cc" />
@@ -355,7 +294,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e9ecef',
     marginTop:20
   },
-  backButton: {
+  headerBackButton: {
     marginRight: 10,
   },
   headerContent: {
@@ -371,8 +310,9 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
-  filterBar: {
+  summaryContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 15,
     paddingVertical: 10,
@@ -380,25 +320,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    marginRight: 10,
-  },
-  filterButtonText: {
-    marginLeft: 5,
-    fontSize: 14,
-    color: '#666',
-  },
-  resultsCount: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  resultsText: {
+  summaryText: {
     fontSize: 14,
     color: '#666',
   },
@@ -477,6 +399,17 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,
+    marginBottom: 20,
+  },
+  backButton: {
+    backgroundColor: '#0066cc',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontWeight: '500',
   },
   footerLoading: {
     flexDirection: 'row',

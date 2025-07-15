@@ -379,6 +379,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#e9ecef',
+        marginTop:20
     },
     backButton: {
         marginRight: 10,
