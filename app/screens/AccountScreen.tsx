@@ -56,7 +56,7 @@ const AccountScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.icons}>  
+        <View style={styles.icons}>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
             <Ionicons name="settings-outline" size={24} color="#333" />
           </TouchableOpacity>
@@ -73,14 +73,14 @@ const AccountScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
         <View style={styles.purchaseRow}>
-          <TouchableOpacity onPress={() => navigation.navigate('Payment')}> 
-            <Item icon="wallet" label="To Pay" color="#FF4C4C" />
+          <TouchableOpacity onPress={() => navigation.navigate('PetCareBooking')}>
+            <Item icon="paw" label="Book Pet" color="#FF4C4C" iconLib="FontAwesome5" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('History')}>
-            <Item icon="box-open" label="Order" color="#F9A825" iconLib="FontAwesome5" />
+            <Item icon="shopping-cart" label="Order" color="#F9A825" iconLib="FontAwesome5" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Reviews')}>
-            <Item icon="local-shipping" label="To Receive" color="#2196F3" iconLib="MaterialIcons" />
+            <Item icon="star" label="Review" color="yellow" iconLib="MaterialIcons" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Voucher')}>
             <Item icon="ticket-alt" label="Voucher" color="#FF5722" iconLib="FontAwesome5" />
@@ -88,16 +88,6 @@ const AccountScreen: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.grid}>
-          <Category label="Comida" icon="utensils" active />
-          <Category label="Pruning" icon="cut" />
-          <Category label="Vacinas" icon="syringe" />
-          <Category label="Petshop" icon="stethoscope" />
-          <Category label="Medicamentos" icon="capsules" />
-          <Category label="Higiene" icon="soap" />
-        </View>
-      </View>
     </ScrollView>
   );
 };
@@ -106,18 +96,12 @@ const Item: React.FC<{ icon: string; label: string; color: string; iconLib?: 'Fo
   const IconComp = iconLib === 'MaterialIcons' ? MaterialIcons : FontAwesome5;
   return (
     <View style={styles.item}>
-      <IconComp name={icon as any} size={24} color={color} />
+      <IconComp name={icon} size={24} color={color} />
       <Text style={styles.itemLabel} numberOfLines={2}>{label}</Text>
     </View>
   );
 };
 
-const Category: React.FC<{ label: string; icon: string; active?: boolean }> = ({ label, icon, active }) => (
-  <TouchableOpacity style={[styles.catBox, active && styles.catBoxActive]}>
-    <FontAwesome5 name={icon as any} size={20} color={active ? '#fff' : '#555'} />
-    <Text style={[styles.catLabel, active && styles.catLabelActive]}>{label}</Text>
-  </TouchableOpacity>
-);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAFAFA', padding: 16 },
