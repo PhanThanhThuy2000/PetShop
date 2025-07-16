@@ -33,7 +33,9 @@ import OrderSuccess from './screens/OrderSuccessScreen';
 import PasswordCodeScreen from './screens/PasswordCodeScreen';
 import PaymentScreen from './screens/PaymentScreen';
 import PetAllScreen from './screens/PetAllScreen';
+import PetCareBookingScreen from './screens/PetCareBookingScreen';
 import PetsByBreedScreen from './screens/PetsByBreedScreen';
+import ProductAllScreen from './screens/ProductAllScreen';
 import ProductDetailScreen from './screens/ProductDetailScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -44,7 +46,6 @@ import ShippingAddressScreen from './screens/ShippingAddressScreen';
 import UniversalSearchScreen from './screens/UniversalSearchScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
-import ProductAllScreen from './screens/ProductAllScreen';
 
 const Stack = createStackNavigator();
 
@@ -240,6 +241,12 @@ const AppNavigator = () => {
         name="PetsByBreed"
         component={PetsByBreedScreen}
         options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="PetCareBooking"
+        component={PetCareBookingScreen}
+        options={{ headerShown: false }}  
       />
     </Stack.Navigator>
 
