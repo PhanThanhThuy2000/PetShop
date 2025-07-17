@@ -163,7 +163,7 @@ const BreedsScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.title}>Giống {categoryName}</Text>
+        <Text style={styles.title}>Breeds {categoryName}</Text>
         <View style={{ width: 24 }} />
       </View>
 

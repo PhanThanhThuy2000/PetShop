@@ -117,15 +117,15 @@ const PetsByBreedScreen = () => {
     }
   };
 
-  // Navigate to pet detail
+  // Navigate to pet detail - ✅ Fixed navigation params
   const navigateToPetDetail = (pet: Pet) => {
     navigation.navigate('ProductDetail', { 
-      productId: pet._id,
-      productType: 'pet' 
+      pet: pet,        // Truyền object pet đầy đủ
+      petId: pet._id   // Truyền petId để ProductDetailScreen nhận diện
     });
   };
 
-  // Render pet item
+  // ✅ Render pet item - Merged và fixed
   const renderPetItem = ({ item }: { item: Pet }) => (
     <TouchableOpacity
       style={styles.petCard}
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
-    marginTop:20
+    marginTop: 20
   },
   headerBackButton: {
     marginRight: 10,

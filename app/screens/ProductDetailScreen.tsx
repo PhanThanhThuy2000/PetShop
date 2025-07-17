@@ -123,22 +123,124 @@ const ReviewCard: FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-const RelatedGrid: FC = () => (
-  <FlatList
-    data={RELATED_ITEMS}
-    numColumns={2}
-    keyExtractor={(item) => item.id}
-    columnWrapperStyle={styles.relatedRow}
-    scrollEnabled={false}
-    renderItem={({ item }) => (
-      <View style={styles.relatedItem}>
-        <Image source={item.image} style={styles.relatedImg} />
-        <Text style={styles.relatedTitle}>{item.title}</Text>
-        <Text style={styles.relatedPrice}>{item.price}</Text>
+// ✅ UPDATED: RelatedGrid với navigation functionality
+const RelatedGrid: FC<{ 
+  navigation: any; 
+  currentItemId?: string; 
+  currentItemType?: 'pet' | 'product' 
+}> = ({ navigation, currentItemId, currentItemType = 'pet' }) => {
+  const [relatedItems, setRelatedItems] = useState<(Pet | Product)[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Load related items khi component mount
+  useEffect(() => {
+    loadRelatedItems();
+  }, [currentItemId]);
+
+  const loadRelatedItems = async () => {
+    try {
+      setLoading(true);
+      
+      if (currentItemType === 'pet') {
+        // Lấy pets khác (tạm thời lấy all pets, sau này có thể filter theo breed)
+        const response = await petsService.getPets({ limit: 8 });
+        
+        if (response.success) {
+          // Lọc bỏ item hiện tại và chỉ lấy 4 items
+          const filteredPets = response.data
+            .filter((pet: Pet) => pet._id !== currentItemId)
+            .slice(0, 4);
+          setRelatedItems(filteredPets);
+        }
+      } else {
+        // Lấy products khác
+        const response = await productsService.getProducts({ limit: 8 });
+        
+        if (response.success) {
+          // Lọc bỏ item hiện tại và chỉ lấy 4 items
+          const filteredProducts = response.data
+            .filter((product: Product) => product._id !== currentItemId)
+            .slice(0, 4);
+          setRelatedItems(filteredProducts);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading related items:', error);
+      // Fallback to sample data nếu API fail
+      const fallbackData = RELATED_ITEMS.map(item => ({
+        _id: item.id,
+        name: item.title,
+        price: 17000,
+        images: [{ url: 'https://via.placeholder.com/150' }]
+      })) as any[];
+      setRelatedItems(fallbackData);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Navigate đến detail của related item
+  const handleRelatedItemPress = (item: Pet | Product) => {
+    const isPet = 'breed_id' in item || currentItemType === 'pet';
+    
+    if (isPet) {
+      navigation.push('ProductDetail', { 
+        pet: item,
+        petId: item._id 
+      });
+    } else {
+      navigation.push('ProductDetail', { 
+        productId: item._id 
+      });
+    }
+  };
+
+  const renderRelatedItem = ({ item }: { item: Pet | Product }) => (
+    <TouchableOpacity
+      style={styles.relatedItem}
+      onPress={() => handleRelatedItemPress(item)}
+      activeOpacity={0.7}
+    >
+      <Image 
+        source={{ 
+          uri: item.images?.[0]?.url || 'https://via.placeholder.com/150' 
+        }} 
+        style={styles.relatedImg} 
+      />
+      <Text style={styles.relatedTitle} numberOfLines={2}>
+        {item.name}
+      </Text>
+      <Text style={styles.relatedPrice}>
+        {item.price?.toLocaleString('vi-VN')}đ
+      </Text>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.relatedLoadingContainer}>
+        <ActivityIndicator size="small" color="#2563EB" />
+        <Text style={styles.loadingText}>Đang tải sản phẩm liên quan...</Text>
       </View>
-    )}
-  />
-);
+    );
+  }
+
+  return (
+    <FlatList
+      data={relatedItems}
+      numColumns={2}
+      keyExtractor={(item) => item._id}
+      columnWrapperStyle={styles.relatedRow}
+      scrollEnabled={false}
+      renderItem={renderRelatedItem}
+      ListEmptyComponent={
+        <View style={styles.emptyRelatedContainer}>
+          <Text style={styles.emptyRelatedText}>Không có sản phẩm liên quan</Text>
+        </View>
+      }
+    />
+  );
+};
 
 // ✅ FooterBar với Redux cart functionality
 const FooterBar: FC<{ 
@@ -460,9 +562,13 @@ const ProductDetailScreen: FC = () => {
           {/* ✅ Description image */}
           <Image source={productImage} style={styles.descImage} />
 
-          {/* ✅ Related items */}
+          {/* ✅ Related items - UPDATED với navigation */}
           <Text style={styles.sectionTitle}>Related Items</Text>
-          <RelatedGrid />
+          <RelatedGrid 
+            navigation={navigation} 
+            currentItemId={item._id}
+            currentItemType={isPet ? 'pet' : 'product'}
+          />
         </View>
       </ScrollView>
 
@@ -483,7 +589,7 @@ const ProductDetailScreen: FC = () => {
 
 export default ProductDetailScreen;
 
-// ✅ STYLES HOÀN CHỈNH
+// ✅ STYLES HOÀN CHỈNH với styles mới cho RelatedGrid
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   headerBar: {
@@ -540,10 +646,30 @@ const styles = StyleSheet.create({
   toggleDescText: { color: '#2563EB', fontWeight: '600' },
   descImage: { width: '100%', height: 200, borderRadius: 8, marginVertical: 16 },
   relatedRow: { justifyContent: 'space-between' },
-  relatedItem: { width: '48%' },
+  relatedItem: { width: '48%', marginBottom: 16 },
   relatedImg: { width: '100%', height: 120, borderRadius: 8 },
-  relatedTitle: { marginTop: 8, color: '#374151' },
-  relatedPrice: { fontWeight: '600', marginTop: 4 },
+  relatedTitle: { marginTop: 8, color: '#374151', fontSize: 14 },
+  relatedPrice: { fontWeight: '600', marginTop: 4, color: '#EF4444' },
+  // ✅ Styles mới cho RelatedGrid
+  relatedLoadingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#666',
+  },
+  emptyRelatedContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyRelatedText: {
+    fontSize: 14,
+    color: '#999',
+  },
   footer: { flexDirection: 'row', alignItems: 'center', padding: 16, borderTopWidth: 1, borderColor: '#E5E7EB' },
   favBtn: { padding: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, marginRight: 12 },
   cartBtn: { flex: 1, backgroundColor: '#111827', padding: 12, borderRadius: 8, alignItems: 'center', marginRight: 8 },
@@ -554,11 +680,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#4B5563',
   },
   errorContainer: {
     flex: 1,
