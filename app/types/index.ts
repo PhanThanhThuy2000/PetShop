@@ -371,3 +371,103 @@ export interface Review {
     name: string;
   };
 }
+
+// Care Service interfaces
+export interface CareService {
+  _id: string;
+  name: string;
+  description?: string;
+  price: number;
+  duration: number; // phút
+  category: 'grooming' | 'health' | 'training' | 'boarding' | 'other';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CareServiceCategory {
+  value: string;
+  label: string;
+}
+
+// Appointment interfaces
+export interface Appointment {
+  _id: string;
+  user_id: string | User;
+  pet_id: string | Pet;
+  service_id: string | CareService;
+  appointment_date: string;
+  appointment_time: string;
+  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+  notes?: string;
+  staff_id?: string | User;
+  total_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateAppointmentRequest {
+  pet_id: string;
+  service_id: string;
+  appointment_date: string; // YYYY-MM-DD
+  appointment_time: string; // HH:MM
+  notes?: string;
+}
+
+export interface UpdateAppointmentRequest {
+  appointment_date?: string;
+  appointment_time?: string;
+  notes?: string;
+}
+
+export interface UpdateAppointmentStatusRequest {
+  status?: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+  staff_id?: string;
+}
+
+export interface AvailableSlotsResponse {
+  date: string;
+  availableSlots: string[];
+  bookedSlots: string[];
+}
+
+export interface CreateCareServiceRequest {
+  name: string;
+  description?: string;
+  price: number;
+  duration: number;
+  category: 'grooming' | 'health' | 'bathing' | 'spa' | 'other';
+}
+
+export interface UpdateCareServiceRequest {
+  name?: string;
+  description?: string;
+  price?: number;
+  duration?: number;
+  category?: 'grooming' | 'health' | 'bathing' | 'spa' | 'other';
+  is_active?: boolean;
+}
+
+// State interfaces cho Redux
+export interface AppointmentState {
+  appointments: Appointment[];
+  currentAppointment: Appointment | null;
+  availableSlots: string[];
+  isLoading: boolean;
+  error: string | null;
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+export interface CareServiceState {
+  services: CareService[];
+  categories: CareServiceCategory[];
+  currentService: CareService | null;
+  isLoading: boolean;
+  error: string | null;
+}

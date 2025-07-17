@@ -1,22 +1,26 @@
-// app/redux/store.ts - CẬP NHẬT
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
+// app/redux/store.ts - CẬP NHẬT để thêm appointment và careService slices
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
+import { FLUSH, PAUSE, PERSIST, persistReducer, persistStore, PURGE, REGISTER, REHYDRATE } from 'redux-persist';
+import appointmentReducer from './slices/appointmentSlice'; // NEW
 import authReducer from './slices/authSlice';
+import careServiceReducer from './slices/careServiceSlice'; // NEW
 import cartReducer from './slices/cartSlice';
 import chatReducer from './slices/chatSlice';
 
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['auth'],
-  blacklist: ['chat']
+  whitelist: ['auth'], // Chỉ persist auth state
+  blacklist: ['chat', 'appointments', 'careServices'] // Không persist real-time data
 };
 
 const rootReducer = combineReducers({
   auth: authReducer,
   cart: cartReducer,
   chat: chatReducer,
+  appointments: appointmentReducer,  // NEW
+  careServices: careServiceReducer,  // NEW
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
