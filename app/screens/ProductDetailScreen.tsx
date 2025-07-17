@@ -1,3 +1,4 @@
+// app/screens/ProductDetailScreen.tsx - KẾT HỢP ĐẦY ĐỦ API + REDUX + UI
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { FC, useEffect, useState } from 'react';
@@ -88,26 +89,39 @@ const InfoRow: FC<{ label: string; value: string }> = ({ label, value }) => (
   </View>
 );
 
-const ReviewCard: FC<{ navigation: any }> = ({ navigation }) => (
-  <View style={styles.reviewCard}>
-    <Image source={require('@/assets/images/dog.png')} style={styles.avatar} />
-    <View style={styles.reviewContent}>
-      <Text style={styles.reviewer}>Veronika</Text>
-      <View style={styles.starRow}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <FontAwesome key={i} name="star" size={14} color="#FBBF24" />
-        ))}
+// ✅ SỬA: ReviewCard với navigation an toàn
+const ReviewCard: FC<{ navigation: any }> = ({ navigation }) => {
+  const handleViewAllReviews = () => {
+    try {
+      console.log('🔍 Navigating to Reviews screen');
+      navigation.navigate('Reviews');
+    } catch (error) {
+      console.error('❌ Navigation error:', error);
+      Alert.alert('Lỗi', 'Không thể mở màn hình đánh giá');
+    }
+  };
+
+  return (
+    <View style={styles.reviewCard}>
+      <Image source={require('@/assets/images/dog.png')} style={styles.avatar} />
+      <View style={styles.reviewContent}>
+        <Text style={styles.reviewer}>Veronika</Text>
+        <View style={styles.starRow}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <FontAwesome key={i} name="star" size={14} color="#FBBF24" />
+          ))}
+        </View>
+        <Text numberOfLines={3} style={styles.reviewText}>Lorem ipsum dolor sit amet...</Text>
+        <TouchableOpacity
+          style={styles.viewAllBtn}
+          onPress={handleViewAllReviews}
+        >
+          <Text style={styles.viewAllText}>View All Reviews</Text>
+        </TouchableOpacity>
       </View>
-      <Text numberOfLines={3} style={styles.reviewText}>Lorem ipsum dolor sit amet...</Text>
-      <TouchableOpacity
-        style={styles.viewAllBtn}
-        onPress={() => navigation.navigate('Reviews')}
-      >
-        <Text style={styles.viewAllText}>View All Reviews</Text>
-      </TouchableOpacity>
     </View>
-  </View>
-);
+  );
+};
 
 const RelatedGrid: FC = () => (
   <FlatList
@@ -126,7 +140,7 @@ const RelatedGrid: FC = () => (
   />
 );
 
-// Updated FooterBar với chức năng Add to Cart thực tế
+// ✅ FooterBar với Redux cart functionality
 const FooterBar: FC<{ 
   isFavorite: boolean; 
   toggleFavorite: () => void; 
@@ -188,12 +202,14 @@ const ProductDetailScreen: FC = () => {
   const route = useRoute<any>();
   const dispatch = useDispatch<AppDispatch>();
   
-  // Lấy state từ Redux
+  // ✅ Redux state
   const { isLoading: cartLoading } = useSelector((state: RootState) => state.cart);
   
+  // ✅ Lấy params từ cả 2 cách
   const petId = route.params?.pet?._id || route.params?.petId;
-  const productId = route.params?.productId;
+  const productId = route.params?.productId || route.params?.id;
 
+  // ✅ Component state
   const [item, setItem] = useState<Pet | Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -204,7 +220,7 @@ const ProductDetailScreen: FC = () => {
   
   const { h, m, s } = useCountdown(36 * 60 + 58);
 
-  // Hàm xử lý thêm vào giỏ hàng
+  // ✅ Redux Add to Cart functionality
   const handleAddToCart = async () => {
     if (!item) {
       Alert.alert('Lỗi', 'Không tìm thấy thông tin sản phẩm');
@@ -221,13 +237,13 @@ const ProductDetailScreen: FC = () => {
 
       console.log('Adding to cart with params:', cartParams);
       
-      // Dispatch action thêm vào giỏ hàng
+      // Dispatch Redux action
       await dispatch(addToCart(cartParams)).unwrap();
       
       // Refresh cart data
       dispatch(getCart());
       
-      // Hiển thị thông báo thành công
+      // Show success alert
       Alert.alert(
         'Thành công', 
         `${item.name} đã được thêm vào giỏ hàng`,
@@ -243,7 +259,7 @@ const ProductDetailScreen: FC = () => {
     } catch (error: any) {
       console.error('Add to cart error:', error);
       
-      // Xử lý các loại lỗi khác nhau
+      // Handle different error types
       let errorMessage = 'Không thể thêm vào giỏ hàng';
       
       if (typeof error === 'string') {
@@ -262,14 +278,16 @@ const ProductDetailScreen: FC = () => {
     }
   };
 
-  // Fetch item data (Pet or Product) with retry logic
+  // ✅ API fetch functionality với retry logic
   const fetchItem = async (retryCount: number = 0) => {
     const maxRetries = 3;
     try {
       setIsLoading(true);
       setError(null);
       let response;
+      
       if (petId) {
+        console.log('🐾 Loading Pet:', petId);
         response = await petsService.getPetById(petId);
         setItem(response.data);
         if (response.data.images && response.data.images.length > 0) {
@@ -277,6 +295,7 @@ const ProductDetailScreen: FC = () => {
         }
         console.log('Pet data fetched:', response.data);
       } else if (productId) {
+        console.log('🛍️ Loading Product:', productId);
         response = await productsService.getProductById(productId);
         setItem(response.data);
         if (response.data.images && response.data.images.length > 0) {
@@ -288,7 +307,7 @@ const ProductDetailScreen: FC = () => {
       }
     } catch (err: any) {
       if (err.response?.status === 404 && retryCount < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1))); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
         return fetchItem(retryCount + 1);
       }
       setError(err.response?.status === 404 ? 'Item not found on server (404). Check the ID or server endpoint.' : err.message || 'Failed to load item data');
@@ -306,7 +325,7 @@ const ProductDetailScreen: FC = () => {
     }
   }, [petId, productId]);
 
-  // Handle loading state
+  // ✅ Loading state
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -318,7 +337,7 @@ const ProductDetailScreen: FC = () => {
     );
   }
 
-  // Handle error or no item
+  // ✅ Error state
   if (error || !item) {
     return (
       <SafeAreaView style={styles.container}>
@@ -332,21 +351,22 @@ const ProductDetailScreen: FC = () => {
     );
   }
 
-  // Item data (Pet or Product)
+  // ✅ Process item data
   const productTitle = item.name || 'Unknown Item';
   const productPrice = item.price ? `${item.price.toLocaleString('vi-VN')}₫` : 'N/A';
   const productImage = item.images && item.images.length > 0
     ? { uri: item.images[0].url }
     : require('@/assets/images/dog.png');
   const isPet = 'breed_id' in item;
-  const breed = isPet ? item.breed_id?.name || 'Unknown' : 'N/A';
-  const age = isPet ? (item.age ? `${item.age} year${item.age > 1 ? 's' : ''}` : 'Unknown') : 'N/A';
-  const gender = isPet ? item.gender || 'Unknown' : 'N/A';
-  const weight = isPet ? (item.weight ? `${item.weight} kg` : 'Unknown') : 'N/A';
+  const breed = isPet ? (item as Pet).breed_id?.name || 'Unknown' : 'N/A';
+  const age = isPet ? ((item as Pet).age ? `${(item as Pet).age} year${(item as Pet).age > 1 ? 's' : ''}` : 'Unknown') : 'N/A';
+  const gender = isPet ? (item as Pet).gender || 'Unknown' : 'N/A';
+  const weight = isPet ? ((item as Pet).weight ? `${(item as Pet).weight} kg` : 'Unknown') : 'N/A';
   const description = item.description || (isPet ? 'Purus in massa tempor nec feugiat...' : 'No description available');
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ✅ Header */}
       <View style={styles.headerBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#000" />
@@ -356,13 +376,17 @@ const ProductDetailScreen: FC = () => {
           <Ionicons name="share-social-outline" size={24} />
         </TouchableOpacity>
       </View>
+
       <ScrollView>
+        {/* ✅ Main image với carousel */}
         <Header
           image={productImage}
           images={item.images || []}
           selectedImageId={selectedVar?.id || (item.images && item.images[0]?._id) || ''}
         />
+        
         <View style={styles.content}>
+          {/* ✅ Sale badge và timer */}
           <View style={[styles.rowCenter, styles.spaceBetween]}>
             <Text style={styles.badge}>Sale</Text>
             <View style={styles.timerBox}>
@@ -370,6 +394,8 @@ const ProductDetailScreen: FC = () => {
               <Text style={styles.timerText}>{`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`}</Text>
             </View>
           </View>
+
+          {/* ✅ Price và rating */}
           <View style={[styles.rowCenter, styles.marginTop]}>
             <Text style={styles.price}>{productPrice}</Text>
             <View style={styles.ratingRow}>
@@ -378,7 +404,11 @@ const ProductDetailScreen: FC = () => {
               <Text style={styles.soldText}>(Sold 50)</Text>
             </View>
           </View>
+
+          {/* ✅ Title */}
           <Text style={styles.title}>{productTitle}</Text>
+
+          {/* ✅ Variations */}
           <Text style={styles.sectionTitle}>Variations</Text>
           {item.images && item.images.length > 0 && (
             <VariationSelector
@@ -387,9 +417,8 @@ const ProductDetailScreen: FC = () => {
               selectedId={selectedVar?.id || ''}
             />
           )}
-          {!isPet && (
-            <></> // Không hiển thị phần Information khi là sản phẩm
-          )}
+
+          {/* ✅ Information (chỉ cho Pet) */}
           {isPet && (
             <>
               <Text style={styles.sectionTitle}>Information</Text>
@@ -401,6 +430,8 @@ const ProductDetailScreen: FC = () => {
               </View>
             </>
           )}
+
+          {/* ✅ Rating & Reviews */}
           <Text style={styles.sectionTitle}>Rating & Reviews</Text>
           <View style={styles.reviewHeader}>
             <Text style={styles.avgRating}>4.5</Text>
@@ -408,6 +439,8 @@ const ProductDetailScreen: FC = () => {
             <Text style={styles.ratingCount}>Product Ratings (90)</Text>
           </View>
           <ReviewCard navigation={navigation} />
+
+          {/* ✅ Description */}
           <Text style={styles.sectionTitle}>Description</Text>
           <Text
             style={styles.descText}
@@ -423,11 +456,17 @@ const ProductDetailScreen: FC = () => {
               {isDescriptionExpanded ? 'Show Less' : 'Show More'}
             </Text>
           </TouchableOpacity>
+
+          {/* ✅ Description image */}
           <Image source={productImage} style={styles.descImage} />
+
+          {/* ✅ Related items */}
           <Text style={styles.sectionTitle}>Related Items</Text>
           <RelatedGrid />
         </View>
       </ScrollView>
+
+      {/* ✅ Bottom actions */}
       <FooterBar
         isFavorite={isFavorite}
         toggleFavorite={() => setIsFavorite(f => !f)}
@@ -444,7 +483,7 @@ const ProductDetailScreen: FC = () => {
 
 export default ProductDetailScreen;
 
-// --- Styles ---
+// ✅ STYLES HOÀN CHỈNH
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   headerBar: {
@@ -481,13 +520,6 @@ const styles = StyleSheet.create({
   varItem: { marginRight: 12, borderRadius: 8 },
   varSelected: { borderWidth: 2, borderColor: '#10B981' },
   varImg: { width: 60, height: 60, borderRadius: 8 },
-  deliveryContainer: { marginTop: 8 },
-  deliveryBar: { flexDirection: 'row', justifyContent: 'space-between', borderWidth: 1, borderColor: '#2563EB', borderRadius: 8, padding: 12, marginBottom: 8, alignItems: 'center' },
-  deliveryBarLeft: { flexDirection: 'row', alignItems: 'center' },
-  deliveryLabel: { fontWeight: '500', marginRight: 12 },
-  datePill: { backgroundColor: '#DBEAFE', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  dateText: { color: '#1D4ED8' },
-  delPrice: { fontWeight: 'bold' },
   infoBox: { marginTop: 8 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   infoKey: { color: '#374151' },
