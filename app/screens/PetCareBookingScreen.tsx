@@ -6,6 +6,7 @@ import {
     Alert,
     FlatList,
     Image,
+    Modal,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -14,15 +15,16 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../hooks/redux';
 import { createAppointment, getAvailableSlots } from '../redux/slices/appointmentSlice';
 import { getAllServices } from '../redux/slices/careServiceSlice';
 import { AppDispatch, RootState } from '../redux/store';
-import { ordersService } from '../services/OrderApiService'; // Thêm import ordersService từ OrderApiService
-import { CustomerInfo, Service, TimeSlot } from '../types/PetCareBooking'; // Thêm OrderItem type
+import { ordersService } from '../services/OrderApiService';
+import { CustomerInfo, Service, TimeSlot } from '../types/PetCareBooking';
 
-// Interfaces gốc - GIỮ NGUYÊN
+// Interfaces gốc
 interface Pet {
     id: string;
     name: string;
@@ -32,7 +34,6 @@ interface Pet {
     image: string;
 }
 
-// Thêm interface cho PurchasedPet
 interface PurchasedPetOrderItem {
     _id: string;
     pet_id?: {
@@ -48,7 +49,6 @@ interface PurchasedPetOrderItem {
     order_id: any;
 }
 
-// Interface cho API response OrderItem
 interface ApiOrderItem {
     _id: string;
     pet_id?: {
@@ -78,12 +78,11 @@ const PetCareBookingScreen: React.FC = () => {
     const { services: backendServices, isLoading: servicesLoading } = useSelector((state: RootState) => state.careServices);
     const { availableSlots, isLoading: appointmentLoading } = useSelector((state: RootState) => state.appointments);
 
-    // State gốc - GIỮ NGUYÊN
+    // State gốc
     const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedTime, setSelectedTime] = useState<string>('');
-    const [selectedLocation, setSelectedLocation] = useState<string>('');
     const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
         name: user?.username || '',
         phone: user?.phone || '',
@@ -91,12 +90,13 @@ const PetCareBookingScreen: React.FC = () => {
         notes: ''
     });
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [showCalendar, setShowCalendar] = useState(false); // Thêm state cho modal lịch
 
-    // Backend data state - THAY ĐỔI TÊN BIẾN
+    // Backend data state
     const [purchasedPets, setPurchasedPets] = useState<PurchasedPetOrderItem[]>([]);
     const [petsLoading, setPetsLoading] = useState(false);
 
-    // Convert purchased pets sang format gốc - CẬP NHẬT LOGIC
+    // Convert purchased pets sang format gốc
     const pets: Pet[] = purchasedPets.map(orderItem => {
         const pet = orderItem.pet_id;
         console.log('🔄 Converting pet:', JSON.stringify(pet, null, 2));
@@ -121,7 +121,7 @@ const PetCareBookingScreen: React.FC = () => {
 
     console.log('🎯 Final converted pets:', pets.length, pets);
 
-    // Convert backend services sang format gốc - GIỮ NGUYÊN
+    // Convert backend services sang format gốc
     const services: Service[] = backendServices.map(service => {
         const getServiceIcon = (category: string) => {
             switch (category) {
@@ -143,14 +143,7 @@ const PetCareBookingScreen: React.FC = () => {
         };
     });
 
-    // Static data gốc - GIỮ NGUYÊN
-    const locations = [
-        'PetShop Chi nhánh 1 - Quận 1, TP.HCM',
-        'PetShop Chi nhánh 2 - Quận 3, TP.HCM',
-        'PetShop Chi nhánh 3 - Quận 7, TP.HCM'
-    ];
-
-    // Convert availableSlots thành timeSlots format gốc - GIỮ NGUYÊN
+    // Convert availableSlots thành timeSlots format gốc
     const timeSlots: TimeSlot[] = [
         { time: '08:00', available: availableSlots.includes('08:00') },
         { time: '09:00', available: availableSlots.includes('09:00') },
@@ -162,7 +155,7 @@ const PetCareBookingScreen: React.FC = () => {
         { time: '17:00', available: availableSlots.includes('17:00') }
     ];
 
-    // Load backend data - GIỮ NGUYÊN
+    // Load backend data
     useEffect(() => {
         if (!token) {
             Alert.alert('Cảnh báo', 'Vui lòng đăng nhập để đặt lịch hẹn', [
@@ -174,7 +167,7 @@ const PetCareBookingScreen: React.FC = () => {
         loadBackendData();
     }, [token]);
 
-    // Load available slots khi chọn ngày - GIỮ NGUYÊN
+    // Load available slots khi chọn ngày
     useEffect(() => {
         if (selectedDate && selectedDate.length > 0) {
             // Validate DD/MM/YYYY
@@ -186,7 +179,6 @@ const PetCareBookingScreen: React.FC = () => {
                 dateParts[2].length === 4
             ) {
                 const apiDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
-                // Kiểm tra ngày hợp lệ bằng Date
                 if (!isNaN(Date.parse(apiDate))) {
                     dispatch(getAvailableSlots(apiDate));
                 } else {
@@ -195,175 +187,39 @@ const PetCareBookingScreen: React.FC = () => {
                 }
             } else {
                 console.warn('❌ Invalid date input:', selectedDate);
-                // Có thể báo lỗi cho user nếu muốn
             }
         }
     }, [selectedDate]);
 
     const loadBackendData = async () => {
         try {
-            // Load services
             await dispatch(getAllServices({ active: true }));
-
-            // Load purchased pets - THAY ĐỔI
             await loadPurchasedPets();
-
-            // ALTERNATIVE: Nếu getMyOrderItems không hoạt động, thử getMyOrders
-            // await loadPurchasedPetsAlternative();
         } catch (error) {
             console.error('Error loading backend data:', error);
         }
     };
 
-    // ALTERNATIVE METHOD - Thử approach khác nếu getMyOrderItems không hoạt động
-    const loadPurchasedPetsAlternative = async () => {
-        try {
-            console.log('🔄 Trying alternative method...');
-
-            // Lấy orders của user trước
-            const ordersResponse = await ordersService.getMyOrders({ limit: 100 });
-            console.log('📦 Orders response:', JSON.stringify(ordersResponse, null, 2));
-
-            let ordersData = null;
-
-            // Handle different response formats
-            if (ordersResponse && ordersResponse.success && ordersResponse.data) {
-                ordersData = ordersResponse.data;
-            } else if (ordersResponse && ordersResponse.data) {
-                ordersData = ordersResponse.data;
-            } else if (Array.isArray(ordersResponse)) {
-                ordersData = ordersResponse;
-            }
-
-            if (ordersData && Array.isArray(ordersData)) {
-                console.log('📋 Found orders:', ordersData.length);
-                const allPurchasedPets: PurchasedPetOrderItem[] = [];
-
-                // Loop qua từng order để lấy order items
-                for (const order of ordersData) {
-                    try {
-                        console.log(`🔍 Loading items for order: ${order._id}`);
-                        const orderItemsResponse = await ordersService.getOrderItemsByOrderId(order._id);
-                        console.log(`📋 Order ${order._id} items response:`, JSON.stringify(orderItemsResponse, null, 2));
-
-                        let itemsData = null;
-
-                        if (orderItemsResponse && orderItemsResponse.success && orderItemsResponse.data) {
-                            itemsData = orderItemsResponse.data;
-                        } else if (orderItemsResponse && orderItemsResponse.data) {
-                            itemsData = orderItemsResponse.data;
-                        } else if (Array.isArray(orderItemsResponse)) {
-                            itemsData = orderItemsResponse;
-                        }
-
-                        if (itemsData && Array.isArray(itemsData)) {
-                            const petItems = itemsData.filter((item: any) => {
-                                console.log(`🔍 Item ${item._id} has pet_id:`, !!item.pet_id);
-                                return item.pet_id && item.pet_id !== null;
-                            });
-
-                            console.log(`🐾 Found ${petItems.length} pet items in order ${order._id}`);
-                            allPurchasedPets.push(...petItems);
-                        }
-                    } catch (itemError) {
-                        console.error(`❌ Error loading items for order ${order._id}:`, itemError);
-                    }
-                }
-
-                console.log('🎯 All purchased pets (alternative):', allPurchasedPets.length);
-
-                if (allPurchasedPets.length > 0) {
-                    // Remove duplicates
-                    const uniquePets: PurchasedPetOrderItem[] = [];
-                    const seenPetIds = new Set<string>();
-
-                    allPurchasedPets.forEach((item: any) => {
-                        const petId = item.pet_id?._id;
-                        if (petId && !seenPetIds.has(petId)) {
-                            seenPetIds.add(petId);
-                            uniquePets.push(item);
-                        }
-                    });
-
-                    console.log('🎯 Unique pets from alternative method:', uniquePets.length);
-                    setPurchasedPets(uniquePets);
-                    return;
-                }
-            }
-
-            // If alternative method also fails, show alert
-            console.log('⚠️ Alternative method found no pets');
-            Alert.alert(
-                'Thông báo',
-                'Bạn chưa mua thú cưng nào. Vui lòng mua thú cưng trước khi đặt lịch chăm sóc.',
-                [
-                    { text: 'Mua thú cưng', onPress: () => navigation.navigate('PetAll') },
-                    { text: 'Quay lại', onPress: () => navigation.goBack() }
-                ]
-            );
-
-        } catch (error) {
-            console.error('❌ Alternative method failed:', error);
-
-            // Final fallback - use sample data for testing
-            console.log('🔄 Using fallback data for testing...');
-            setPurchasedPets([
-                {
-                    _id: '1',
-                    pet_id: {
-                        _id: '1',
-                        name: 'Buddy',
-                        type: 'Chó',
-                        breed_id: 'Golden Retriever',
-                        age: 2,
-                        images: [{ url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop&crop=face' }]
-                    },
-                    quantity: 1,
-                    unit_price: 5000000,
-                    order_id: null
-                },
-                {
-                    _id: '2',
-                    pet_id: {
-                        _id: '2',
-                        name: 'Mimi',
-                        type: 'Mèo',
-                        breed_id: 'British Shorthair',
-                        age: 1,
-                        images: [{ url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=100&h=100&fit=crop&crop=face' }]
-                    },
-                    quantity: 1,
-                    unit_price: 3000000,
-                    order_id: null
-                }
-            ]);
-        }
-    };
-
-    // HÀM MỚI - Lấy pet đã mua từ order items
     const loadPurchasedPets = async () => {
         try {
             setPetsLoading(true);
             console.log('🔍 Loading purchased pets...');
 
             const response = await ordersService.getMyOrderItems({
-                limit: 100 // Lấy nhiều items để đảm bảo không bị thiếu
+                limit: 100
             });
 
             console.log('📦 Raw API response:', response);
             console.log('📦 Response data:', response.data);
 
-            // Sửa điều kiện này:
             if (response.data && Array.isArray(response.data)) {
                 console.log('✅ API call successful, processing data...');
                 console.log('📊 Total order items:', response.data.length);
 
-                // Debug: Log first few items để xem structure
                 response.data.slice(0, 3).forEach((item, index) => {
                     console.log(`📋 Order item ${index}:`, JSON.stringify(item, null, 2));
                 });
 
-                // Lọc chỉ lấy order items có pet_id (không lấy product)
                 const petOrderItems = response.data.filter((item: ApiOrderItem) => {
                     const hasPet = item.pet_id && item.pet_id !== null;
                     console.log(`🔍 Item ${item._id} has pet:`, hasPet, 'pet_id:', item.pet_id);
@@ -372,7 +228,6 @@ const PetCareBookingScreen: React.FC = () => {
 
                 console.log('🐾 Filtered pet order items:', petOrderItems.length);
 
-                // Loại bỏ duplicate pets (cùng 1 pet có thể được mua nhiều lần)
                 const uniquePets: PurchasedPetOrderItem[] = [];
                 const seenPetIds = new Set<string>();
 
@@ -412,7 +267,6 @@ const PetCareBookingScreen: React.FC = () => {
             console.error('❌ Error loading purchased pets:', error);
             Alert.alert('Lỗi', 'Không thể tải danh sách thú cưng đã mua. Vui lòng thử lại.');
 
-            // Fallback về data mẫu nếu API lỗi (cho development)
             console.log('🔄 Using fallback data...');
             setPurchasedPets([
                 {
@@ -449,7 +303,14 @@ const PetCareBookingScreen: React.FC = () => {
         }
     };
 
-    // Functions gốc - GIỮ NGUYÊN
+    // Hàm xử lý chọn ngày từ calendar
+    const handleDateSelect = (day: { dateString: string }) => {
+        const date = new Date(day.dateString);
+        const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+        setSelectedDate(formattedDate);
+        setShowCalendar(false);
+    };
+
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('vi-VN', {
             style: 'currency',
@@ -458,23 +319,19 @@ const PetCareBookingScreen: React.FC = () => {
     };
 
     const handleBooking = async () => {
-        if (selectedPet && selectedService && selectedDate && selectedTime && selectedLocation && customerInfo.name && customerInfo.phone) {
+        if (selectedPet && selectedService && selectedDate && selectedTime && customerInfo.name && customerInfo.phone) {
             try {
-                // Convert DD/MM/YYYY sang YYYY-MM-DD cho API
                 const dateParts = selectedDate.split('/');
                 const apiDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
 
-                // Tìm backend pet và service từ selected items - CẬP NHẬT LOGIC
                 const selectedPetOrderItem = purchasedPets.find(item => item.pet_id?._id === selectedPet?.id);
                 const backendService = backendServices.find(s => s._id === selectedService.id);
 
                 if (!selectedPetOrderItem || !selectedPetOrderItem.pet_id || !backendService) {
-                    // Fallback về logic cũ nếu không tìm thấy backend data
                     setShowConfirmation(true);
                     return;
                 }
 
-                // NEW CHECK - Validate order_id
                 if (!selectedPetOrderItem.order_id || !selectedPetOrderItem.order_id._id) {
                     Alert.alert('Lỗi', 'Thú cưng này không thuộc đơn hàng hợp lệ. Vui lòng chọn lại.');
                     return;
@@ -488,7 +345,7 @@ const PetCareBookingScreen: React.FC = () => {
                     notes: customerInfo.notes.trim() || undefined,
                     order_id: selectedPetOrderItem.order_id._id,
                     price: backendService.price,
-                    total_amount: backendService.price // Thêm dòng này để khớp với backend
+                    total_amount: backendService.price
                 };
                 console.log('📦 Appointment data:', appointmentData);
 
@@ -507,7 +364,6 @@ const PetCareBookingScreen: React.FC = () => {
         setSelectedService(null);
         setSelectedDate('');
         setSelectedTime('');
-        setSelectedLocation('');
         setCustomerInfo({
             name: user?.username || '',
             phone: user?.phone || '',
@@ -517,7 +373,6 @@ const PetCareBookingScreen: React.FC = () => {
         setShowConfirmation(false);
     };
 
-    // Render functions gốc - GIỮ NGUYÊN
     const renderPetItem = ({ item }: { item: Pet }) => (
         <TouchableOpacity
             style={[
@@ -583,22 +438,6 @@ const PetCareBookingScreen: React.FC = () => {
         </TouchableOpacity>
     );
 
-    const renderLocationItem = ({ item }: { item: string }) => (
-        <TouchableOpacity
-            style={[
-                styles.locationItem,
-                selectedLocation === item && styles.selectedItem
-            ]}
-            onPress={() => setSelectedLocation(item)}
-        >
-            <Text style={styles.locationText}>{item}</Text>
-            {selectedLocation === item && (
-                <Ionicons name="checkmark-circle" size={24} color="#3B82F6" />
-            )}
-        </TouchableOpacity>
-    );
-
-    // Confirmation screen gốc - GIỮ NGUYÊN + thêm navigation
     if (showConfirmation) {
         return (
             <SafeAreaView style={styles.container}>
@@ -617,7 +456,6 @@ const PetCareBookingScreen: React.FC = () => {
                             <Text style={styles.bookingInfoItem}>• Dịch vụ: {selectedService?.name}</Text>
                             <Text style={styles.bookingInfoItem}>• Ngày: {selectedDate}</Text>
                             <Text style={styles.bookingInfoItem}>• Giờ: {selectedTime}</Text>
-                            <Text style={styles.bookingInfoItem}>• Địa điểm: {selectedLocation}</Text>
                         </View>
                         <TouchableOpacity
                             style={styles.newBookingButton}
@@ -631,7 +469,6 @@ const PetCareBookingScreen: React.FC = () => {
         );
     }
 
-    // Main UI gốc - GIỮ NGUYÊN + cập nhật message khi không có pet
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -646,7 +483,6 @@ const PetCareBookingScreen: React.FC = () => {
 
             <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
                 <View style={styles.content}>
-                    {/* Progress Steps - GIỮ NGUYÊN */}
                     <View style={styles.progressContainer}>
                         <View style={styles.progressStep}>
                             <View style={[styles.progressCircle, styles.activeProgress]}>
@@ -670,7 +506,6 @@ const PetCareBookingScreen: React.FC = () => {
                         </View>
                     </View>
 
-                    {/* Pet Selection - CẬP NHẬT MESSAGE */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Ionicons name="heart" size={24} color="#EC4899" />
@@ -705,7 +540,6 @@ const PetCareBookingScreen: React.FC = () => {
                         )}
                     </View>
 
-                    {/* Service Selection - GIỮ NGUYÊN */}
                     {selectedPet && (
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
@@ -727,7 +561,6 @@ const PetCareBookingScreen: React.FC = () => {
                         </View>
                     )}
 
-                    {/* Date & Time Selection - GIỮ NGUYÊN */}
                     {selectedService && (
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
@@ -735,13 +568,40 @@ const PetCareBookingScreen: React.FC = () => {
                                 <Text style={styles.sectionTitle}>Chọn ngày & giờ</Text>
                             </View>
                             <Text style={styles.inputLabel}>Chọn ngày</Text>
-                            <TextInput
+                            <TouchableOpacity
                                 style={styles.dateInput}
-                                value={selectedDate}
-                                onChangeText={setSelectedDate}
-                                placeholder="DD/MM/YYYY"
-                                placeholderTextColor="#9CA3AF"
-                            />
+                                onPress={() => setShowCalendar(true)}
+                            >
+                                <Text style={styles.dateInputText}>
+                                    {selectedDate || 'DD/MM/YYYY'}
+                                </Text>
+                            </TouchableOpacity>
+                            <Modal
+                                visible={showCalendar}
+                                animationType="slide"
+                                transparent={true}
+                                onRequestClose={() => setShowCalendar(false)}
+                            >
+                                <View style={styles.modalContainer}>
+                                    <View style={styles.calendarContainer}>
+                                        <Calendar
+                                            onDayPress={handleDateSelect}
+                                            minDate={new Date().toISOString().split('T')[0]}
+                                            theme={{
+                                                selectedDayBackgroundColor: '#3B82F6',
+                                                todayTextColor: '#3B82F6',
+                                                arrowColor: '#3B82F6',
+                                            }}
+                                        />
+                                        <TouchableOpacity
+                                            style={styles.closeButton}
+                                            onPress={() => setShowCalendar(false)}
+                                        >
+                                            <Text style={styles.closeButtonText}>Đóng</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </Modal>
                             <Text style={styles.inputLabel}>Chọn giờ</Text>
                             {appointmentLoading && selectedDate ? (
                                 <View style={{ padding: 20, alignItems: 'center' }}>
@@ -760,24 +620,7 @@ const PetCareBookingScreen: React.FC = () => {
                         </View>
                     )}
 
-                    {/* Location Selection - GIỮ NGUYÊN */}
                     {selectedTime && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Ionicons name="location" size={24} color="#EF4444" />
-                                <Text style={styles.sectionTitle}>Chọn địa điểm</Text>
-                            </View>
-                            <FlatList
-                                data={locations}
-                                renderItem={renderLocationItem}
-                                keyExtractor={(item) => item}
-                                scrollEnabled={false}
-                            />
-                        </View>
-                    )}
-
-                    {/* Customer Information - GIỮ NGUYÊN */}
-                    {selectedLocation && (
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                                 <Ionicons name="person" size={24} color="#F59E0B" />
@@ -830,8 +673,7 @@ const PetCareBookingScreen: React.FC = () => {
                         </View>
                     )}
 
-                    {/* Booking Summary - GIỮ NGUYÊN */}
-                    {selectedLocation && customerInfo.name && customerInfo.phone && (
+                    {selectedTime && customerInfo.name && customerInfo.phone && (
                         <View style={styles.summarySection}>
                             <Text style={styles.summaryTitle}>Tóm tắt đặt lịch</Text>
                             <View style={styles.summaryItem}>
@@ -849,10 +691,6 @@ const PetCareBookingScreen: React.FC = () => {
                             <View style={styles.summaryItem}>
                                 <Text style={styles.summaryLabel}>Thời gian:</Text>
                                 <Text style={styles.summaryValue}>{selectedService?.duration}</Text>
-                            </View>
-                            <View style={styles.summaryItem}>
-                                <Text style={styles.summaryLabel}>Địa điểm:</Text>
-                                <Text style={[styles.summaryValue, styles.locationValue]}>{selectedLocation}</Text>
                             </View>
                             <View style={styles.summaryDivider} />
                             <View style={styles.summaryItem}>
@@ -883,7 +721,6 @@ const PetCareBookingScreen: React.FC = () => {
     );
 };
 
-// Styles gốc - GIỮ NGUYÊN 100%
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -1069,6 +906,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         marginBottom: 16,
     },
+    dateInputText: {
+        fontSize: 16,
+        color: '#374151',
+    },
     timeSlotRow: {
         justifyContent: 'space-between',
         marginBottom: 8,
@@ -1097,21 +938,6 @@ const styles = StyleSheet.create({
     },
     unavailableTimeSlotText: {
         color: '#9CA3AF',
-    },
-    locationItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 12,
-        borderRadius: 8,
-        borderWidth: 2,
-        borderColor: '#E5E7EB',
-        marginBottom: 8,
-    },
-    locationText: {
-        fontSize: 14,
-        color: '#374151',
-        flex: 1,
     },
     inputContainer: {
         marginBottom: 16,
@@ -1157,9 +983,6 @@ const styles = StyleSheet.create({
         textAlign: 'right',
         flex: 1,
         marginLeft: 8,
-    },
-    locationValue: {
-        fontSize: 12,
     },
     summaryDivider: {
         height: 1,
@@ -1250,6 +1073,31 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     newBookingButtonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    calendarContainer: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 16,
+        width: '90%',
+        maxWidth: 400,
+    },
+    closeButton: {
+        backgroundColor: '#3B82F6',
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 16,
+    },
+    closeButtonText: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#FFFFFF',
