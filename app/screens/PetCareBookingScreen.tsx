@@ -19,8 +19,8 @@ import { useAuth } from '../../hooks/redux';
 import { createAppointment, getAvailableSlots } from '../redux/slices/appointmentSlice';
 import { getAllServices } from '../redux/slices/careServiceSlice';
 import { AppDispatch, RootState } from '../redux/store';
-import { petsService } from '../services/petsService';
-import { CustomerInfo, Service, TimeSlot, } from '../types/PetCareBooking';
+import { ordersService } from '../services/OrderApiService'; // Thêm import ordersService từ OrderApiService
+import { CustomerInfo, Service, TimeSlot } from '../types/PetCareBooking'; // Thêm OrderItem type
 
 // Interfaces gốc - GIỮ NGUYÊN
 interface Pet {
@@ -30,6 +30,43 @@ interface Pet {
     breed: string;
     age: string;
     image: string;
+}
+
+// Thêm interface cho PurchasedPet
+interface PurchasedPetOrderItem {
+    _id: string;
+    pet_id?: {
+        _id: string;
+        name: string;
+        type: string;
+        breed_id: string | { name: string };
+        age?: number;
+        images?: { url: string }[];
+    };
+    quantity: number;
+    unit_price: number;
+    order_id: any;
+}
+
+// Interface cho API response OrderItem
+interface ApiOrderItem {
+    _id: string;
+    pet_id?: {
+        _id: string;
+        name: string;
+        type: string;
+        breed_id: string | { name: string };
+        age?: number;
+        images?: { url: string }[];
+    };
+    product_id?: {
+        _id: string;
+        name: string;
+        price: number;
+    };
+    quantity: number;
+    unit_price: number;
+    order_id: any;
 }
 
 const PetCareBookingScreen: React.FC = () => {
@@ -55,21 +92,36 @@ const PetCareBookingScreen: React.FC = () => {
     });
     const [showConfirmation, setShowConfirmation] = useState(false);
 
-    // Backend data state
-    const [backendPets, setBackendPets] = useState<any[]>([]);
+    // Backend data state - THAY ĐỔI TÊN BIẾN
+    const [purchasedPets, setPurchasedPets] = useState<PurchasedPetOrderItem[]>([]);
     const [petsLoading, setPetsLoading] = useState(false);
 
-    // Convert backend pets sang format gốc
-    const pets: Pet[] = backendPets.map(pet => ({
-        id: pet._id,
-        name: pet.name,
-        type: pet.type || 'Chưa rõ',
-        breed: typeof pet.breed_id === 'object' ? pet.breed_id.name : (pet.breed_id || 'Chưa rõ'),
-        age: pet.age ? `${pet.age} tuổi` : 'Chưa rõ tuổi',
-        image: pet.images && pet.images.length > 0 ? pet.images[0].url : 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop&crop=face'
-    }));
+    // Convert purchased pets sang format gốc - CẬP NHẬT LOGIC
+    const pets: Pet[] = purchasedPets.map(orderItem => {
+        const pet = orderItem.pet_id;
+        console.log('🔄 Converting pet:', JSON.stringify(pet, null, 2));
 
-    // Convert backend services sang format gốc
+        if (!pet) {
+            console.log('❌ Pet is null/undefined');
+            return null;
+        }
+
+        const convertedPet = {
+            id: pet._id,
+            name: pet.name || 'Thú cưng',
+            type: pet.type || 'Chưa rõ loại',
+            breed: typeof pet.breed_id === 'object' ? pet.breed_id.name : (pet.breed_id || 'Chưa rõ giống'),
+            age: pet.age ? `${pet.age} tuổi` : 'Chưa rõ tuổi',
+            image: pet.images && pet.images.length > 0 ? pet.images[0].url : 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop&crop=face'
+        };
+
+        console.log('✅ Converted pet:', convertedPet);
+        return convertedPet;
+    }).filter((pet): pet is Pet => pet !== null);
+
+    console.log('🎯 Final converted pets:', pets.length, pets);
+
+    // Convert backend services sang format gốc - GIỮ NGUYÊN
     const services: Service[] = backendServices.map(service => {
         const getServiceIcon = (category: string) => {
             switch (category) {
@@ -98,7 +150,7 @@ const PetCareBookingScreen: React.FC = () => {
         'PetShop Chi nhánh 3 - Quận 7, TP.HCM'
     ];
 
-    // Convert availableSlots thành timeSlots format gốc
+    // Convert availableSlots thành timeSlots format gốc - GIỮ NGUYÊN
     const timeSlots: TimeSlot[] = [
         { time: '08:00', available: availableSlots.includes('08:00') },
         { time: '09:00', available: availableSlots.includes('09:00') },
@@ -110,7 +162,7 @@ const PetCareBookingScreen: React.FC = () => {
         { time: '17:00', available: availableSlots.includes('17:00') }
     ];
 
-    // Load backend data
+    // Load backend data - GIỮ NGUYÊN
     useEffect(() => {
         if (!token) {
             Alert.alert('Cảnh báo', 'Vui lòng đăng nhập để đặt lịch hẹn', [
@@ -122,14 +174,28 @@ const PetCareBookingScreen: React.FC = () => {
         loadBackendData();
     }, [token]);
 
-    // Load available slots khi chọn ngày
+    // Load available slots khi chọn ngày - GIỮ NGUYÊN
     useEffect(() => {
         if (selectedDate && selectedDate.length > 0) {
-            // Convert DD/MM/YYYY sang YYYY-MM-DD cho API
+            // Validate DD/MM/YYYY
             const dateParts = selectedDate.split('/');
-            if (dateParts.length === 3) {
+            if (
+                dateParts.length === 3 &&
+                dateParts[0].length === 2 &&
+                dateParts[1].length === 2 &&
+                dateParts[2].length === 4
+            ) {
                 const apiDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
-                dispatch(getAvailableSlots(apiDate));
+                // Kiểm tra ngày hợp lệ bằng Date
+                if (!isNaN(Date.parse(apiDate))) {
+                    dispatch(getAvailableSlots(apiDate));
+                } else {
+                    console.warn('❌ Invalid date format:', apiDate);
+                    Alert.alert('Lỗi', 'Ngày không hợp lệ. Vui lòng nhập đúng định dạng DD/MM/YYYY.');
+                }
+            } else {
+                console.warn('❌ Invalid date input:', selectedDate);
+                // Có thể báo lỗi cho user nếu muốn
             }
         }
     }, [selectedDate]);
@@ -139,42 +205,243 @@ const PetCareBookingScreen: React.FC = () => {
             // Load services
             await dispatch(getAllServices({ active: true }));
 
-            // Load user pets
-            await loadUserPets();
+            // Load purchased pets - THAY ĐỔI
+            await loadPurchasedPets();
+
+            // ALTERNATIVE: Nếu getMyOrderItems không hoạt động, thử getMyOrders
+            // await loadPurchasedPetsAlternative();
         } catch (error) {
             console.error('Error loading backend data:', error);
         }
     };
 
-    const loadUserPets = async () => {
+    // ALTERNATIVE METHOD - Thử approach khác nếu getMyOrderItems không hoạt động
+    const loadPurchasedPetsAlternative = async () => {
         try {
-            setPetsLoading(true);
-            const response = await petsService.searchPets({
-                limit: 100
-            });
+            console.log('🔄 Trying alternative method...');
 
-            if (response.success && response.data) {
-                setBackendPets(response.data.pets || []);
+            // Lấy orders của user trước
+            const ordersResponse = await ordersService.getMyOrders({ limit: 100 });
+            console.log('📦 Orders response:', JSON.stringify(ordersResponse, null, 2));
+
+            let ordersData = null;
+
+            // Handle different response formats
+            if (ordersResponse && ordersResponse.success && ordersResponse.data) {
+                ordersData = ordersResponse.data;
+            } else if (ordersResponse && ordersResponse.data) {
+                ordersData = ordersResponse.data;
+            } else if (Array.isArray(ordersResponse)) {
+                ordersData = ordersResponse;
             }
+
+            if (ordersData && Array.isArray(ordersData)) {
+                console.log('📋 Found orders:', ordersData.length);
+                const allPurchasedPets: PurchasedPetOrderItem[] = [];
+
+                // Loop qua từng order để lấy order items
+                for (const order of ordersData) {
+                    try {
+                        console.log(`🔍 Loading items for order: ${order._id}`);
+                        const orderItemsResponse = await ordersService.getOrderItemsByOrderId(order._id);
+                        console.log(`📋 Order ${order._id} items response:`, JSON.stringify(orderItemsResponse, null, 2));
+
+                        let itemsData = null;
+
+                        if (orderItemsResponse && orderItemsResponse.success && orderItemsResponse.data) {
+                            itemsData = orderItemsResponse.data;
+                        } else if (orderItemsResponse && orderItemsResponse.data) {
+                            itemsData = orderItemsResponse.data;
+                        } else if (Array.isArray(orderItemsResponse)) {
+                            itemsData = orderItemsResponse;
+                        }
+
+                        if (itemsData && Array.isArray(itemsData)) {
+                            const petItems = itemsData.filter((item: any) => {
+                                console.log(`🔍 Item ${item._id} has pet_id:`, !!item.pet_id);
+                                return item.pet_id && item.pet_id !== null;
+                            });
+
+                            console.log(`🐾 Found ${petItems.length} pet items in order ${order._id}`);
+                            allPurchasedPets.push(...petItems);
+                        }
+                    } catch (itemError) {
+                        console.error(`❌ Error loading items for order ${order._id}:`, itemError);
+                    }
+                }
+
+                console.log('🎯 All purchased pets (alternative):', allPurchasedPets.length);
+
+                if (allPurchasedPets.length > 0) {
+                    // Remove duplicates
+                    const uniquePets: PurchasedPetOrderItem[] = [];
+                    const seenPetIds = new Set<string>();
+
+                    allPurchasedPets.forEach((item: any) => {
+                        const petId = item.pet_id?._id;
+                        if (petId && !seenPetIds.has(petId)) {
+                            seenPetIds.add(petId);
+                            uniquePets.push(item);
+                        }
+                    });
+
+                    console.log('🎯 Unique pets from alternative method:', uniquePets.length);
+                    setPurchasedPets(uniquePets);
+                    return;
+                }
+            }
+
+            // If alternative method also fails, show alert
+            console.log('⚠️ Alternative method found no pets');
+            Alert.alert(
+                'Thông báo',
+                'Bạn chưa mua thú cưng nào. Vui lòng mua thú cưng trước khi đặt lịch chăm sóc.',
+                [
+                    { text: 'Mua thú cưng', onPress: () => navigation.navigate('PetAll') },
+                    { text: 'Quay lại', onPress: () => navigation.goBack() }
+                ]
+            );
+
         } catch (error) {
-            console.error('Error loading user pets:', error);
-            // Fallback về data mẫu nếu API lỗi
-            setBackendPets([
+            console.error('❌ Alternative method failed:', error);
+
+            // Final fallback - use sample data for testing
+            console.log('🔄 Using fallback data for testing...');
+            setPurchasedPets([
                 {
                     _id: '1',
-                    name: 'Buddy',
-                    type: 'Chó',
-                    breed_id: 'Golden Retriever',
-                    age: 2,
-                    images: [{ url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop&crop=face' }]
+                    pet_id: {
+                        _id: '1',
+                        name: 'Buddy',
+                        type: 'Chó',
+                        breed_id: 'Golden Retriever',
+                        age: 2,
+                        images: [{ url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop&crop=face' }]
+                    },
+                    quantity: 1,
+                    unit_price: 5000000,
+                    order_id: null
                 },
                 {
                     _id: '2',
-                    name: 'Mimi',
-                    type: 'Mèo',
-                    breed_id: 'British Shorthair',
-                    age: 1,
-                    images: [{ url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=100&h=100&fit=crop&crop=face' }]
+                    pet_id: {
+                        _id: '2',
+                        name: 'Mimi',
+                        type: 'Mèo',
+                        breed_id: 'British Shorthair',
+                        age: 1,
+                        images: [{ url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=100&h=100&fit=crop&crop=face' }]
+                    },
+                    quantity: 1,
+                    unit_price: 3000000,
+                    order_id: null
+                }
+            ]);
+        }
+    };
+
+    // HÀM MỚI - Lấy pet đã mua từ order items
+    const loadPurchasedPets = async () => {
+        try {
+            setPetsLoading(true);
+            console.log('🔍 Loading purchased pets...');
+
+            const response = await ordersService.getMyOrderItems({
+                limit: 100 // Lấy nhiều items để đảm bảo không bị thiếu
+            });
+
+            console.log('📦 Raw API response:', response);
+            console.log('📦 Response data:', response.data);
+
+            // Sửa điều kiện này:
+            if (response.data && Array.isArray(response.data)) {
+                console.log('✅ API call successful, processing data...');
+                console.log('📊 Total order items:', response.data.length);
+
+                // Debug: Log first few items để xem structure
+                response.data.slice(0, 3).forEach((item, index) => {
+                    console.log(`📋 Order item ${index}:`, JSON.stringify(item, null, 2));
+                });
+
+                // Lọc chỉ lấy order items có pet_id (không lấy product)
+                const petOrderItems = response.data.filter((item: ApiOrderItem) => {
+                    const hasPet = item.pet_id && item.pet_id !== null;
+                    console.log(`🔍 Item ${item._id} has pet:`, hasPet, 'pet_id:', item.pet_id);
+                    return hasPet;
+                });
+
+                console.log('🐾 Filtered pet order items:', petOrderItems.length);
+
+                // Loại bỏ duplicate pets (cùng 1 pet có thể được mua nhiều lần)
+                const uniquePets: PurchasedPetOrderItem[] = [];
+                const seenPetIds = new Set<string>();
+
+                petOrderItems.forEach((item: ApiOrderItem) => {
+                    const petId = item.pet_id?._id;
+                    console.log(`🔍 Processing pet_id: ${petId}`);
+
+                    if (petId && !seenPetIds.has(petId)) {
+                        seenPetIds.add(petId);
+                        uniquePets.push(item);
+                        console.log(`✅ Added unique pet: ${item.pet_id?.name} (${petId})`);
+                    } else {
+                        console.log(`❌ Skipped pet (duplicate or invalid): ${petId}`);
+                    }
+                });
+
+                console.log('🎯 Final unique pets:', uniquePets.length);
+                setPurchasedPets(uniquePets);
+
+                if (uniquePets.length === 0) {
+                    console.log('⚠️ No pets found in orders');
+                    Alert.alert(
+                        'Thông báo',
+                        'Bạn chưa mua thú cưng nào. Vui lòng mua thú cưng trước khi đặt lịch chăm sóc.',
+                        [
+                            { text: 'Mua thú cưng', onPress: () => navigation.navigate('PetAll') },
+                            { text: 'Quay lại', onPress: () => navigation.goBack() }
+                        ]
+                    );
+                }
+            } else {
+                console.log('❌ API response not successful or no data');
+                console.log('Response:', response);
+                throw new Error('API response not successful');
+            }
+        } catch (error) {
+            console.error('❌ Error loading purchased pets:', error);
+            Alert.alert('Lỗi', 'Không thể tải danh sách thú cưng đã mua. Vui lòng thử lại.');
+
+            // Fallback về data mẫu nếu API lỗi (cho development)
+            console.log('🔄 Using fallback data...');
+            setPurchasedPets([
+                {
+                    _id: '1',
+                    pet_id: {
+                        _id: '1',
+                        name: 'Buddy',
+                        type: 'Chó',
+                        breed_id: 'Golden Retriever',
+                        age: 2,
+                        images: [{ url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop&crop=face' }]
+                    },
+                    quantity: 1,
+                    unit_price: 5000000,
+                    order_id: null
+                },
+                {
+                    _id: '2',
+                    pet_id: {
+                        _id: '2',
+                        name: 'Mimi',
+                        type: 'Mèo',
+                        breed_id: 'British Shorthair',
+                        age: 1,
+                        images: [{ url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=100&h=100&fit=crop&crop=face' }]
+                    },
+                    quantity: 1,
+                    unit_price: 3000000,
+                    order_id: null
                 }
             ]);
         } finally {
@@ -197,23 +464,33 @@ const PetCareBookingScreen: React.FC = () => {
                 const dateParts = selectedDate.split('/');
                 const apiDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
 
-                // Tìm backend pet và service từ selected items
-                const backendPet = backendPets.find(p => p._id === selectedPet.id);
+                // Tìm backend pet và service từ selected items - CẬP NHẬT LOGIC
+                const selectedPetOrderItem = purchasedPets.find(item => item.pet_id?._id === selectedPet?.id);
                 const backendService = backendServices.find(s => s._id === selectedService.id);
 
-                if (!backendPet || !backendService) {
+                if (!selectedPetOrderItem || !selectedPetOrderItem.pet_id || !backendService) {
                     // Fallback về logic cũ nếu không tìm thấy backend data
                     setShowConfirmation(true);
                     return;
                 }
 
+                // NEW CHECK - Validate order_id
+                if (!selectedPetOrderItem.order_id || !selectedPetOrderItem.order_id._id) {
+                    Alert.alert('Lỗi', 'Thú cưng này không thuộc đơn hàng hợp lệ. Vui lòng chọn lại.');
+                    return;
+                }
+
                 const appointmentData = {
-                    pet_id: backendPet._id,
+                    pet_id: selectedPetOrderItem.pet_id._id,
                     service_id: backendService._id,
                     appointment_date: apiDate,
                     appointment_time: selectedTime,
                     notes: customerInfo.notes.trim() || undefined,
+                    order_id: selectedPetOrderItem.order_id._id,
+                    price: backendService.price,
+                    total_amount: backendService.price // Thêm dòng này để khớp với backend
                 };
+                console.log('📦 Appointment data:', appointmentData);
 
                 await dispatch(createAppointment(appointmentData)).unwrap();
                 setShowConfirmation(true);
@@ -354,7 +631,7 @@ const PetCareBookingScreen: React.FC = () => {
         );
     }
 
-    // Main UI gốc - GIỮ NGUYÊN + thêm loading states nhỏ
+    // Main UI gốc - GIỮ NGUYÊN + cập nhật message khi không có pet
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -393,15 +670,30 @@ const PetCareBookingScreen: React.FC = () => {
                         </View>
                     </View>
 
-                    {/* Pet Selection - Chỉ thêm loading nhỏ */}
+                    {/* Pet Selection - CẬP NHẬT MESSAGE */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Ionicons name="heart" size={24} color="#EC4899" />
-                            <Text style={styles.sectionTitle}>Chọn thú cưng</Text>
+                            <Text style={styles.sectionTitle}>Chọn thú cưng đã mua</Text>
                         </View>
                         {petsLoading ? (
                             <View style={{ padding: 20, alignItems: 'center' }}>
                                 <ActivityIndicator size="small" color="#3B82F6" />
+                                <Text style={{ marginTop: 10, color: '#6B7280' }}>Đang tải thú cưng đã mua...</Text>
+                            </View>
+                        ) : pets.length === 0 ? (
+                            <View style={{ padding: 20, alignItems: 'center' }}>
+                                <Ionicons name="sad-outline" size={48} color="#9CA3AF" />
+                                <Text style={{ marginTop: 10, color: '#6B7280', textAlign: 'center' }}>
+                                    Bạn chưa mua thú cưng nào.{'\n'}
+                                    Vui lòng mua thú cưng trước khi đặt lịch chăm sóc.
+                                </Text>
+                                <TouchableOpacity
+                                    style={[styles.bookingButton, { marginTop: 15, backgroundColor: '#10B981' }]}
+                                    onPress={() => navigation.navigate('PetAll')}
+                                >
+                                    <Text style={styles.bookingButtonText}>Mua thú cưng ngay</Text>
+                                </TouchableOpacity>
                             </View>
                         ) : (
                             <FlatList
@@ -413,7 +705,7 @@ const PetCareBookingScreen: React.FC = () => {
                         )}
                     </View>
 
-                    {/* Service Selection - Chỉ thêm loading nhỏ */}
+                    {/* Service Selection - GIỮ NGUYÊN */}
                     {selectedPet && (
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
@@ -435,7 +727,7 @@ const PetCareBookingScreen: React.FC = () => {
                         </View>
                     )}
 
-                    {/* Date & Time Selection - GIỮ NGUYÊN + thêm loading cho time slots */}
+                    {/* Date & Time Selection - GIỮ NGUYÊN */}
                     {selectedService && (
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
@@ -538,7 +830,7 @@ const PetCareBookingScreen: React.FC = () => {
                         </View>
                     )}
 
-                    {/* Booking Summary - GIỮ NGUYÊN + thêm loading state cho submit */}
+                    {/* Booking Summary - GIỮ NGUYÊN */}
                     {selectedLocation && customerInfo.name && customerInfo.phone && (
                         <View style={styles.summarySection}>
                             <Text style={styles.summaryTitle}>Tóm tắt đặt lịch</Text>

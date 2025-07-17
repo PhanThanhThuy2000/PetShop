@@ -395,6 +395,7 @@ export interface Appointment {
   _id: string;
   user_id: string | User;
   pet_id: string | Pet;
+  order_id: string;
   service_id: string | CareService;
   appointment_date: string;
   appointment_time: string;
@@ -412,6 +413,10 @@ export interface CreateAppointmentRequest {
   appointment_date: string; // YYYY-MM-DD
   appointment_time: string; // HH:MM
   notes?: string;
+  staff_id?: string; // ID của nhân viên nếu có
+  total_amount?: number; // Tổng tiền nếu đã biết trước 
+  order_id?: string; // ID của đơn hàng nếu có
+  user_id?: string; // ID của người dùng nếu không lấy từ token
 }
 
 export interface UpdateAppointmentRequest {
