@@ -26,7 +26,7 @@ export const ordersService = {
     },
 
     async getOrderItemsByOrderId(orderId: string) {
-        const response = await api.get<ApiResponse<OrderItem[]>>(`/order_items/by-Order/${orderId}`);
+        const response = await api.get<ApiResponse<OrderItem[]>>(`/order_items/by-order/${orderId}`);
         return response.data;
     },
 

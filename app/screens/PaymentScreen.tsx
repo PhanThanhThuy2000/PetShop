@@ -273,7 +273,7 @@ const PaymentScreen = () => {
 
       const orderData = {
         total_amount: calculateTotal(),
-        status: (isCOD || isVNPaySuccess) ? 'completed' : 'pending',
+        status: (isCOD || isVNPaySuccess) ? 'completed' : 'completed',
         payment_method: isCOD ? 'cod' : 'vnpay',
         vnpay_transaction_id: vnpayData.vnp_TxnRef || null,
         payment_date: vnpayData.vnp_PayDate || null,
