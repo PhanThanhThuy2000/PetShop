@@ -1,4 +1,4 @@
-// app/redux/store.ts - CẬP NHẬT để thêm appointment và careService slices
+// app/redux/store.ts - CẬP NHẬT ĐÃ SỬA LỖI
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { FLUSH, PAUSE, PERSIST, persistReducer, persistStore, PURGE, REGISTER, REHYDRATE } from 'redux-persist';
@@ -7,12 +7,13 @@ import authReducer from './slices/authSlice';
 import careServiceReducer from './slices/careServiceSlice'; // NEW
 import cartReducer from './slices/cartSlice';
 import chatReducer from './slices/chatSlice';
+import favouriteReducer from './slices/favouriteSlice'; // NEW
 
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
   whitelist: ['auth'], // Chỉ persist auth state
-  blacklist: ['chat', 'appointments', 'careServices'] // Không persist real-time data
+  blacklist: ['chat', 'appointments', 'careServices', 'favourites'] // Không persist real-time data
 };
 
 const rootReducer = combineReducers({
@@ -21,12 +22,13 @@ const rootReducer = combineReducers({
   chat: chatReducer,
   appointments: appointmentReducer,  // NEW
   careServices: careServiceReducer,  // NEW
+  favourites: favouriteReducer,      // NEW - THÊM VÀO ĐÂY
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer: persistedReducer, // ✅ SỬA: Chỉ dùng persistedReducer, không wrap thêm object
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {

@@ -17,10 +17,14 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, getCart } from '../redux/slices/cartSlice';
+import {
+  addToFavourites,
+  checkFavouriteStatus,
+  removeFromFavourites
+} from '../redux/slices/favouriteSlice';
 import { AppDispatch, RootState } from '../redux/store';
 import { petsService, productsService } from '../services/api-services';
 import { Pet, PetImage, Product, ProductImage } from '../types';
-
 // --- Data Interfaces ---
 interface Variation { id: string; image: any; }
 interface RelatedItem { id: string; image: any; title: string; price: string; }
@@ -243,67 +247,81 @@ const RelatedGrid: FC<{
 };
 
 // ✅ FooterBar với Redux cart functionality
-const FooterBar: FC<{ 
-  isFavorite: boolean; 
-  toggleFavorite: () => void; 
-  navigation: any; 
-  petId?: string; 
-  productId?: string; 
+const FooterBar: FC<{
+  isFavorite: boolean;
+  toggleFavorite: () => void;
+  navigation: any;
+  petId?: string;
+  productId?: string;
   item: Pet | Product;
   onAddToCart: () => void;
   isAddingToCart: boolean;
-}> = ({ 
-  isFavorite, 
-  toggleFavorite, 
-  navigation, 
-  petId, 
-  productId, 
-  item, 
+}> = ({
+  isFavorite,
+  toggleFavorite,
+  navigation,
+  petId,
+  productId,
+  item,
   onAddToCart,
-  isAddingToCart 
+  isAddingToCart
 }) => (
-  <View style={styles.footer}>
-    <TouchableOpacity style={styles.favBtn} onPress={toggleFavorite}>
-      <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color={isFavorite ? 'red' : '#000'} />
-    </TouchableOpacity>
-    
-    <TouchableOpacity
-      style={[styles.cartBtn, isAddingToCart && { opacity: 0.6 }]}
-      onPress={onAddToCart}
-      disabled={isAddingToCart}
-    >
-      {isAddingToCart ? (
-        <ActivityIndicator size="small" color="#fff" />
-      ) : (
-        <Text style={styles.cartBtnTxt}>Add to cart</Text>
-      )}
-    </TouchableOpacity>
-    
-    <TouchableOpacity
-      style={styles.buyBtn}
-      onPress={() => {
-        const cartItems = [{
-          id: item._id,
-          title: item.name,
-          price: item.price,
-          quantity: 1,
-          image: item.images && item.images.length > 0 ? { uri: item.images[0].url } : require('@/assets/images/dog.png'),
-          type: petId ? 'pet' : 'product',
-        }];
-        const total = item.price;
-        navigation.navigate('Payment', { cartItems, total, petId, productId });
-      }}
-    >
-      <Text style={styles.buyBtnTxt}>Buy now</Text>
-    </TouchableOpacity>
-  </View>
-);
+    <View style={styles.footer}>
+      {/* ✅ CẬP NHẬT HEART BUTTON VỚI STYLE TỐT HƠN */}
+      <TouchableOpacity
+        style={[
+          styles.favBtn,
+          // ✅ THÊM STYLE KHÁC NHAU CHO FAVORITE/NON-FAVORITE
+          isFavorite && styles.favBtnActive
+        ]}
+        onPress={toggleFavorite}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name={isFavorite ? 'heart' : 'heart-outline'}
+          size={24}
+          color={isFavorite ? '#EF4444' : '#6B7280'} // ✅ Đỏ khi favorite, xám khi không
+        />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.cartBtn, isAddingToCart && { opacity: 0.6 }]}
+        onPress={onAddToCart}
+        disabled={isAddingToCart}
+      >
+        {isAddingToCart ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.cartBtnTxt}>Add to cart</Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.buyBtn}
+        onPress={() => {
+          const cartItems = [{
+            id: item._id,
+            title: item.name,
+            price: item.price,
+            quantity: 1,
+            image: item.images && item.images.length > 0 ? { uri: item.images[0].url } : require('@/assets/images/dog.png'),
+            type: petId ? 'pet' : 'product',
+          }];
+          const total = item.price;
+          navigation.navigate('Payment', { cartItems, total, petId, productId });
+        }}
+      >
+        <Text style={styles.buyBtnTxt}>Buy now</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
 const ProductDetailScreen: FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const dispatch = useDispatch<AppDispatch>();
-  
+  const { favourites, loading: favouriteLoading } = useSelector((state: RootState) => state.favourites);
+  // Thêm state để track favourite status
   // ✅ Redux state
   const { isLoading: cartLoading } = useSelector((state: RootState) => state.cart);
   
@@ -319,9 +337,148 @@ const ProductDetailScreen: FC = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  
   const { h, m, s } = useCountdown(36 * 60 + 58);
 
+
+  // ✅ CẬP NHẬT EFFECT TRONG ProductDetailScreen.tsx
+
+  // Thêm vào useEffect để check favourite status
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (item && (petId || productId)) {
+        try {
+          const params = petId ? { pet_id: petId } : { product_id: productId };
+          console.log('🔍 Checking favourite status:', params);
+
+          const result = await dispatch(checkFavouriteStatus(params));
+          console.log('✅ Favourite status result:', result);
+
+          if (result.type === 'favourites/check/fulfilled') {
+            const isFav = result.payload?.isFavorite || false;
+            console.log('✅ Setting isFavorite to:', isFav);
+            setIsFavorite(isFav);
+          } else {
+            console.log('⚠️ Check favourite not fulfilled, defaulting to false');
+            setIsFavorite(false);
+          }
+
+        } catch (error) {
+          console.error('❌ Error checking favourite status:', error);
+          setIsFavorite(false);
+        }
+      }
+    };
+
+    // ✅ DELAY NHẸ ĐỂ ĐẢM BẢO ITEM ĐÃ ĐƯỢC LOAD
+    const timeoutId = setTimeout(checkFavoriteStatus, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [item, petId, productId, dispatch]);
+
+  // ✅ THÊM EFFECT ĐỂ SYNC VỚI REDUX FAVOURITES LIST
+  useEffect(() => {
+    if (item && (petId || productId) && favourites.length > 0) {
+      // Tìm item trong favourites list để sync UI
+      const params = petId ? { pet_id: petId } : { product_id: productId };
+      const isInFavourites = favourites.some(fav =>
+        (params.pet_id && fav.pet_id === params.pet_id) ||
+        (params.product_id && fav.product_id === params.product_id)
+      );
+
+      if (isInFavourites !== isFavorite) {
+        console.log('🔄 Syncing favourite status from Redux state:', isInFavourites);
+        setIsFavorite(isInFavourites);
+      }
+    }
+  }, [favourites, item, petId, productId, isFavorite]);
+
+  // ✅ CẬP NHẬT HÀM TOGGLE FAVOURITE VỚI XỬ LÝ ITEM ĐÃ TỒN TẠI
+  const handleToggleFavorite = async () => {
+    if (!item) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin sản phẩm');
+      return;
+    }
+
+    try {
+      const params = petId ? { pet_id: petId } : { product_id: productId };
+      console.log('🔄 Toggling favourite:', params, 'Current status:', isFavorite);
+
+      if (isFavorite) {
+        // ✅ REMOVE FROM FAVOURITES
+        console.log('🗑️ Removing from favourites...');
+        const result = await dispatch(removeFromFavourites(params));
+
+        if (result.type === 'favourites/remove/fulfilled') {
+          setIsFavorite(false);
+          Alert.alert('Thành công', 'Đã xóa khỏi danh sách yêu thích');
+        } else if (result.type === 'favourites/remove/rejected') {
+          const errorMessage = result.payload as string;
+          if (errorMessage?.includes('404') || errorMessage?.includes('không tìm thấy')) {
+            // Item wasn't in favourites anyway, update UI
+            setIsFavorite(false);
+            Alert.alert('Thông báo', 'Sản phẩm đã được xóa khỏi danh sách yêu thích');
+          } else {
+            throw new Error(errorMessage || 'Failed to remove from favourites');
+          }
+        }
+      } else {
+        // ✅ ADD TO FAVOURITES
+        console.log('❤️ Adding to favourites...');
+        const result = await dispatch(addToFavourites(params));
+
+        if (result.type === 'favourites/add/fulfilled') {
+          setIsFavorite(true);
+          Alert.alert('Thành công', 'Đã thêm vào danh sách yêu thích');
+        } else if (result.type === 'favourites/add/rejected') {
+          const errorMessage = result.payload as string;
+          if (errorMessage?.includes('đã có trong') || errorMessage?.includes('already exists')) {
+            // ✅ ITEM ĐÃ CÓ TRONG FAVOURITES, UPDATE UI VÀ THÔNG BÁO
+            setIsFavorite(true);
+            Alert.alert('Thông báo', 'Sản phẩm đã có trong danh sách yêu thích rồi');
+          } else {
+            throw new Error(errorMessage || 'Failed to add to favourites');
+          }
+        }
+      }
+
+      // ✅ REFRESH FAVOURITE STATUS AFTER ACTION
+      setTimeout(async () => {
+        try {
+          const checkResult = await dispatch(checkFavouriteStatus(params));
+          if (checkResult.type === 'favourites/check/fulfilled') {
+            const actualStatus = checkResult.payload?.isFavorite || false;
+            console.log('🔄 Refreshed favourite status:', actualStatus);
+            setIsFavorite(actualStatus);
+          }
+        } catch (error) {
+          console.log('⚠️ Could not refresh favourite status:', error);
+        }
+      }, 500);
+
+    } catch (error: any) {
+      console.error('❌ Toggle favourite error:', error);
+
+      let errorMessage = 'Không thể cập nhật yêu thích';
+
+      if (error.message?.includes('network') || error.message?.includes('timeout')) {
+        errorMessage = 'Lỗi kết nối. Vui lòng thử lại';
+      } else if (error.message?.includes('unauthorized') || error.message?.includes('401')) {
+        errorMessage = 'Vui lòng đăng nhập lại';
+      } else if (error.message?.includes('đã có trong') || error.message?.includes('already exists')) {
+        // ✅ XỬ LÝ DUPLICATE CASE GRACEFULLY
+        setIsFavorite(true);
+        Alert.alert('Thông báo', 'Sản phẩm đã có trong danh sách yêu thích rồi');
+        return;
+      } else if (error.message?.includes('không tìm thấy') || error.message?.includes('not found')) {
+        // ✅ XỬ LÝ NOT FOUND CASE GRACEFULLY
+        setIsFavorite(false);
+        Alert.alert('Thông báo', 'Sản phẩm đã được xóa khỏi danh sách yêu thích');
+        return;
+      }
+
+      Alert.alert('Lỗi', errorMessage);
+    }
+  }
   // ✅ Redux Add to Cart functionality
   const handleAddToCart = async () => {
     if (!item) {
@@ -575,7 +732,7 @@ const ProductDetailScreen: FC = () => {
       {/* ✅ Bottom actions */}
       <FooterBar
         isFavorite={isFavorite}
-        toggleFavorite={() => setIsFavorite(f => !f)}
+        toggleFavorite={handleToggleFavorite}
         navigation={navigation}
         petId={petId}
         productId={productId}
@@ -671,7 +828,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   footer: { flexDirection: 'row', alignItems: 'center', padding: 16, borderTopWidth: 1, borderColor: '#E5E7EB' },
-  favBtn: { padding: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, marginRight: 12 },
+  // favBtn: { padding: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, marginRight: 12 },
   cartBtn: { flex: 1, backgroundColor: '#111827', padding: 12, borderRadius: 8, alignItems: 'center', marginRight: 8 },
   cartBtnTxt: { color: '#fff', fontWeight: '600' },
   buyBtn: { flex: 1, backgroundColor: '#2563EB', padding: 12, borderRadius: 8, alignItems: 'center' },
@@ -703,5 +860,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  favBtn: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#fff', // ✅ Background trắng
+    // ✅ THÊM SHADOW CHO BUTTON
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  // ✅ STYLE MỚI CHO FAVOURITE BUTTON KHI ACTIVE
+  favBtnActive: {
+    borderColor: '#EF4444', // ✅ Border đỏ khi favorite
+    backgroundColor: '#FEF2F2', // ✅ Background đỏ nhạt
+    shadowColor: '#EF4444',
+    shadowOpacity: 0.2,
   },
 });
