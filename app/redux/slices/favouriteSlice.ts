@@ -1,13 +1,13 @@
-// app/redux/slices/favouriteSlice.ts - FIXED VERSION
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+// app/redux/slices/favouriteSlice.ts - OPTIMIZED VERSION
+import { createAsyncThunk, createSelector, createSlice } from '@reduxjs/toolkit';
 import { AddFavouriteRequest, FavouriteItem, favouriteService } from '../../services/favouriteService';
 
 interface FavouriteState {
     favourites: FavouriteItem[];
     loading: boolean;
     error: string | null;
-    // ✅ THÊM favourite status map để track nhanh
-    favouriteStatusMap: Record<string, boolean>; // key: "pet_123" hoặc "product_456"
+    favouriteStatusMap: Record<string, boolean>;
+    checkingStatus: boolean;
 }
 
 const initialState: FavouriteState = {
@@ -15,6 +15,7 @@ const initialState: FavouriteState = {
     loading: false,
     error: null,
     favouriteStatusMap: {},
+    checkingStatus: false,
 };
 
 // ✅ HELPER FUNCTION để tạo key cho status map
@@ -22,47 +23,49 @@ const createStatusKey = (data: AddFavouriteRequest): string => {
     return data.pet_id ? `pet_${data.pet_id}` : `product_${data.product_id}`;
 };
 
+// ✅ CHECK FAVOURITE STATUS THUNK
+export const checkFavouriteStatus = createAsyncThunk(
+    'favourites/checkStatus',
+    async (params: { product_id?: string; pet_id?: string }, { rejectWithValue }) => {
+        try {
+            console.log('🔍 Redux: Checking favourite status for:', params);
+            const response = await favouriteService.checkFavourite(params);
+
+            const isFavorite = Boolean(response?.data?.isFavorite);
+            console.log('✅ Redux: checkFavouriteStatus result:', isFavorite);
+
+            return {
+                ...params,
+                isFavorite
+            };
+        } catch (error: any) {
+            console.error('❌ Redux checkFavouriteStatus error:', error);
+            return {
+                ...params,
+                isFavorite: false
+            };
+        }
+    }
+);
+
 export const addToFavourites = createAsyncThunk(
     'favourites/add',
     async (data: AddFavouriteRequest, { rejectWithValue }) => {
         try {
             console.log('🔄 Redux: Adding to favourites:', data);
             const response = await favouriteService.addFavourite(data);
-            return { data: response.data, requestData: data };
+
+            const isExisting = response.isExisting || false;
+            console.log(`✅ Add favourite response - isExisting: ${isExisting}`);
+
+            return {
+                data: response.data,
+                requestData: data,
+                isExisting
+            };
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || '';
-
-            // ✅ CHECK DUPLICATE CASE TRƯỚC KHI LOG ERROR
-            const isDuplicate =
-                error.response?.status === 400 && (
-                    errorMessage.includes('đã có trong') ||
-                    errorMessage.includes('Đã có trong') ||
-                    errorMessage.includes('already exists') ||
-                    errorMessage.includes('duplicate') ||
-                    errorMessage.includes('đã tồn tại') ||
-                    errorMessage.includes('yêu thích') ||
-                    error.response?.data?.success === false
-                );
-
-            if (isDuplicate) {
-                // ✅ LOG INFO THAY VÌ ERROR cho duplicate case
-                console.log('📝 Item already in favourites, treating as success');
-
-                // ✅ TẠO MOCK FAVOURITE ITEM CHO CASE ĐÃ TỒN TẠI
-                const mockFavourite = {
-                    _id: 'existing-' + Date.now(),
-                    user_id: 'current_user',
-                    ...data,
-                    created_at: new Date().toISOString()
-                } as FavouriteItem;
-
-                // ✅ RETURN SUCCESS THAY VÌ REJECT
-                return { data: mockFavourite, requestData: data };
-            } else {
-                // ✅ CHỈ LOG ERROR CHO CASE THẬT SỰ CÓ LỖI
-                console.error('Redux addToFavourites error:', error);
-            }
-
+            console.error('❌ Redux addToFavourites error:', error);
             return rejectWithValue(errorMessage || error.message || 'Failed to add to favourites');
         }
     }
@@ -73,15 +76,18 @@ export const removeFromFavourites = createAsyncThunk(
     async (data: AddFavouriteRequest, { rejectWithValue }) => {
         try {
             console.log('🔄 Redux: Removing from favourites:', data);
-            await favouriteService.removeFavourite(data);
-            return data;
-        } catch (error: any) {
-            console.error('Redux removeFromFavourites error:', error);
+            const response = await favouriteService.removeFavourite(data);
 
-            // ✅ XỬ LÝ TRƯỜNG HỢP KHÔNG TÌM THẤY - RETURN SUCCESS
+            const wasExisting = response.wasExisting !== false;
+            console.log(`✅ Remove favourite response - wasExisting: ${wasExisting}`);
+
+            return { requestData: data, wasExisting };
+        } catch (error: any) {
+            console.error('❌ Redux removeFromFavourites error:', error);
+
             if (error.response?.status === 404) {
                 console.log('📝 Item not in favourites, treating as success');
-                return data;
+                return { requestData: data, wasExisting: false };
             }
 
             return rejectWithValue(error.response?.data?.message || error.message || 'Failed to remove from favourites');
@@ -97,32 +103,13 @@ export const fetchFavourites = createAsyncThunk(
             const response = await favouriteService.getFavourites();
             return response.data;
         } catch (error: any) {
-            console.error('Redux fetchFavourites error:', error);
+            console.error('❌ Redux fetchFavourites error:', error);
             return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch favourites');
         }
     }
 );
 
-export const checkFavouriteStatus = createAsyncThunk(
-    'favourites/check',
-    async (params: { product_id?: string; pet_id?: string }, { rejectWithValue }) => {
-        try {
-            console.log('🔍 Redux checkFavouriteStatus called with:', params);
-            const response = await favouriteService.checkFavourite(params);
-            console.log('✅ Redux checkFavouriteStatus response:', response);
-
-            return {
-                ...params,
-                isFavorite: Boolean(response?.data?.isFavorite)
-            };
-        } catch (error: any) {
-            console.error('Redux checkFavouriteStatus error:', error);
-            // ✅ FALLBACK: Trả về false thay vì reject
-            return { ...params, isFavorite: false };
-        }
-    }
-);
-
+// Enhanced favouriteSlice.ts with improved state management
 const favouriteSlice = createSlice({
     name: 'favourites',
     initialState,
@@ -131,15 +118,36 @@ const favouriteSlice = createSlice({
             state.error = null;
         },
 
-        // ✅ SYNC LOCAL FAVOURITE STATUS
+        // ✅ ENHANCED setFavouriteStatus với better logging
         setFavouriteStatus: (state, action) => {
             const { pet_id, product_id, isFavorite } = action.payload;
             const key = createStatusKey({ pet_id, product_id });
+
+            console.log('🔧 Redux: setFavouriteStatus called:', {
+                key,
+                oldValue: state.favouriteStatusMap[key],
+                newValue: isFavorite
+            });
+
             state.favouriteStatusMap[key] = isFavorite;
         },
 
-        // ✅ REBUILD STATUS MAP từ favourites array
+        // ✅ NEW: Force status update - bypasses all checks
+        forceSetFavouriteStatus: (state, action) => {
+            const { pet_id, product_id, isFavorite } = action.payload;
+            const key = createStatusKey({ pet_id, product_id });
+
+            console.log('🔥 Redux: FORCE setFavouriteStatus:', {
+                key,
+                oldValue: state.favouriteStatusMap[key],
+                newValue: isFavorite
+            });
+
+            state.favouriteStatusMap[key] = isFavorite;
+        },
+
         rebuildStatusMap: (state) => {
+            console.log('🔧 Redux: Rebuilding status map...');
             state.favouriteStatusMap = {};
             state.favourites.forEach(fav => {
                 const key = createStatusKey({
@@ -148,70 +156,111 @@ const favouriteSlice = createSlice({
                 });
                 state.favouriteStatusMap[key] = true;
             });
+            console.log('✅ Redux: Status map rebuilt with', Object.keys(state.favouriteStatusMap).length, 'items');
         },
+
+        clearCheckingStatus: (state) => {
+            state.checkingStatus = false;
+        }
     },
     extraReducers: (builder) => {
         builder
-            // ✅ ADD TO FAVOURITES
+            // ✅ ENHANCED CHECK FAVOURITE STATUS
+            .addCase(checkFavouriteStatus.pending, (state) => {
+                state.checkingStatus = true;
+            })
+            .addCase(checkFavouriteStatus.fulfilled, (state, action) => {
+                state.checkingStatus = false;
+                const { pet_id, product_id, isFavorite } = action.payload;
+                const key = createStatusKey({ pet_id, product_id });
+
+                console.log('✅ Redux: checkFavouriteStatus completed:', {
+                    key,
+                    oldValue: state.favouriteStatusMap[key],
+                    serverValue: isFavorite
+                });
+
+                // ✅ ALWAYS UPDATE - server is source of truth
+                state.favouriteStatusMap[key] = isFavorite;
+            })
+            .addCase(checkFavouriteStatus.rejected, (state, action) => {
+                state.checkingStatus = false;
+                console.error('❌ Redux: checkFavouriteStatus failed:', action.error);
+            })
+
+            // ✅ ENHANCED ADD TO FAVOURITES
             .addCase(addToFavourites.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
             .addCase(addToFavourites.fulfilled, (state, action) => {
                 state.loading = false;
-                const { data: favourite, requestData } = action.payload;
+                const { data: favourite, requestData, isExisting } = action.payload;
 
-                // ✅ KIỂM TRA XEM ITEM ĐÃ CÓ TRONG STATE CHƯA
-                const existingIndex = state.favourites.findIndex(fav =>
-                    (requestData.pet_id && fav.pet_id === requestData.pet_id) ||
-                    (requestData.product_id && fav.product_id === requestData.product_id)
-                );
+                console.log('✅ Redux: addToFavourites completed:', {
+                    requestData,
+                    isExisting,
+                    hasFavouriteData: !!favourite
+                });
 
-                if (existingIndex === -1) {
-                    // Thêm mới
-                    state.favourites.push(favourite);
-                    console.log('✅ Added new favourite to state');
-                } else {
-                    console.log('📝 Favourite already exists in state, skipping add');
-                }
-
-                // ✅ UPDATE STATUS MAP
+                // ✅ UPDATE STATUS MAP IMMEDIATELY - regardless of isExisting
                 const key = createStatusKey(requestData);
                 state.favouriteStatusMap[key] = true;
+
+                // ✅ ADD TO FAVOURITES LIST if not existing and we have data
+                if (!isExisting && favourite) {
+                    const existingIndex = state.favourites.findIndex(fav =>
+                        (requestData.pet_id && fav.pet_id === requestData.pet_id) ||
+                        (requestData.product_id && fav.product_id === requestData.product_id)
+                    );
+
+                    if (existingIndex === -1) {
+                        state.favourites.push(favourite);
+                        console.log('✅ Redux: Added new favourite to list');
+                    }
+                } else if (isExisting) {
+                    console.log('📝 Redux: Item already in favourites, status map updated');
+                }
             })
             .addCase(addToFavourites.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload as string || 'Failed to add to favourites';
+                console.error('❌ Redux: addToFavourites failed:', action.error);
             })
 
-            // ✅ REMOVE FROM FAVOURITES
+            // ✅ ENHANCED REMOVE FROM FAVOURITES
             .addCase(removeFromFavourites.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
             .addCase(removeFromFavourites.fulfilled, (state, action) => {
                 state.loading = false;
-                const { product_id, pet_id } = action.payload;
+                const { requestData, wasExisting } = action.payload;
 
-                // ✅ REMOVE FROM FAVOURITES ARRAY
+                console.log('✅ Redux: removeFromFavourites completed:', {
+                    requestData,
+                    wasExisting
+                });
+
+                // ✅ ALWAYS UPDATE STATUS MAP - regardless of wasExisting
+                const key = createStatusKey(requestData);
+                state.favouriteStatusMap[key] = false;
+
+                // ✅ REMOVE FROM FAVOURITES LIST
                 const initialLength = state.favourites.length;
                 state.favourites = state.favourites.filter(fav =>
-                    !(fav.product_id === product_id || fav.pet_id === pet_id)
+                    !(fav.product_id === requestData.product_id || fav.pet_id === requestData.pet_id)
                 );
 
                 const removedCount = initialLength - state.favourites.length;
-                console.log(`✅ Removed ${removedCount} favourite(s) from state`);
-
-                // ✅ UPDATE STATUS MAP
-                const key = createStatusKey(action.payload);
-                state.favouriteStatusMap[key] = false;
+                console.log(`✅ Redux: Removed ${removedCount} favourite(s) from list`);
             })
             .addCase(removeFromFavourites.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string || 'Failed to remove from favourites';
+                console.error('❌ Redux: removeFromFavourites failed:', action.error);
             })
 
-            // ✅ FETCH FAVOURITES
+            // ✅ ENHANCED FETCH FAVOURITES
             .addCase(fetchFavourites.pending, (state) => {
                 state.loading = true;
                 state.error = null;
@@ -220,42 +269,67 @@ const favouriteSlice = createSlice({
                 state.loading = false;
                 state.favourites = action.payload;
 
-                // ✅ REBUILD STATUS MAP
-                state.favouriteStatusMap = {};
+                console.log('✅ Redux: fetchFavourites completed, received', action.payload.length, 'items');
+
+                // ✅ COMPLETELY REBUILD STATUS MAP from fresh data
+                const newStatusMap: Record<string, boolean> = {};
                 action.payload.forEach((fav: FavouriteItem) => {
                     const key = createStatusKey({
                         pet_id: fav.pet_id,
                         product_id: fav.product_id
                     });
-                    state.favouriteStatusMap[key] = true;
+                    newStatusMap[key] = true;
                 });
+
+                state.favouriteStatusMap = newStatusMap;
+                console.log('✅ Redux: Completely rebuilt status map with', Object.keys(newStatusMap).length, 'items');
+                console.log('📋 Redux: New status map keys:', Object.keys(newStatusMap));
             })
             .addCase(fetchFavourites.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string || 'Failed to fetch favourites';
-            })
-
-            // ✅ CHECK FAVOURITE STATUS
-            .addCase(checkFavouriteStatus.fulfilled, (state, action) => {
-                const { pet_id, product_id, isFavorite } = action.payload;
-                const key = createStatusKey({ pet_id, product_id });
-                state.favouriteStatusMap[key] = isFavorite;
+                console.error('❌ Redux: fetchFavourites failed:', action.error);
             });
     },
 });
 
-export const { clearError, setFavouriteStatus, rebuildStatusMap } = favouriteSlice.actions;
+export const {
+    clearError,
+    setFavouriteStatus,
+    forceSetFavouriteStatus, // ✅ NEW ACTION
+    rebuildStatusMap,
+    clearCheckingStatus
+} = favouriteSlice.actions;
 
-// ✅ SELECTORS để sử dụng trong components
+
+// ✅ OPTIMIZED SELECTORS USING createSelector để tránh re-renders
+const selectFavouriteState = (state: any) => state.favourites;
+
+export const selectFavourites = createSelector(
+    [selectFavouriteState],
+    (favouriteState) => favouriteState.favourites
+);
+
+export const selectFavouritesLoading = createSelector(
+    [selectFavouriteState],
+    (favouriteState) => favouriteState.loading
+);
+
+export const selectCheckingStatus = createSelector(
+    [selectFavouriteState],
+    (favouriteState) => favouriteState.checkingStatus
+);
+
+export const selectFavouriteStatusMap = createSelector(
+    [selectFavouriteState],
+    (favouriteState) => favouriteState.favouriteStatusMap
+);
+
+// ✅ MEMOIZED SELECTOR cho specific favourite status
 export const selectFavouriteStatus = (state: any, pet_id?: string, product_id?: string): boolean => {
     const key = createStatusKey({ pet_id, product_id });
-    return state.favourites.favouriteStatusMap[key] || false;
+    const statusMap = selectFavouriteStatusMap(state);
+    return statusMap[key] || false;
 };
-
-// ✅ SELECTOR để lấy tất cả favourites
-export const selectFavourites = (state: any) => state.favourites.favourites;
-
-// ✅ SELECTOR để lấy loading state
-export const selectFavouritesLoading = (state: any) => state.favourites.loading;
 
 export default favouriteSlice.reducer;
