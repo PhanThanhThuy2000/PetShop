@@ -1,4 +1,4 @@
-// app/services/favouriteService.ts - SỬA LỖI VỚI ERROR HANDLING
+// app/services/favouriteService.ts - ENHANCED VERSION
 import { ApiResponse } from '../types';
 import api from '../utils/api-client';
 
@@ -8,6 +8,7 @@ export interface FavouriteItem {
     product_id?: string;
     pet_id?: string;
     created_at: string;
+    updated_at?: string;
 }
 
 export interface AddFavouriteRequest {
@@ -15,57 +16,116 @@ export interface AddFavouriteRequest {
     pet_id?: string;
 }
 
+export interface EnhancedApiResponse<T> extends ApiResponse<T> {
+    isExisting?: boolean;
+    wasExisting?: boolean;
+}
+
 export const favouriteService = {
-    // Thêm vào yêu thích
-    async addFavourite(data: AddFavouriteRequest): Promise<ApiResponse<FavouriteItem>> {
+    // ✅ ENHANCED: Add favourite với better response handling
+    async addFavourite(data: AddFavouriteRequest): Promise<EnhancedApiResponse<FavouriteItem>> {
         try {
             console.log('🔥 Adding to favourites:', data);
-            const response = await api.post<ApiResponse<FavouriteItem>>('/favourites', data);
-            console.log('✅ Add favourite response:', response.data);
+            const response = await api.post<EnhancedApiResponse<FavouriteItem>>('/favourites', data);
+
+            console.log('✅ Add favourite response:', {
+                success: response.data.success,
+                isExisting: response.data.isExisting,
+                hasData: !!response.data.data
+            });
+
             return response.data;
         } catch (error: any) {
-            console.error('❌ Add favourite error:', error.response?.data || error.message);
+            console.error('❌ Add favourite error details:', {
+                status: error.response?.status,
+                message: error.response?.data?.message,
+                success: error.response?.data?.success,
+                fullError: error.response?.data
+            });
+
+            // ✅ ENHANCED: Check if this is actually a success case disguised as error
+            if (error.response?.status === 200 || error.response?.data?.success === true) {
+                console.log('📝 Error response is actually success, returning success');
+                return error.response.data;
+            }
+
             throw error;
         }
     },
 
-    // Xóa khỏi yêu thích
-    async removeFavourite(data: AddFavouriteRequest): Promise<ApiResponse<void>> {
+    // ✅ ENHANCED: Remove favourite 
+    async removeFavourite(data: AddFavouriteRequest): Promise<EnhancedApiResponse<void>> {
         try {
             console.log('🗑️ Removing from favourites:', data);
-            const response = await api.delete<ApiResponse<void>>('/favourites', { data });
-            console.log('✅ Remove favourite response:', response.data);
+            const response = await api.delete<EnhancedApiResponse<void>>('/favourites', { data });
+
+            console.log('✅ Remove favourite response:', {
+                success: response.data.success,
+                wasExisting: response.data.wasExisting
+            });
+
             return response.data;
         } catch (error: any) {
-            console.error('❌ Remove favourite error:', error.response?.data || error.message);
+            console.error('❌ Remove favourite error details:', {
+                status: error.response?.status,
+                message: error.response?.data?.message,
+                fullError: error.response?.data
+            });
+
+            // ✅ TREAT 404 as success (item was already removed)
+            if (error.response?.status === 404) {
+                console.log('📝 404 error treated as success - item was not in favourites');
+                return {
+                    success: true,
+                    data: undefined as any,
+                    message: 'Item was not in favourites',
+                    statusCode: 200,
+                    wasExisting: false
+                };
+            }
+
             throw error;
         }
     },
 
-    // Lấy danh sách yêu thích với populated data
+    // ✅ ENHANCED: Get favourites với better error handling
     async getFavourites(): Promise<ApiResponse<FavouriteItem[]>> {
         try {
             console.log('📋 Fetching favourites...');
             const response = await api.get<ApiResponse<FavouriteItem[]>>('/favourites');
-            console.log('✅ Fetch favourites response structure:', {
+
+            console.log('✅ Fetch favourites response:', {
                 success: response.data.success,
-                dataLength: response.data.data?.length,
-                firstItem: response.data.data?.[0] ? {
-                    _id: response.data.data[0]._id,
-                    has_pet_id: !!response.data.data[0].pet_id,
-                    has_product_id: !!response.data.data[0].product_id,
-                    pet_id_type: typeof response.data.data[0].pet_id,
-                    product_id_type: typeof response.data.data[0].product_id
-                } : null
+                dataLength: response.data.data?.length || 0,
+                statusCode: response.data.statusCode
             });
+
+            // ✅ ENSURE data is always an array
+            if (!Array.isArray(response.data.data)) {
+                console.warn('⚠️ Response data is not array, defaulting to empty array');
+                response.data.data = [];
+            }
+
             return response.data;
         } catch (error: any) {
             console.error('❌ Fetch favourites error:', error.response?.data || error.message);
-            throw error;
+
+            // ✅ RETURN EMPTY ARRAY on error rather than throwing
+            if (error.response?.status === 401) {
+                throw error; // Re-throw auth errors
+            }
+
+            console.log('📝 Returning empty favourites array due to error');
+            return {
+                success: true,
+                data: [],
+                message: 'Error fetching favourites, returning empty array',
+                statusCode: 200
+            };
         }
     },
 
-    // ✅ SỬA LỖI: Kiểm tra có trong yêu thích hay không với error handling
+    // ✅ ENHANCED: Check favourite với comprehensive error handling
     async checkFavourite(params: { product_id?: string; pet_id?: string }): Promise<ApiResponse<{ isFavorite: boolean }>> {
         try {
             const queryParams = new URLSearchParams();
@@ -73,36 +133,41 @@ export const favouriteService = {
             if (params.pet_id) queryParams.append('pet_id', params.pet_id);
 
             console.log('🔍 Checking favourite status:', params);
-            console.log('🔍 Query URL:', `/favourites/check?${queryParams.toString()}`);
+            const url = `/favourites/check?${queryParams.toString()}`;
+            console.log('🔍 Query URL:', url);
 
-            const response = await api.get<ApiResponse<{ isFavorite: boolean }>>(`/favourites/check?${queryParams.toString()}`);
-            console.log('✅ Check favourite full response:', JSON.stringify(response.data, null, 2));
+            const response = await api.get<ApiResponse<{ isFavorite: boolean }>>(url);
 
-            // ✅ KIỂM TRA VÀ XỬ LÝ RESPONSE
+            console.log('✅ Check favourite response structure:', {
+                success: response.data?.success,
+                hasData: !!response.data?.data,
+                isFavorite: response.data?.data?.isFavorite,
+                fullResponse: JSON.stringify(response.data, null, 2)
+            });
+
+            // ✅ COMPREHENSIVE NULL CHECKING
             if (!response.data) {
-                console.warn('⚠️ Response data is null, defaulting to false');
+                console.warn('⚠️ Response is null, returning false');
                 return {
                     success: true,
                     data: { isFavorite: false },
-                    message: 'No data returned',
+                    message: 'No response data',
                     statusCode: 200
-                } as ApiResponse<{ isFavorite: boolean }>;
+                };
             }
 
-            // ✅ KIỂM TRA CẤU TRÚC DATA
             if (!response.data.data) {
-                console.warn('⚠️ Response data.data is null, defaulting to false');
+                console.warn('⚠️ Response.data.data is null, returning false');
                 return {
                     success: true,
                     data: { isFavorite: false },
-                    message: 'No nested data returned',
+                    message: 'No nested data',
                     statusCode: 200
-                } as ApiResponse<{ isFavorite: boolean }>;
+                };
             }
 
-            // ✅ KIỂM TRA isFavorite PROPERTY
             if (typeof response.data.data.isFavorite === 'undefined') {
-                console.warn('⚠️ isFavorite property missing, defaulting to false');
+                console.warn('⚠️ isFavorite property is undefined, returning false');
                 return {
                     ...response.data,
                     data: { isFavorite: false }
@@ -112,20 +177,72 @@ export const favouriteService = {
             return response.data;
 
         } catch (error: any) {
-            console.error('❌ Check favourite error:', error.response?.data || error.message);
+            console.error('❌ Check favourite error details:', {
+                status: error.response?.status,
+                message: error.response?.data?.message,
+                fullError: error.response?.data
+            });
 
-            // ✅ FALLBACK: Trả về false nếu có lỗi
+            // ✅ COMPREHENSIVE ERROR HANDLING
             if (error.response?.status === 404) {
-                console.log('🔍 404 error - item not in favourites, returning false');
+                console.log('🔍 404 - item not in favourites, returning false');
                 return {
                     success: true,
                     data: { isFavorite: false },
                     message: 'Item not found in favourites',
                     statusCode: 200
-                } as ApiResponse<{ isFavorite: boolean }>;
+                };
             }
 
-            throw error;
+            if (error.response?.status === 401) {
+                throw error; // Re-throw auth errors
+            }
+
+            // ✅ DEFAULT FALLBACK: Return false for any other error
+            console.log('📝 Unknown error, defaulting to false');
+            return {
+                success: true,
+                data: { isFavorite: false },
+                message: 'Error checking favourite status, defaulting to false',
+                statusCode: 200
+            };
         }
     },
+
+    // ✅ NEW: Bulk check favourites để optimize performance
+    async bulkCheckFavourites(items: AddFavouriteRequest[]): Promise<ApiResponse<{ [key: string]: boolean }>> {
+        try {
+            console.log('🔍 Bulk checking favourites for', items.length, 'items');
+
+            const results: { [key: string]: boolean } = {};
+
+            // ✅ CHECK EACH ITEM (có thể optimize với single API call later)
+            for (const item of items) {
+                try {
+                    const result = await this.checkFavourite(item);
+                    const key = item.pet_id ? `pet_${item.pet_id}` : `product_${item.product_id}`;
+                    results[key] = result.data.isFavorite;
+                } catch (error) {
+                    console.error('Error checking individual item:', item, error);
+                    const key = item.pet_id ? `pet_${item.pet_id}` : `product_${item.product_id}`;
+                    results[key] = false; // Default to false on error
+                }
+            }
+
+            return {
+                success: true,
+                data: results,
+                message: 'Bulk check completed',
+                statusCode: 200
+            };
+        } catch (error: any) {
+            console.error('❌ Bulk check favourites error:', error);
+            return {
+                success: false,
+                data: {},
+                message: 'Bulk check failed',
+                statusCode: 500
+            };
+        }
+    }
 };
