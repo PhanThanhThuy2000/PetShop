@@ -1,7 +1,7 @@
-// app/screens/ProductDetailScreen.tsx - KẾT HỢP ĐẦY ĐỦ API + REDUX + UI
+// app/screens/ProductDetailScreen.tsx - FIXED FINAL VERSION
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { FC, useEffect, useState } from 'react';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import React, { FC, useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,12 +19,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, getCart } from '../redux/slices/cartSlice';
 import {
   addToFavourites,
-  checkFavouriteStatus,
-  removeFromFavourites
+  fetchFavourites,
+  removeFromFavourites,
+  selectFavouriteStatus
 } from '../redux/slices/favouriteSlice';
 import { AppDispatch, RootState } from '../redux/store';
 import { petsService, productsService } from '../services/api-services';
 import { Pet, PetImage, Product, ProductImage } from '../types';
+
 // --- Data Interfaces ---
 interface Variation { id: string; image: any; }
 interface RelatedItem { id: string; image: any; title: string; price: string; }
@@ -93,7 +95,6 @@ const InfoRow: FC<{ label: string; value: string }> = ({ label, value }) => (
   </View>
 );
 
-// ✅ SỬA: ReviewCard với navigation an toàn
 const ReviewCard: FC<{ navigation: any }> = ({ navigation }) => {
   const handleViewAllReviews = () => {
     try {
@@ -127,16 +128,14 @@ const ReviewCard: FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-// ✅ UPDATED: RelatedGrid với navigation functionality
-const RelatedGrid: FC<{ 
-  navigation: any; 
-  currentItemId?: string; 
-  currentItemType?: 'pet' | 'product' 
+const RelatedGrid: FC<{
+  navigation: any;
+  currentItemId?: string;
+  currentItemType?: 'pet' | 'product'
 }> = ({ navigation, currentItemId, currentItemType = 'pet' }) => {
   const [relatedItems, setRelatedItems] = useState<(Pet | Product)[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Load related items khi component mount
   useEffect(() => {
     loadRelatedItems();
   }, [currentItemId]);
@@ -144,24 +143,20 @@ const RelatedGrid: FC<{
   const loadRelatedItems = async () => {
     try {
       setLoading(true);
-      
+
       if (currentItemType === 'pet') {
-        // Lấy pets khác (tạm thời lấy all pets, sau này có thể filter theo breed)
         const response = await petsService.getPets({ limit: 8 });
-        
+
         if (response.success) {
-          // Lọc bỏ item hiện tại và chỉ lấy 4 items
           const filteredPets = response.data
             .filter((pet: Pet) => pet._id !== currentItemId)
             .slice(0, 4);
           setRelatedItems(filteredPets);
         }
       } else {
-        // Lấy products khác
         const response = await productsService.getProducts({ limit: 8 });
-        
+
         if (response.success) {
-          // Lọc bỏ item hiện tại và chỉ lấy 4 items
           const filteredProducts = response.data
             .filter((product: Product) => product._id !== currentItemId)
             .slice(0, 4);
@@ -170,7 +165,6 @@ const RelatedGrid: FC<{
       }
     } catch (error) {
       console.error('Error loading related items:', error);
-      // Fallback to sample data nếu API fail
       const fallbackData = RELATED_ITEMS.map(item => ({
         _id: item.id,
         name: item.title,
@@ -183,18 +177,17 @@ const RelatedGrid: FC<{
     }
   };
 
-  // ✅ Navigate đến detail của related item
   const handleRelatedItemPress = (item: Pet | Product) => {
     const isPet = 'breed_id' in item || currentItemType === 'pet';
-    
+
     if (isPet) {
-      navigation.push('ProductDetail', { 
+      navigation.push('ProductDetail', {
         pet: item,
-        petId: item._id 
+        petId: item._id
       });
     } else {
-      navigation.push('ProductDetail', { 
-        productId: item._id 
+      navigation.push('ProductDetail', {
+        productId: item._id
       });
     }
   };
@@ -205,11 +198,11 @@ const RelatedGrid: FC<{
       onPress={() => handleRelatedItemPress(item)}
       activeOpacity={0.7}
     >
-      <Image 
-        source={{ 
-          uri: item.images?.[0]?.url || 'https://via.placeholder.com/150' 
-        }} 
-        style={styles.relatedImg} 
+      <Image
+        source={{
+          uri: item.images?.[0]?.url || 'https://via.placeholder.com/150'
+        }}
+        style={styles.relatedImg}
       />
       <Text style={styles.relatedTitle} numberOfLines={2}>
         {item.name}
@@ -246,7 +239,7 @@ const RelatedGrid: FC<{
   );
 };
 
-// ✅ FooterBar với Redux cart functionality
+// ✅ FooterBar với Redux favourite functionality
 const FooterBar: FC<{
   isFavorite: boolean;
   toggleFavorite: () => void;
@@ -267,11 +260,9 @@ const FooterBar: FC<{
   isAddingToCart
 }) => (
     <View style={styles.footer}>
-      {/* ✅ CẬP NHẬT HEART BUTTON VỚI STYLE TỐT HƠN */}
       <TouchableOpacity
         style={[
           styles.favBtn,
-          // ✅ THÊM STYLE KHÁC NHAU CHO FAVORITE/NON-FAVORITE
           isFavorite && styles.favBtnActive
         ]}
         onPress={toggleFavorite}
@@ -280,7 +271,7 @@ const FooterBar: FC<{
         <Ionicons
           name={isFavorite ? 'heart' : 'heart-outline'}
           size={24}
-          color={isFavorite ? '#EF4444' : '#6B7280'} // ✅ Đỏ khi favorite, xám khi không
+          color={isFavorite ? '#EF4444' : '#6B7280'}
         />
       </TouchableOpacity>
 
@@ -320,166 +311,193 @@ const ProductDetailScreen: FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const dispatch = useDispatch<AppDispatch>();
-  const { favourites, loading: favouriteLoading } = useSelector((state: RootState) => state.favourites);
-  // Thêm state để track favourite status
-  // ✅ Redux state
+
+  // ✅ REDUX STATE
+  const { favourites, loading: favouriteLoading, favouriteStatusMap } = useSelector((state: RootState) => state.favourites);
   const { isLoading: cartLoading } = useSelector((state: RootState) => state.cart);
-  
-  // ✅ Lấy params từ cả 2 cách
+
+  // ✅ GET PARAMS
   const petId = route.params?.pet?._id || route.params?.petId;
   const productId = route.params?.productId || route.params?.id;
 
-  // ✅ Component state
+  // ✅ GET FAVOURITE STATUS từ REDUX SELECTOR
+  const isFavorite = useSelector((state: RootState) =>
+    selectFavouriteStatus(state, petId, productId)
+  );
+
+  // ✅ LOCAL STATE
   const [item, setItem] = useState<Pet | Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedVar, setSelectedVar] = useState<Variation | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+
   const { h, m, s } = useCountdown(36 * 60 + 58);
 
-
-  // ✅ CẬP NHẬT EFFECT TRONG ProductDetailScreen.tsx
-
-  // Thêm vào useEffect để check favourite status
+  // ✅ FETCH FAVOURITES ON MOUNT - Đồng bộ với server khi mở app
   useEffect(() => {
-    const checkFavoriteStatus = async () => {
-      if (item && (petId || productId)) {
-        try {
-          const params = petId ? { pet_id: petId } : { product_id: productId };
-          console.log('🔍 Checking favourite status:', params);
+    console.log('🔄 ProductDetail mounted, fetching favourites...');
+    dispatch(fetchFavourites());
+  }, [dispatch]);
 
-          const result = await dispatch(checkFavouriteStatus(params));
-          console.log('✅ Favourite status result:', result);
+  // ✅ FETCH FAVOURITES KHI FOCUS VÀO SCREEN
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 ProductDetail focused, refreshing favourites...');
+      dispatch(fetchFavourites());
+    }, [dispatch])
+  );
 
-          if (result.type === 'favourites/check/fulfilled') {
-            const isFav = result.payload?.isFavorite || false;
-            console.log('✅ Setting isFavorite to:', isFav);
-            setIsFavorite(isFav);
-          } else {
-            console.log('⚠️ Check favourite not fulfilled, defaulting to false');
-            setIsFavorite(false);
-          }
-
-        } catch (error) {
-          console.error('❌ Error checking favourite status:', error);
-          setIsFavorite(false);
-        }
-      }
-    };
-
-    // ✅ DELAY NHẸ ĐỂ ĐẢM BẢO ITEM ĐÃ ĐƯỢC LOAD
-    const timeoutId = setTimeout(checkFavoriteStatus, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [item, petId, productId, dispatch]);
-
-  // ✅ THÊM EFFECT ĐỂ SYNC VỚI REDUX FAVOURITES LIST
-  useEffect(() => {
-    if (item && (petId || productId) && favourites.length > 0) {
-      // Tìm item trong favourites list để sync UI
-      const params = petId ? { pet_id: petId } : { product_id: productId };
-      const isInFavourites = favourites.some(fav =>
-        (params.pet_id && fav.pet_id === params.pet_id) ||
-        (params.product_id && fav.product_id === params.product_id)
-      );
-
-      if (isInFavourites !== isFavorite) {
-        console.log('🔄 Syncing favourite status from Redux state:', isInFavourites);
-        setIsFavorite(isInFavourites);
-      }
-    }
-  }, [favourites, item, petId, productId, isFavorite]);
-
-  // ✅ CẬP NHẬT HÀM TOGGLE FAVOURITE VỚI XỬ LÝ ITEM ĐÃ TỒN TẠI
+  // ✅ FIXED TOGGLE FAVOURITE FUNCTION - Không hiển thị lỗi duplicate
   const handleToggleFavorite = async () => {
     if (!item) {
       Alert.alert('Lỗi', 'Không tìm thấy thông tin sản phẩm');
       return;
     }
 
-    try {
-      const params = petId ? { pet_id: petId } : { product_id: productId };
-      console.log('🔄 Toggling favourite:', params, 'Current status:', isFavorite);
+    const params = petId ? { pet_id: petId } : { product_id: productId };
+    const itemType = petId ? 'pet' : 'product';
+    const itemName = petId ? 'thú cưng' : 'sản phẩm';
 
-      if (isFavorite) {
-        // ✅ REMOVE FROM FAVOURITES
-        console.log('🗑️ Removing from favourites...');
-        const result = await dispatch(removeFromFavourites(params));
+    console.log('🔄 Toggling favourite:', params, 'Current status:', isFavorite);
 
-        if (result.type === 'favourites/remove/fulfilled') {
-          setIsFavorite(false);
-          Alert.alert('Thành công', 'Đã xóa khỏi danh sách yêu thích');
-        } else if (result.type === 'favourites/remove/rejected') {
-          const errorMessage = result.payload as string;
-          if (errorMessage?.includes('404') || errorMessage?.includes('không tìm thấy')) {
-            // Item wasn't in favourites anyway, update UI
-            setIsFavorite(false);
-            Alert.alert('Thông báo', 'Sản phẩm đã được xóa khỏi danh sách yêu thích');
-          } else {
-            throw new Error(errorMessage || 'Failed to remove from favourites');
+    if (isFavorite) {
+      // ✅ HIỂN THỊ HỘP THOẠI XÁC NHẬN XÓA
+      Alert.alert(
+        'Xác nhận xóa',
+        `${item.name} đã có trong danh sách yêu thích của bạn. Bạn có muốn xóa không?`,
+        [
+          {
+            text: 'Không',
+            style: 'cancel',
+            onPress: () => console.log('🚫 User cancelled remove favourite')
+          },
+          {
+            text: 'Có',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                console.log('🗑️ Removing from favourites...');
+                const result = await dispatch(removeFromFavourites(params));
+
+                if (removeFromFavourites.fulfilled.match(result)) {
+                  Alert.alert(
+                    'Thành công',
+                    `Đã xóa ${item.name} khỏi danh sách yêu thích`,
+                    [{ text: 'OK' }]
+                  );
+                } else {
+                  Alert.alert(
+                    'Thành công',
+                    `Đã xóa ${itemName} khỏi danh sách yêu thích`,
+                    [{ text: 'OK' }]
+                  );
+                }
+              } catch (error: any) {
+                console.error('❌ Remove favourite error:', error);
+                Alert.alert(
+                  'Lỗi',
+                  `Không thể xóa ${itemName} khỏi danh sách yêu thích. Vui lòng thử lại`,
+                  [{ text: 'OK' }]
+                );
+              }
+            }
           }
-        }
-      } else {
-        // ✅ ADD TO FAVOURITES
+        ]
+      );
+    } else {
+      // ✅ THÊM VÀO FAVOURITES - SILENT HANDLING cho duplicate case
+      try {
         console.log('❤️ Adding to favourites...');
         const result = await dispatch(addToFavourites(params));
 
-        if (result.type === 'favourites/add/fulfilled') {
-          setIsFavorite(true);
-          Alert.alert('Thành công', 'Đã thêm vào danh sách yêu thích');
-        } else if (result.type === 'favourites/add/rejected') {
+        // ✅ CHỈ HIỂN THỊ SUCCESS MESSAGE, KHÔNG HIỂN THỊ DUPLICATE ERROR
+        if (addToFavourites.fulfilled.match(result)) {
+          console.log('✅ Add to favourites successful:', result.payload);
+
+          // ✅ REFRESH FAVOURITES để đảm bảo UI sync
+          dispatch(fetchFavourites());
+
+          // ✅ HIỂN THỊ THÔNG BÁO THÀNH CÔNG
+          Alert.alert(
+            'Thành công',
+            `Đã thêm ${item.name} vào danh sách yêu thích`,
+            [{ text: 'OK' }]
+          );
+        } else if (addToFavourites.rejected.match(result)) {
+          // ✅ XỬ LÝ CASE REJECT
           const errorMessage = result.payload as string;
-          if (errorMessage?.includes('đã có trong') || errorMessage?.includes('already exists')) {
-            // ✅ ITEM ĐÃ CÓ TRONG FAVOURITES, UPDATE UI VÀ THÔNG BÁO
-            setIsFavorite(true);
-            Alert.alert('Thông báo', 'Sản phẩm đã có trong danh sách yêu thích rồi');
+          console.error('❌ Add to favourites rejected:', errorMessage);
+
+          // ✅ KIỂM TRA XEM CÓ PHẢI LỖI DUPLICATE KHÔNG
+          const isDuplicateError =
+            errorMessage?.includes('đã có trong') ||
+            errorMessage?.includes('Đã có trong') ||
+            errorMessage?.includes('already exists') ||
+            errorMessage?.includes('duplicate') ||
+            errorMessage?.includes('yêu thích');
+
+          if (isDuplicateError) {
+            // ✅ XỬ LÝ DUPLICATE CASE TRONG SILENT MODE
+            console.log('📝 Duplicate detected, handling silently...');
+
+            // Refresh favourites để sync UI
+            dispatch(fetchFavourites());
+
+            // ✅ HIỂN THỊ THÔNG BÁO THÀNH CÔNG THAY VÌ LỖI
+            Alert.alert(
+              'Thành công',
+              `${item.name} đã được thêm vào danh sách yêu thích`,
+              [{ text: 'OK' }]
+            );
           } else {
-            throw new Error(errorMessage || 'Failed to add to favourites');
+            // ✅ CHỈ HIỂN THỊ LỖI THẬT SỰ (không phải duplicate)
+            Alert.alert(
+              'Lỗi',
+              `Không thể thêm ${itemName} vào danh sách yêu thích. Vui lòng thử lại`,
+              [{ text: 'OK' }]
+            );
           }
         }
-      }
 
-      // ✅ REFRESH FAVOURITE STATUS AFTER ACTION
-      setTimeout(async () => {
-        try {
-          const checkResult = await dispatch(checkFavouriteStatus(params));
-          if (checkResult.type === 'favourites/check/fulfilled') {
-            const actualStatus = checkResult.payload?.isFavorite || false;
-            console.log('🔄 Refreshed favourite status:', actualStatus);
-            setIsFavorite(actualStatus);
-          }
-        } catch (error) {
-          console.log('⚠️ Could not refresh favourite status:', error);
+      } catch (error: any) {
+        console.error('❌ Add favourite error:', error);
+
+        // ✅ XỬ LÝ EXCEPTION LEVEL DUPLICATE
+        const isDuplicateError =
+          error.message?.includes('đã có trong') ||
+          error.message?.includes('Đã có trong') ||
+          error.message?.includes('already exists') ||
+          error.message?.includes('duplicate') ||
+          error.message?.includes('yêu thích');
+
+        if (isDuplicateError) {
+          // ✅ SILENT HANDLING cho duplicate exception
+          console.log('📝 Duplicate exception detected, handling silently...');
+
+          // Refresh favourites để sync UI
+          dispatch(fetchFavourites());
+
+          // ✅ HIỂN THỊ THÔNG BÁO THÀNH CÔNG
+          Alert.alert(
+            'Thành công',
+            `${item.name} đã được thêm vào danh sách yêu thích`,
+            [{ text: 'OK' }]
+          );
+        } else {
+          // ✅ CHỈ HIỂN THỊ LỖI THẬT SỰ
+          Alert.alert(
+            'Lỗi',
+            `Không thể thêm ${itemName} vào danh sách yêu thích. Vui lòng thử lại`,
+            [{ text: 'OK' }]
+          );
         }
-      }, 500);
-
-    } catch (error: any) {
-      console.error('❌ Toggle favourite error:', error);
-
-      let errorMessage = 'Không thể cập nhật yêu thích';
-
-      if (error.message?.includes('network') || error.message?.includes('timeout')) {
-        errorMessage = 'Lỗi kết nối. Vui lòng thử lại';
-      } else if (error.message?.includes('unauthorized') || error.message?.includes('401')) {
-        errorMessage = 'Vui lòng đăng nhập lại';
-      } else if (error.message?.includes('đã có trong') || error.message?.includes('already exists')) {
-        // ✅ XỬ LÝ DUPLICATE CASE GRACEFULLY
-        setIsFavorite(true);
-        Alert.alert('Thông báo', 'Sản phẩm đã có trong danh sách yêu thích rồi');
-        return;
-      } else if (error.message?.includes('không tìm thấy') || error.message?.includes('not found')) {
-        // ✅ XỬ LÝ NOT FOUND CASE GRACEFULLY
-        setIsFavorite(false);
-        Alert.alert('Thông báo', 'Sản phẩm đã được xóa khỏi danh sách yêu thích');
-        return;
       }
-
-      Alert.alert('Lỗi', errorMessage);
     }
-  }
-  // ✅ Redux Add to Cart functionality
+  };
+
+  // ✅ SINGLE ADD TO CART FUNCTION
   const handleAddToCart = async () => {
     if (!item) {
       Alert.alert('Lỗi', 'Không tìm thấy thông tin sản phẩm');
@@ -487,7 +505,7 @@ const ProductDetailScreen: FC = () => {
     }
 
     setIsAddingToCart(true);
-    
+
     try {
       const cartParams = {
         quantity: 1,
@@ -495,32 +513,27 @@ const ProductDetailScreen: FC = () => {
       };
 
       console.log('Adding to cart with params:', cartParams);
-      
-      // Dispatch Redux action
+
       await dispatch(addToCart(cartParams)).unwrap();
-      
-      // Refresh cart data
       dispatch(getCart());
-      
-      // Show success alert
+
       Alert.alert(
-        'Thành công', 
+        'Thành công',
         `${item.name} đã được thêm vào giỏ hàng`,
         [
           { text: 'Tiếp tục mua sắm', style: 'cancel' },
-          { 
-            text: 'Xem giỏ hàng', 
-            onPress: () => navigation.navigate('Cart') 
+          {
+            text: 'Xem giỏ hàng',
+            onPress: () => navigation.navigate('Cart')
           }
         ]
       );
-      
+
     } catch (error: any) {
       console.error('Add to cart error:', error);
-      
-      // Handle different error types
+
       let errorMessage = 'Không thể thêm vào giỏ hàng';
-      
+
       if (typeof error === 'string') {
         if (error.includes('already exists in cart')) {
           errorMessage = 'Sản phẩm đã có trong giỏ hàng';
@@ -530,21 +543,21 @@ const ProductDetailScreen: FC = () => {
           errorMessage = 'Lỗi kết nối. Vui lòng thử lại';
         }
       }
-      
+
       Alert.alert('Lỗi', errorMessage);
     } finally {
       setIsAddingToCart(false);
     }
   };
 
-  // ✅ API fetch functionality với retry logic
+  // ✅ FETCH ITEM DATA
   const fetchItem = async (retryCount: number = 0) => {
     const maxRetries = 3;
     try {
       setIsLoading(true);
       setError(null);
       let response;
-      
+
       if (petId) {
         console.log('🐾 Loading Pet:', petId);
         response = await petsService.getPetById(petId);
@@ -552,7 +565,6 @@ const ProductDetailScreen: FC = () => {
         if (response.data.images && response.data.images.length > 0) {
           setSelectedVar({ id: response.data.images[0]._id, image: { uri: response.data.images[0].url } });
         }
-        console.log('Pet data fetched:', response.data);
       } else if (productId) {
         console.log('🛍️ Loading Product:', productId);
         response = await productsService.getProductById(productId);
@@ -560,7 +572,6 @@ const ProductDetailScreen: FC = () => {
         if (response.data.images && response.data.images.length > 0) {
           setSelectedVar({ id: response.data.images[0]._id, image: { uri: response.data.images[0].url } });
         }
-        console.log('Product data fetched:', response.data);
       } else {
         throw new Error('No pet or product ID provided');
       }
@@ -569,7 +580,7 @@ const ProductDetailScreen: FC = () => {
         await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
         return fetchItem(retryCount + 1);
       }
-      setError(err.response?.status === 404 ? 'Item not found on server (404). Check the ID or server endpoint.' : err.message || 'Failed to load item data');
+      setError(err.response?.status === 404 ? 'Item not found' : err.message || 'Failed to load item');
     } finally {
       setIsLoading(false);
     }
@@ -643,7 +654,7 @@ const ProductDetailScreen: FC = () => {
           images={item.images || []}
           selectedImageId={selectedVar?.id || (item.images && item.images[0]?._id) || ''}
         />
-        
+
         <View style={styles.content}>
           {/* ✅ Sale badge và timer */}
           <View style={[styles.rowCenter, styles.spaceBetween]}>
@@ -719,19 +730,19 @@ const ProductDetailScreen: FC = () => {
           {/* ✅ Description image */}
           <Image source={productImage} style={styles.descImage} />
 
-          {/* ✅ Related items - UPDATED với navigation */}
+          {/* ✅ Related items */}
           <Text style={styles.sectionTitle}>Related Items</Text>
-          <RelatedGrid 
-            navigation={navigation} 
+          <RelatedGrid
+            navigation={navigation}
             currentItemId={item._id}
             currentItemType={isPet ? 'pet' : 'product'}
           />
         </View>
       </ScrollView>
 
-      {/* ✅ Bottom actions */}
+      {/* ✅ Bottom actions với favourite status từ Redux */}
       <FooterBar
-        isFavorite={isFavorite}
+        isFavorite={isFavorite} // ✅ Lấy từ Redux selector
         toggleFavorite={handleToggleFavorite}
         navigation={navigation}
         petId={petId}
@@ -746,7 +757,7 @@ const ProductDetailScreen: FC = () => {
 
 export default ProductDetailScreen;
 
-// ✅ STYLES HOÀN CHỈNH với styles mới cho RelatedGrid
+// ✅ STYLES
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   headerBar: {
@@ -807,7 +818,8 @@ const styles = StyleSheet.create({
   relatedImg: { width: '100%', height: 120, borderRadius: 8 },
   relatedTitle: { marginTop: 8, color: '#374151', fontSize: 14 },
   relatedPrice: { fontWeight: '600', marginTop: 4, color: '#EF4444' },
-  // ✅ Styles mới cho RelatedGrid
+
+  // ✅ Styles cho RelatedGrid loading
   relatedLoadingContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -827,12 +839,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
   },
-  footer: { flexDirection: 'row', alignItems: 'center', padding: 16, borderTopWidth: 1, borderColor: '#E5E7EB' },
-  // favBtn: { padding: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, marginRight: 12 },
-  cartBtn: { flex: 1, backgroundColor: '#111827', padding: 12, borderRadius: 8, alignItems: 'center', marginRight: 8 },
+
+  // ✅ Footer styles
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderTopWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#fff'
+  },
+  cartBtn: {
+    flex: 1,
+    backgroundColor: '#111827',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginRight: 8
+  },
   cartBtnTxt: { color: '#fff', fontWeight: '600' },
-  buyBtn: { flex: 1, backgroundColor: '#2563EB', padding: 12, borderRadius: 8, alignItems: 'center' },
+  buyBtn: {
+    flex: 1,
+    backgroundColor: '#2563EB',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center'
+  },
   buyBtnTxt: { color: '#fff', fontWeight: '600' },
+
+  // ✅ Loading/Error states
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -861,25 +896,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+
+  // ✅ FAVOURITE BUTTON STYLES - KEY FIXES
   favBtn: {
     padding: 12,
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
     marginRight: 12,
-    backgroundColor: '#fff', // ✅ Background trắng
-    // ✅ THÊM SHADOW CHO BUTTON
+    backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-
-  // ✅ STYLE MỚI CHO FAVOURITE BUTTON KHI ACTIVE
   favBtnActive: {
-    borderColor: '#EF4444', // ✅ Border đỏ khi favorite
-    backgroundColor: '#FEF2F2', // ✅ Background đỏ nhạt
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
     shadowColor: '#EF4444',
     shadowOpacity: 0.2,
   },
