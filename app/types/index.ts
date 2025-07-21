@@ -33,7 +33,6 @@ export interface Product {
   name: string;
   price: number;
   description: string;
-  user_id: string;
   images?: ProductImage[];
   created_at: string;
   updated_at: string;
