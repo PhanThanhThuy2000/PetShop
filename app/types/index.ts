@@ -33,7 +33,6 @@ export interface Product {
   name: string;
   price: number;
   description: string;
-  user_id: string;
   images?: ProductImage[];
   created_at: string;
   updated_at: string;
@@ -50,16 +49,11 @@ export interface Pet {
   _id: string;
   name: string;
   price: number;
-  type: string; // 'Dog', 'Cat', 'Rabbit', etc.
+  type: string; 
   breed_id: {
     _id: string;
     name: string;
     description?: string;
-  } | string;
-  user_id?: {
-    _id: string;
-    username: string;
-    email: string;
   } | string;
   age?: number;
   weight?: number;
