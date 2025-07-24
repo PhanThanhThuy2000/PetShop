@@ -476,3 +476,113 @@ export interface CareServiceState {
   isLoading: boolean;
   error: string | null;
 }
+export interface PetVariant {
+  _id: string;
+  pet_id: string | Pet;
+  color: string;
+  weight: number;
+  gender: 'Male' | 'Female';
+  age: number;
+  price_adjustment: number;
+  stock_quantity: number;
+  sku?: string;
+  is_available: boolean;
+  final_price?: number;
+  display_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PetVariantOptions {
+  colors: string[];
+  genders: ('Male' | 'Female')[];
+  age_range: number[];
+  weight_range: number[];
+  ageRange: {
+    min: number;
+    max: number;
+  } | null;
+  weightRange: {
+    min: number;
+    max: number;
+  } | null;
+  totalVariants: number;
+}
+
+export interface VariantFilters {
+  color?: string;
+  gender?: 'Male' | 'Female';
+  minAge?: number;
+  maxAge?: number;
+  minWeight?: number;
+  maxWeight?: number;
+}
+
+// Cập nhật Pet interface để include variants
+export interface Pet {
+  _id: string;
+  name: string;
+  price: number;
+  type: string;
+  breed_id: {
+    _id: string;
+    name: string;
+    description?: string;
+  } | string;
+  user_id?: {
+    _id: string;
+    username: string;
+    email: string;
+  } | string;
+  age?: number;
+  weight?: number;
+  gender?: 'Male' | 'Female';
+  description?: string;
+  status: 'available' | 'sold' | 'reserved';
+  images: Array<{
+    _id?: string;
+    url: string;
+    description?: string;
+  }>;
+  variants?: PetVariant[]; // 🆕 THÊM MỚI
+  variant_options?: PetVariantOptions; // 🆕 THÊM MỚI
+  created_at: string;
+  updated_at: string;
+}
+
+// Cập nhật CartItem interface
+export interface CartItem {
+  _id: string;
+  user_id: string;
+  pet_id?: Pet;
+  product_id?: Product;
+  variant_id?: PetVariant; // 🆕 THÊM MỚI
+  quantity: number;
+  added_at: string;
+  item_type?: 'pet' | 'product' | 'variant'; // 🆕 THÊM MỚI
+  item_info?: any;
+  unit_price?: number;
+  total_price?: number;
+}
+
+// Cập nhật AddToCartRequest interface
+export interface AddToCartRequest {
+  pet_id?: string;
+  product_id?: string;
+  variant_id?: string; // 🆕 THÊM MỚI
+  quantity: number;
+}
+
+// Cập nhật OrderItem interface
+export interface OrderItem {
+  _id: string;
+  quantity: number;
+  unit_price: number;
+  pet_id?: Pet;
+  product_id?: Product;
+  variant_id?: PetVariant; // 🆕 THÊM MỚI
+  order_id: Order;
+  addresses_id: string;
+  created_at: string;
+  updated_at: string;
+}
