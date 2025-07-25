@@ -1,4 +1,4 @@
-// OrderDetailScreen.tsx
+// OrderDetailScreen.tsx - CẬP NHẬT HỖ TRỢ VARIANT DATA
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
@@ -22,22 +22,24 @@ const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({ route }) => {
         const fetchOrderDetails = async () => {
             try {
                 setIsLoading(true);
-                console.log('Fetching order with ID:', orderId);
+                console.log('🔍 Fetching order with ID:', orderId);
+
                 const orderResponse = await ordersService.getOrderById(orderId);
-                console.log('Order Response:', JSON.stringify(orderResponse, null, 2));
+                console.log('📋 Order Response:', JSON.stringify(orderResponse, null, 2));
                 setOrder(orderResponse.data);
 
-                console.log('Fetching order items for order ID:', orderId);
+                console.log('📦 Fetching order items for order ID:', orderId);
                 const orderItemsResponse = await ordersService.getOrderItemsByOrderId(orderId);
-                console.log('Order Items Response:', JSON.stringify(orderItemsResponse, null, 2));
-                setOrderItems(orderItemsResponse.data);
+                console.log('📋 Order Items Response:', JSON.stringify(orderItemsResponse, null, 2));
+
+                setOrderItems(orderItemsResponse.data || []);
 
                 if (!orderItemsResponse.data || orderItemsResponse.data.length === 0) {
-                    console.warn('Không tìm thấy mục đơn hàng nào cho orderId:', orderId);
+                    console.warn('⚠️ Không tìm thấy mục đơn hàng nào cho orderId:', orderId);
                     setError('Không tìm thấy mục đơn hàng nào cho đơn hàng này');
                 }
             } catch (err: any) {
-                console.error('Lỗi khi lấy chi tiết đơn hàng:', err.response?.data || err.message);
+                console.error('❌ Lỗi khi lấy chi tiết đơn hàng:', err.response?.data || err.message);
                 setError(err.response?.data?.message || 'Không thể tải chi tiết đơn hàng');
             } finally {
                 setIsLoading(false);
@@ -46,6 +48,79 @@ const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({ route }) => {
 
         fetchOrderDetails();
     }, [orderId]);
+
+    // 🔧 HELPER FUNCTION để lấy thông tin item
+    const getItemDisplayInfo = (item: OrderItem) => {
+        console.log('🔍 Processing item:', JSON.stringify(item, null, 2));
+
+        let itemName = 'Sản phẩm không xác định';
+        let itemImage = 'https://via.placeholder.com/100';
+        let itemDescription = '';
+
+        // 🆕 XỬ LÝ THEO CẤU TRÚC MỚI
+        if (item.item_info && item.item_type) {
+            const info = item.item_info;
+            const type = item.item_type;
+
+            console.log('✅ New format detected:', { type, info });
+
+            if (type === 'variant' && info.variant) {
+                // Variant item
+                itemName = info.name || 'Pet Variant';
+                itemDescription = `Biến thể: ${info.variant.color} - ${info.variant.weight}kg - ${info.variant.gender} - ${info.variant.age}Y`;
+            } else if (type === 'pet') {
+                // Direct pet item
+                itemName = info.name || 'Pet';
+                const breedName = typeof info.breed_id === 'object' ? info.breed_id?.name : 'Unknown Breed';
+                itemDescription = `${breedName} - ${info.gender || 'Unknown'} - ${info.age || 0} tuổi`;
+            } else if (type === 'product') {
+                // Product item
+                itemName = info.name || 'Product';
+                itemDescription = info.description || 'Pet product';
+            }
+
+            // Lấy hình ảnh từ images array
+            if (item.images && item.images.length > 0) {
+                const primaryImage = item.images.find(img => img.is_primary) || item.images[0];
+                if (primaryImage && primaryImage.url) {
+                    itemImage = primaryImage.url;
+                }
+            }
+        }
+        // 🔧 FALLBACK: XỬ LÝ CẤU TRÚC CŨ
+        else if (item.pet_id || item.product_id || item.variant_id) {
+            console.log('🔄 Legacy format detected, processing...');
+
+            if (item.variant_id && typeof item.variant_id === 'object') {
+                // Variant item (legacy)
+                const variant = item.variant_id;
+                if (variant.pet_id && typeof variant.pet_id === 'object') {
+                    itemName = variant.pet_id.name || 'Pet Variant';
+                    itemDescription = `Biến thể: ${variant.color} - ${variant.weight}kg - ${variant.gender} - ${variant.age}Y`;
+                    itemImage = variant.pet_id.images?.find(img => img.is_primary)?.url || itemImage;
+                }
+            } else if (item.pet_id && typeof item.pet_id === 'object') {
+                // Pet item (legacy)
+                itemName = item.pet_id.name || 'Pet';
+                itemImage = item.pet_id.images?.find(img => img.is_primary)?.url || itemImage;
+                const breedName = typeof item.pet_id.breed_id === 'object' ? item.pet_id.breed_id?.name : 'Unknown Breed';
+                itemDescription = `${breedName} - ${item.pet_id.gender || 'Unknown'} - ${item.pet_id.age || 0} tuổi`;
+            } else if (item.product_id && typeof item.product_id === 'object') {
+                // Product item (legacy)
+                itemName = item.product_id.name || 'Product';
+                itemImage = item.product_id.images?.find(img => img.is_primary)?.url || itemImage;
+                itemDescription = item.product_id.description || 'Pet product';
+            }
+        }
+
+        console.log('✅ Final item info:', { itemName, itemImage, itemDescription });
+
+        return {
+            name: itemName,
+            image: itemImage,
+            description: itemDescription
+        };
+    };
 
     if (isLoading) {
         return (
@@ -147,33 +222,44 @@ const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({ route }) => {
                 </View>
             </View>
 
-            {/* Product Items */}
+            {/* Product Items - 🔧 CẬP NHẬT XỬ LÝ DỮ LIỆU */}
             <View style={styles.sectionContainer}>
                 <Text style={styles.sectionTitle}>Danh sách sản phẩm</Text>
                 {orderItems.length > 0 ? (
-                    orderItems.map((item, index) => (
-                        <View key={index} style={styles.productContainer}>
-                            <Image
-                                source={{
-                                    uri:
-                                        item.pet_id?.images?.find(img => img.is_primary)?.url ||
-                                        item.product_id?.images?.find(img => img.is_primary)?.url ||
-                                        'https://via.placeholder.com/100',
-                                }}
-                                style={styles.productImage}
-                            />
-                            <View style={styles.productDetails}>
-                                <Text style={styles.productName}>
-                                    {item.pet_id?.name || item.product_id?.name || 'Sản phẩm không xác định'}
-                                </Text>
-                                <Text style={styles.originalPrice}>
-                                    đ{(item.unit_price * 1.1).toLocaleString()}
-                                </Text>
-                                <Text style={styles.discountedPrice}>đ{item.unit_price.toLocaleString()}</Text>
-                                <Text style={styles.quantity}>Số lượng: x{item.quantity}</Text>
+                    orderItems.map((item, index) => {
+                        const itemInfo = getItemDisplayInfo(item);
+
+                        return (
+                            <View key={index} style={styles.productContainer}>
+                                <Image
+                                    source={{ uri: itemInfo.image }}
+                                    style={styles.productImage}
+                                    defaultSource={{ uri: 'https://via.placeholder.com/100' }}
+                                />
+                                <View style={styles.productDetails}>
+                                    <Text style={styles.productName}>{itemInfo.name}</Text>
+
+                                    {/* 🆕 Hiển thị mô tả item */}
+                                    {itemInfo.description && (
+                                        <Text style={styles.productDescription}>{itemInfo.description}</Text>
+                                    )}
+
+                                    <Text style={styles.originalPrice}>
+                                        đ{(item.unit_price * 1.1).toLocaleString()}
+                                    </Text>
+                                    <Text style={styles.discountedPrice}>đ{item.unit_price.toLocaleString()}</Text>
+                                    <Text style={styles.quantity}>Số lượng: x{item.quantity}</Text>
+
+                                    {/* 🆕 Hiển thị item type */}
+                                    {item.item_type && (
+                                        <Text style={styles.itemType}>
+                                            Loại: {item.item_type === 'variant' ? 'Biến thể' : item.item_type === 'pet' ? 'Thú cưng' : 'Sản phẩm'}
+                                        </Text>
+                                    )}
+                                </View>
                             </View>
-                        </View>
-                    ))
+                        );
+                    })
                 ) : (
                     <Text style={styles.errorText}>Không có mục đơn hàng nào để hiển thị</Text>
                 )}
@@ -319,6 +405,19 @@ const styles = StyleSheet.create({
         color: '#333',
         marginBottom: 4,
     },
+    // 🆕 THÊM STYLES MỚI
+    productDescription: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 4,
+        fontStyle: 'italic',
+    },
+    itemType: {
+        fontSize: 11,
+        color: '#007AFF',
+        fontWeight: '500',
+        marginTop: 2,
+    },
     originalPrice: {
         textDecorationLine: 'line-through',
         color: '#888',
@@ -351,13 +450,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         color: '#e53e3e',
-    },
-    historyContainer: {
-        backgroundColor: '#fff',
-        padding: 16,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
     },
     historyItem: {
         flexDirection: 'row',

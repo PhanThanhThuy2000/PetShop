@@ -1,3 +1,4 @@
+// HistoryScreen.tsx - CẬP NHẬT ĐỂ HIỂN THỊ ẢNH ĐÚNG
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
@@ -21,39 +22,172 @@ const { width } = Dimensions.get('window');
 
 const OrderItemComponent = ({ item }: { item: OrderItem }) => {
     const navigation = useNavigation<any>();
-    const [isReviewed, setIsReviewed] = useState(false); // Trạng thái kiểm tra xem đã đánh giá chưa
+    const [isReviewed, setIsReviewed] = useState(false);
 
     useEffect(() => {
-        // Kiểm tra xem item đã được đánh giá chưa (giả định ban đầu)
-        // Hiện tại, không có dữ liệu từ backend, nên ban đầu là false
-        // Cần cập nhật từ AddReviewScreen sau khi gửi thành công
+        // Kiểm tra xem item đã được đánh giá chưa
     }, [item._id]);
+
+    // 🔧 HELPER FUNCTION - CẬP NHẬT ĐỂ XỬ LÝ ẢNH ĐÚNG
+    const getItemDisplayInfo = () => {
+        console.log('🔍 Processing order item:', JSON.stringify(item, null, 2));
+
+        let itemName = 'Sản phẩm không xác định';
+        let itemImage = null;
+        let itemDescription = '';
+        let productId = null;
+
+        // 🆕 XỬ LÝ THEO CẤU TRÚC MỚI - item_info, item_type, images
+        if (item.item_info && item.item_type) {
+            const info = item.item_info;
+            const type = item.item_type;
+
+            console.log('✅ New format detected:', { type, info });
+
+            if (type === 'variant' && info.variant) {
+                itemName = info.name || 'Pet Variant';
+                itemDescription = `Biến thể: ${info.variant.color} - ${info.variant.weight}kg - ${info.variant.gender} - ${info.variant.age}Y`;
+                productId = info._id;
+            } else if (type === 'pet') {
+                itemName = info.name || 'Pet';
+                const breedName = typeof info.breed_id === 'object' ? info.breed_id?.name : 'Unknown Breed';
+                itemDescription = `${breedName} - ${info.gender || 'Unknown'} - ${info.age || 0} tuổi`;
+                productId = info._id;
+            } else if (type === 'product') {
+                itemName = info.name || 'Product';
+                itemDescription = info.description || 'Pet product';
+                productId = info._id;
+            }
+
+            // 🔧 XỬ LÝ ẢNH TỪ IMAGES ARRAY
+            console.log('🖼️ Processing images:', {
+                hasImages: !!item.images,
+                imagesArray: item.images,
+                imagesLength: item.images?.length
+            });
+
+            if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+                // Tìm ảnh primary trước
+                const primaryImage = item.images.find(img => img.is_primary === true);
+                console.log('🎯 Primary image found:', primaryImage);
+
+                if (primaryImage && primaryImage.url) {
+                    itemImage = primaryImage.url;
+                    console.log('✅ Using primary image:', itemImage);
+                } else {
+                    // Fallback về ảnh đầu tiên
+                    const firstImage = item.images[0];
+                    if (firstImage && firstImage.url) {
+                        itemImage = firstImage.url;
+                        console.log('🔄 Using first image:', itemImage);
+                    }
+                }
+            }
+        }
+        // 🔧 FALLBACK: XỬ LÝ CẤU TRÚC CŨ
+        else {
+            console.log('🔄 Legacy format detected, processing...');
+
+            if (item.variant_id && typeof item.variant_id === 'object') {
+                const variant = item.variant_id;
+                console.log('🧬 Processing variant:', variant);
+
+                if (variant.pet_id && typeof variant.pet_id === 'object') {
+                    itemName = variant.pet_id.name || 'Pet Variant';
+                    itemDescription = `Biến thể: ${variant.color} - ${variant.weight}kg - ${variant.gender} - ${variant.age}Y`;
+                    productId = variant.pet_id._id;
+
+                    // Ưu tiên lấy ảnh từ item.images nếu có
+                    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+                        const primaryImg = item.images.find(img => img.is_primary) || item.images[0];
+                        itemImage = primaryImg?.url;
+                        console.log('🖼️ Variant image from item.images:', itemImage);
+                    } else if (variant.pet_id.images && Array.isArray(variant.pet_id.images)) {
+                        // Fallback về ảnh trong pet_id.images nếu có
+                        const primaryImg = variant.pet_id.images.find(img => img.is_primary) || variant.pet_id.images[0];
+                        itemImage = primaryImg?.url;
+                        console.log('🖼️ Variant image from pet_id.images:', itemImage);
+                    }
+                }
+            } else if (item.pet_id && typeof item.pet_id === 'object') {
+                const pet = item.pet_id;
+                console.log('🐕 Processing pet:', pet);
+
+                itemName = pet.name || 'Pet';
+                const breedName = typeof pet.breed_id === 'object' ? pet.breed_id?.name : 'Unknown Breed';
+                itemDescription = `${breedName} - ${pet.gender || 'Unknown'} - ${pet.age || 0} tuổi`;
+                productId = pet._id;
+
+                // ✅ XỬ LÝ ẢNH PET (Legacy format)
+                if (pet.images && Array.isArray(pet.images)) {
+                    const primaryImg = pet.images.find(img => img.is_primary) || pet.images[0];
+                    itemImage = primaryImg?.url;
+                    console.log('🖼️ Legacy pet image:', itemImage);
+                }
+            } else if (item.product_id && typeof item.product_id === 'object') {
+                const product = item.product_id;
+                console.log('📦 Processing product:', product);
+
+                itemName = product.name || 'Product';
+                itemDescription = product.description || 'Pet product';
+                productId = product._id;
+
+                // Ưu tiên lấy ảnh từ item.images nếu có
+                if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+                    const primaryImg = item.images.find(img => img.is_primary) || item.images[0];
+                    itemImage = primaryImg?.url;
+                    console.log('🖼️ Product image from item.images:', itemImage);
+                } else if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+                    const primaryImg = product.images.find(img => img.is_primary) || product.images[0];
+                    itemImage = primaryImg?.url;
+                    console.log('🖼️ Product image from product.images:', itemImage);
+                }
+            }
+        }
+
+        console.log('✅ Final item info:', {
+            itemName,
+            itemImage,
+            itemDescription,
+            productId,
+            imageValid: !!itemImage && (itemImage.startsWith('http') || itemImage.startsWith('https'))
+        });
+
+        return {
+            name: itemName,
+            image: itemImage,
+            description: itemDescription,
+            productId: productId
+        };
+    };
 
     const handlePress = () => {
         if (!item.order_id?._id) {
-            console.error('Order ID is missing for item:', item._id);
+            console.error('❌ Order ID is missing for item:', item._id);
             return;
         }
-        console.log('Navigating to OrderDetail with orderId:', item.order_id._id);
+        console.log('🔍 Navigating to OrderDetail with orderId:', item.order_id._id);
         navigation.navigate('OrderDetail', { orderId: item.order_id._id });
     };
 
     const handleReview = () => {
-        console.log('Đánh giá mục đơn hàng:', item._id);
+        console.log('⭐ Đánh giá mục đơn hàng:', item._id);
+
+        const itemInfo = getItemDisplayInfo();
+
         const product = {
-            id: item.pet_id?._id || item.product_id?._id || item._id,
-            name: item.pet_id?.name || item.product_id?.name || 'Mục không xác định',
-            image: item.pet_id?.images?.find(img => img.is_primary)?.url ||
-                   item.product_id?.images?.find(img => img.is_primary)?.url ||
-                   'https://via.placeholder.com/100',
+            id: itemInfo.productId || item._id,
+            name: itemInfo.name,
+            image: itemInfo.image || 'https://via.placeholder.com/100',
         };
-        navigation.navigate('AddReviewScreen', { product, orderItemId: item._id });
+
+        navigation.navigate('AddReviewScreen', {
+            product,
+            orderItemId: item._id
+        });
     };
 
-    const itemName = item.pet_id?.name || item.product_id?.name || 'Mục không xác định';
-    const itemImage = item.pet_id?.images?.find(img => img.is_primary)?.url ||
-        item.product_id?.images?.find(img => img.is_primary)?.url ||
-        null;
+    const itemInfo = getItemDisplayInfo();
 
     return (
         <TouchableOpacity onPress={handlePress}>
@@ -70,22 +204,56 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
                 </View>
 
                 <View style={styles.orderContent}>
-                    {itemImage ? (
-                        <Image source={{ uri: itemImage }} style={styles.petImage} />
+                    {/* 🔧 CẬP NHẬT XỬ LÝ HIỂN THỊ ẢNH */}
+                    {itemInfo.image && (itemInfo.image.startsWith('http') || itemInfo.image.startsWith('https')) ? (
+                        <Image
+                            source={{ uri: itemInfo.image }}
+                            style={styles.petImage}
+                            defaultSource={{ uri: 'https://via.placeholder.com/100' }}
+                            onError={(error) => {
+                                console.log('🖼️ Image load error:', error.nativeEvent.error);
+                                console.log('🖼️ Failed image URL:', itemInfo.image);
+                            }}
+                            onLoad={() => {
+                                console.log('✅ Image loaded successfully:', itemInfo.image);
+                            }}
+                        />
                     ) : (
-                        <View style={[styles.petImage, styles.placeholderImage]} />
+                        <View style={[styles.petImage, styles.placeholderImage]}>
+                            <Ionicons name="image-outline" size={24} color="#ccc" />
+                            <Text style={styles.debugText}>No Img</Text>
+                        </View>
                     )}
+
                     <View style={styles.orderInfo}>
-                        <Text style={styles.petName}>{itemName}</Text>
+                        <Text style={styles.petName}>{itemInfo.name}</Text>
+
+                        {/* Hiển thị mô tả item */}
+                        {itemInfo.description && (
+                            <Text style={styles.petDescription} numberOfLines={2}>
+                                {itemInfo.description}
+                            </Text>
+                        )}
+
+                        {/* Hiển thị item type */}
+                        {item.item_type && (
+                            <Text style={styles.itemType}>
+                                {item.item_type === 'variant' ? 'Biến thể' : item.item_type === 'pet' ? 'Thú cưng' : 'Sản phẩm'}
+                            </Text>
+                        )}
+
                         <Text
                             style={[
                                 styles.price,
                                 { color: 'red', textDecorationLine: 'line-through' }
                             ]}
                         >
-                            {(item.unit_price * item.quantity).toLocaleString('vi-VN')} đ
+                            {(item.unit_price * item.quantity * 1.1).toLocaleString('vi-VN')} đ
                         </Text>
                         <Text style={styles.price}>
+                            Đơn giá: {item.unit_price.toLocaleString('vi-VN')} đ x {item.quantity}
+                        </Text>
+                        <Text style={[styles.price, styles.totalPrice]}>
                             Tổng tiền: {item.order_id?.total_amount?.toLocaleString('vi-VN')} đ
                         </Text>
                     </View>
@@ -111,9 +279,10 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
     );
 };
 
+// Rest của component giữ nguyên...
 const HistoryScreen = () => {
     const navigation = useNavigation<any>();
-    const isFocused = useIsFocused(); // Sử dụng để phát hiện khi quay lại màn hình
+    const isFocused = useIsFocused();
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -130,19 +299,28 @@ const HistoryScreen = () => {
         try {
             setIsLoading(true);
             setIsSearching(true);
-            const params = { query: searchQuery, page: 1, limit: 20 };
-            console.log('Tham số tìm kiếm:', params);
+            console.log('🔍 Searching with keyword:', searchQuery);
+
+            const params = {
+                keyword: searchQuery,
+                page: 1,
+                limit: 20
+            };
+
+            console.log('📡 Search params:', params);
             const response = await ordersService.searchOrderItems(params);
-            console.log('Phản hồi tìm kiếm đầy đủ:', JSON.stringify(response, null, 2));
-            console.log('Items:', response.data.items || response.data);
-            setOrderItems(response.data.items || response.data || []);
-            if ((response.data.items || response.data).length === 0) {
+            console.log('📋 Search response:', JSON.stringify(response, null, 2));
+
+            const searchResults = response.data || [];
+            setOrderItems(searchResults);
+
+            if (searchResults.length === 0) {
                 setError('Không tìm thấy mục đơn hàng nào phù hợp');
             } else {
                 setError(null);
             }
         } catch (err: any) {
-            console.error('Lỗi tìm kiếm:', err.response?.data || err.message);
+            console.error('❌ Search error:', err.response?.data || err.message);
             setError('Không thể tìm kiếm mục đơn hàng');
         } finally {
             setIsLoading(false);
@@ -152,31 +330,57 @@ const HistoryScreen = () => {
     const fetchOrderItems = async () => {
         try {
             setIsLoading(true);
+            console.log('📦 Fetching order items...');
+
             const token = await AsyncStorage.getItem('token');
-            console.log('Token gửi đi:', token);
+            console.log('🔐 Token exists:', !!token);
+
             const params = { page: 1, limit: 20 };
-            console.log('Tham số API:', params);
+            console.log('📡 API params:', params);
+
             const response = await ordersService.getMyOrderItems(params);
-            console.log('Phản hồi API đầy đủ:', JSON.stringify(response, null, 2));
-            setOrderItems(response.data);
-            if (response.data.length === 0) {
-                console.warn('Cảnh báo: Không tìm thấy mục đơn hàng nào');
+            console.log('📋 API response (full):', JSON.stringify(response, null, 2));
+
+            // 🔧 DEBUG: Kiểm tra cấu trúc dữ liệu từ API
+            if (response.data && response.data.length > 0) {
+                console.log('🔍 First item structure:', JSON.stringify(response.data[0], null, 2));
+
+                // Kiểm tra từng item xem có images không
+                response.data.forEach((orderItem, index) => {
+                    console.log(`📋 Item ${index}:`, {
+                        id: orderItem._id,
+                        hasImages: !!orderItem.images,
+                        imagesCount: orderItem.images?.length || 0,
+                        hasItemInfo: !!orderItem.item_info,
+                        itemType: orderItem.item_type,
+                        hasPetId: !!orderItem.pet_id,
+                        hasProductId: !!orderItem.product_id,
+                    });
+                });
+            }
+
+            const items = response.data || [];
+            setOrderItems(items);
+
+            if (items.length === 0) {
+                console.warn('⚠️ No order items found');
                 setError('Không có mục đơn hàng nào để hiển thị');
             } else {
                 setError(null);
+                console.log(`✅ Loaded ${items.length} order items`);
             }
         } catch (err: any) {
-            console.error('Lỗi API:', err.response?.data || err.message);
+            console.error('❌ API error:', err.response?.data || err.message);
             setError('Không thể tải danh sách mục đơn hàng');
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Cập nhật danh sách khi quay lại từ AddReviewScreen
     useEffect(() => {
         if (isFocused) {
-            fetchOrderItems(); // Làm mới danh sách để lấy trạng thái mới
+            console.log('🔄 Screen focused, refreshing order items...');
+            fetchOrderItems();
         }
     }, [isFocused]);
 
@@ -195,15 +399,22 @@ const HistoryScreen = () => {
     if (isLoading) {
         return (
             <SafeAreaView style={styles.container}>
-                <Text style={styles.loadingText}>Đang tải danh sách mục đơn hàng...</Text>
+                <View style={styles.loadingContainer}>
+                    <Text style={styles.loadingText}>Đang tải danh sách mục đơn hàng...</Text>
+                </View>
             </SafeAreaView>
         );
     }
 
-    if (error) {
+    if (error && orderItems.length === 0) {
         return (
             <SafeAreaView style={styles.container}>
-                <Text style={styles.errorText}>{error}</Text>
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity style={styles.retryButton} onPress={fetchOrderItems}>
+                        <Text style={styles.retryButtonText}>Thử lại</Text>
+                    </TouchableOpacity>
+                </View>
             </SafeAreaView>
         );
     }
@@ -235,17 +446,37 @@ const HistoryScreen = () => {
                     <Ionicons name={isSearching ? 'close' : 'search'} size={20} color="#000000" />
                 </TouchableOpacity>
             </View>
+
+            {error && orderItems.length === 0 && (
+                <View style={styles.errorBanner}>
+                    <Text style={styles.errorBannerText}>{error}</Text>
+                </View>
+            )}
+
             <FlatList
                 data={orderItems}
                 renderItem={({ item }) => <OrderItemComponent item={item} />}
                 keyExtractor={item => item._id}
-                contentContainerStyle={styles.listContainer}
+                contentContainerStyle={[
+                    styles.listContainer,
+                    orderItems.length === 0 && styles.emptyListContainer
+                ]}
                 showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                    !isLoading && !error ? (
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="receipt-outline" size={64} color="#ccc" />
+                            <Text style={styles.emptyText}>Chưa có đơn hàng nào</Text>
+                            <Text style={styles.emptySubtext}>Hãy mua sắm để xem lịch sử đơn hàng</Text>
+                        </View>
+                    ) : null
+                }
             />
         </SafeAreaView>
     );
 };
 
+// Styles giữ nguyên như code gốc
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -289,9 +520,26 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         fontSize: 16,
     },
+    errorBanner: {
+        backgroundColor: '#FEE2E2',
+        padding: 12,
+        marginHorizontal: 16,
+        marginTop: 8,
+        borderRadius: 8,
+        borderLeftWidth: 4,
+        borderLeftColor: '#EF4444',
+    },
+    errorBannerText: {
+        color: '#DC2626',
+        fontSize: 14,
+        textAlign: 'center',
+    },
     listContainer: {
         paddingVertical: 16,
         paddingHorizontal: 16,
+    },
+    emptyListContainer: {
+        flex: 1,
     },
     orderItem: {
         backgroundColor: '#FFFFFF',
@@ -330,9 +578,11 @@ const styles = StyleSheet.create({
         height: 70,
         borderRadius: 8,
         marginRight: 16,
-        backgroundColor: '#f0f0f0'
+        backgroundColor: '#f0f0f0',
     },
     placeholderImage: {
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: '#f0f0f0'
     },
     orderInfo: {
@@ -343,12 +593,35 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#2d3748',
-        marginBottom: 8,
+        marginBottom: 4,
+    },
+    petDescription: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 4,
+        fontStyle: 'italic',
+    },
+    itemType: {
+        fontSize: 11,
+        color: '#007AFF',
+        fontWeight: '500',
+        marginBottom: 4,
+        backgroundColor: '#EBF4FF',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        alignSelf: 'flex-start',
     },
     price: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#e53e3e',
+        marginBottom: 2,
+    },
+    totalPrice: {
         fontSize: 15,
         fontWeight: 'bold',
-        color: '#e53e3e',
+        color: '#2d3748',
     },
     orderFooter: {
         flexDirection: 'row',
@@ -378,20 +651,62 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '600',
     },
-    loadingText: {
+    loadingContainer: {
         flex: 1,
-        textAlign: 'center',
-        marginTop: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
         fontSize: 16,
         color: '#2d3748',
+        textAlign: 'center',
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 32,
     },
     errorText: {
-        flex: 1,
-        textAlign: 'center',
-        marginTop: 20,
         fontSize: 16,
         color: '#e53e3e',
-    }
+        textAlign: 'center',
+        marginBottom: 16,
+    },
+    retryButton: {
+        backgroundColor: '#3182CE',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
+    },
+    retryButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 80,
+    },
+    emptyText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#718096',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    emptySubtext: {
+        fontSize: 14,
+        color: '#A0AEC0',
+        textAlign: 'center',
+    },
+    debugText: {
+        fontSize: 8,
+        color: '#999',
+        marginTop: 2,
+    },
 });
 
 export default HistoryScreen;

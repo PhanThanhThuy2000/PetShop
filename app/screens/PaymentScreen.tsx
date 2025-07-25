@@ -265,68 +265,122 @@ const PaymentScreen = () => {
     }
   };
 
+  // 🔧 FIXED PaymentScreen.tsx - Hỗ trợ variant trong createOrderAndOrderItem
   const createOrderAndOrderItem = async (vnpayData: any) => {
     try {
-      // Xác định payment method và status
-      const isVNPaySuccess = vnpayData.vnp_ResponseCode === '00' && vnpayData.vnp_TransactionStatus === '00';
-      const isCOD = vnpayData.paymentMethod === 'cod';
+      console.log('vnpayData:', vnpayData);
+      console.log('cartItems:', JSON.stringify(cartItems, null, 2));
+      console.log('address:', address);
 
+      // Bước 1: Tạo Order
       const orderData = {
         total_amount: calculateTotal(),
-        status: (isCOD || isVNPaySuccess) ? 'completed' : 'completed',
-        payment_method: isCOD ? 'cod' : 'vnpay',
+        status: vnpayData.vnp_ResponseCode === '00' && vnpayData.vnp_TransactionStatus === '00' ? 'completed' : 'pending',
+        payment_method: vnpayData.paymentMethod || 'vnpay',
         vnpay_transaction_id: vnpayData.vnp_TxnRef || null,
         payment_date: vnpayData.vnp_PayDate || null,
-        voucher_id: selectedVoucherRef.current?._id || null,
-        discount_amount: calculateDiscount(),
+        user_id: vnpayData.user_id,
       };
-
-      console.log('Creating order with data:', orderData);
-      console.log('selectedVoucherRef.current:', selectedVoucherRef.current);
       const orderResponse = await api.post<ApiResponse<Order>>('/orders', orderData);
       const savedOrder = orderResponse.data.data;
       console.log('Order created:', savedOrder);
 
+      // Bước 2: Tạo OrderItem cho mỗi mục trong cartItems - 🔧 SỬA ĐỂ HỖ TRỢ VARIANT
       let validItemsCount = 0;
       for (const item of cartItems) {
         console.log('Processing item:', JSON.stringify(item, null, 2));
+
+        // 🆕 Khởi tạo orderItemData cơ bản
         const orderItemData = {
           quantity: item.quantity || 1,
           unit_price: item.price,
-          pet_id: item.type === 'pet' ? item.id : null,
-          product_id: item.type === 'product' ? item.id : null,
           order_id: savedOrder._id,
           addresses_id: address?._id,
+          // Khởi tạo tất cả các ID về null
+          pet_id: null,
+          product_id: null,
+          variant_id: null
         };
 
-        // console.log('orderItemData:', orderItemData);
-        if (!orderItemData.pet_id && !orderItemData.product_id) {
-          console.error('Invalid order item: missing both pet_id and product_id', orderItemData);
-          Alert.alert('Lỗi', `Không thể tạo mục đơn hàng cho ${item.title || 'Unknown Item'}: Thiếu pet_id hoặc product_id`);
+        // 🆕 XỬ LÝ THEO TYPE VỚI VARIANT SUPPORT
+        if (item.type === 'variant' && item.variantId) {
+          // Variant item - ưu tiên variant_id
+          orderItemData.variant_id = item.variantId;
+          console.log('✅ Added variant_id:', item.variantId);
+
+        } else if (item.type === 'pet' && item.petId) {
+          // Direct pet item (legacy)
+          orderItemData.pet_id = item.petId;
+          console.log('✅ Added pet_id:', item.petId);
+
+        } else if (item.type === 'product' && item.productId) {
+          // Product item
+          orderItemData.product_id = item.productId;
+          console.log('✅ Added product_id:', item.productId);
+
+        } else {
+          // 🔧 FALLBACK: Thử tìm ID từ item.id
+          console.warn('⚠️ No specific type ID found, trying item.id:', item.id);
+
+          if (item.variantId) {
+            orderItemData.variant_id = item.variantId;
+          } else if (item.petId) {
+            orderItemData.pet_id = item.petId;
+          } else if (item.productId) {
+            orderItemData.product_id = item.productId;
+          } else if (item.id) {
+            // Cuối cùng, sử dụng item.id dựa trên type
+            if (item.type === 'variant') {
+              orderItemData.variant_id = item.id;
+            } else if (item.type === 'pet') {
+              orderItemData.pet_id = item.id;
+            } else if (item.type === 'product') {
+              orderItemData.product_id = item.id;
+            }
+          }
+        }
+
+        console.log('Final orderItemData:', orderItemData);
+
+        // 🔧 VALIDATION: Kiểm tra có ít nhất một ID
+        if (!orderItemData.pet_id && !orderItemData.product_id && !orderItemData.variant_id) {
+          console.error('❌ Invalid order item: missing all IDs', {
+            item,
+            orderItemData
+          });
+          Alert.alert('Lỗi', `Không thể tạo mục đơn hàng cho "${item.title || 'Unknown Item'}": Thiếu thông tin ID`);
           continue;
         }
 
-        const orderItemResponse = await api.post<ApiResponse<OrderItem>>('/order_items', orderItemData);
-        // console.log('OrderItem created:', orderItemResponse.data.data);
-        validItemsCount++;
+        // 🔧 Loại bỏ các trường null để tránh lỗi validation
+        const cleanOrderItemData = Object.fromEntries(
+          Object.entries(orderItemData).filter(([_, value]) => value !== null)
+        );
+
+        console.log('Clean orderItemData:', cleanOrderItemData);
+
+        try {
+          const orderItemResponse = await api.post<ApiResponse<OrderItem>>('/order_items', cleanOrderItemData);
+          console.log('✅ OrderItem created:', orderItemResponse.data.data);
+          validItemsCount++;
+        } catch (itemError: any) {
+          console.error('❌ Failed to create OrderItem:', itemError.response?.data || itemError.message);
+          Alert.alert('Lỗi', `Không thể tạo OrderItem cho "${item.title}": ${itemError.message}`);
+        }
       }
 
+      // Kiểm tra xem có OrderItem nào được tạo không
       if (validItemsCount === 0) {
         throw new Error('No valid order items were created');
       }
 
-      // Cập nhật voucher khi đơn hàng completed (cho cả COD và VNPay thành công)
-      console.log('Order status:', savedOrder.status);
-      console.log('Selected voucher before update:', selectedVoucherRef.current);
+      console.log(`✅ Successfully created ${validItemsCount} order items`);
 
-      if (savedOrder.status === 'completed' && selectedVoucherRef.current) {
-        console.log('Updating voucher for completed order...');
-        await updateVoucherAsUsed();
-      }
-
+      // Chuyển hướng đến màn hình thành công
       navigation.navigate('OrderSuccess', { orderId: savedOrder._id });
+
     } catch (error: any) {
-      console.error('Lỗi khi tạo Order/OrderItem:', error.response?.data || error.message);
+      console.error('❌ Lỗi khi tạo Order/OrderItem:', error.response?.data || error.message);
       Alert.alert('Lỗi', 'Không thể lưu đơn hàng. Vui lòng kiểm tra giỏ hàng và thử lại.');
     }
   };
