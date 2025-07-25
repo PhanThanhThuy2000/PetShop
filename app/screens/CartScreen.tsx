@@ -1,3 +1,4 @@
+// app/screens/CartScreen.tsx - GIAO DIỆN TỐI ỨU
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
@@ -31,36 +32,28 @@ type Item = {
   _apiId?: string;
   petId?: string | null;
   productId?: string | null;
+  variantId?: string | null;
+  variantInfo?: {
+    color?: string;
+    weight?: number;
+    gender?: string;
+    age?: number;
+    display_name?: string;
+  };
+  itemType?: 'pet' | 'product' | 'variant';
 };
 
 const { width } = Dimensions.get('window');
-const CARD_HEIGHT = 100;
-const CARD_PADDING = 12;
+const CARD_HEIGHT = 100; // Giảm từ 120 xuống 100
+const CARD_PADDING = 10;   // Giảm từ 12 xuống 10
 
 export default function CartScreen() {
   const navigation = useNavigation<any>();
-
   const { items, totalItems, totalAmount, isLoading, dispatch } = useCart();
   const { token } = useAuth();
 
-  // State để quản lý các item được chọn
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
-
-  const [wishlistItems, setWishlistItems] = useState<Item[]>([
-    {
-      id: 3,
-      image: require('../../assets/images/hamster.png'),
-      title: 'Colorful Fish',
-      price: 1000000,
-    },
-    {
-      id: 4,
-      image: require('../../assets/images/rabbit.png'),
-      title: 'Fluffy Puppy',
-      price: 1000000,
-    },
-  ]);
 
   useEffect(() => {
     if (token) {
@@ -69,29 +62,95 @@ export default function CartScreen() {
   }, [token, dispatch]);
 
   const getDisplayItems = () => {
-    return items.map(apiItem => {
-      const itemData = apiItem.pet_id || apiItem.product_id;
-      const primaryImage = itemData?.images?.find(img => img.is_primary) || itemData?.images?.[0];
+    console.log('🔍 Raw cart items from API:', JSON.stringify(items, null, 2));
 
-      return {
-        id: parseInt(apiItem._id.replace(/\D/g, '')) || Math.random(),
-        image: primaryImage?.url ? { uri: primaryImage.url } : require('../../assets/images/dog.png'),
-        title: itemData?.name || 'Unknown Item',
-        description: apiItem.pet_id
-          ? `${apiItem.pet_id.breed_id?.name || 'Unknown Breed'} - ${apiItem.pet_id.gender || 'Unknown'} - ${apiItem.pet_id.age || 0}y`
-          : 'Pet product',
-        price: Number(itemData?.price) || 0,
+    return items.map(apiItem => {
+      console.log('🛒 Processing cart item:', JSON.stringify(apiItem, null, 2));
+
+      const itemInfo = apiItem.item_info;
+      const itemType = apiItem.item_type || 'unknown';
+      const unitPrice = apiItem.unit_price || 0;
+
+      if (!itemInfo) {
+        console.warn('⚠️ No item_info found');
+        return {
+          id: Math.floor(Math.random() * 1000000),
+          image: require('../../assets/images/dog.png'),
+          title: 'Unknown Item',
+          description: 'No information',
+          price: 0,
+          quantity: apiItem.quantity || 1,
+          _apiId: apiItem._id,
+          petId: null,
+          productId: null,
+          variantId: null,
+          variantInfo: null,
+          itemType: 'unknown'
+        };
+      }
+
+      let description = '';
+      let variantInfo = null;
+      let petId = null;
+      let productId = null;
+      let variantId = null;
+
+      if (itemType === 'variant' && itemInfo.variant) {
+        variantInfo = {
+          color: itemInfo.variant.color,
+          weight: itemInfo.variant.weight,
+          gender: itemInfo.variant.gender,
+          age: itemInfo.variant.age,
+          display_name: itemInfo.variant.display_name
+        };
+        description = itemInfo.variant.display_name ||
+          `${itemInfo.variant.color} - ${itemInfo.variant.weight}kg - ${itemInfo.variant.gender} - ${itemInfo.variant.age}Y`;
+        variantId = itemInfo.variant._id;
+        petId = itemInfo._id;
+      }
+      else if (itemType === 'pet') {
+        const breedName = typeof itemInfo.breed_id === 'object'
+          ? itemInfo.breed_id?.name
+          : 'Unknown Breed';
+        description = `${breedName} - ${itemInfo.gender || 'Unknown'} - ${itemInfo.age || 0}y`;
+        petId = itemInfo._id;
+      }
+      else if (itemType === 'product') {
+        description = 'Pet product';
+        productId = itemInfo._id;
+      }
+
+      let primaryImage = require('../../assets/images/dog.png');
+      if (itemInfo.images && Array.isArray(itemInfo.images) && itemInfo.images.length > 0) {
+        const foundImage = itemInfo.images.find((img: any) => img.is_primary) || itemInfo.images[0];
+        if (foundImage && foundImage.url) {
+          primaryImage = { uri: foundImage.url };
+        }
+      }
+
+      const displayId = parseInt(apiItem._id.replace(/\D/g, '')) || Math.floor(Math.random() * 1000000);
+
+      const processedItem = {
+        id: displayId,
+        image: primaryImage,
+        title: itemInfo.name || 'Unknown Item',
+        description,
+        price: unitPrice,
         quantity: apiItem.quantity || 1,
         _apiId: apiItem._id,
-        petId: apiItem.pet_id?._id || null,
-        productId: apiItem.product_id?._id || null,
+        petId,
+        productId,
+        variantId,
+        variantInfo,
+        itemType
       };
+
+      return processedItem;
     });
   };
 
   const cartItems = getDisplayItems();
 
-  // Tự động chọn tất cả khi có items mới
   useEffect(() => {
     if (cartItems.length > 0) {
       const allItemIds = new Set(cartItems.map(item => item._apiId || ''));
@@ -103,7 +162,6 @@ export default function CartScreen() {
     }
   }, [cartItems.length]);
 
-  // Toggle chọn/bỏ chọn một item
   const toggleSelectItem = (itemId: string) => {
     const newSelectedItems = new Set(selectedItems);
     if (newSelectedItems.has(itemId)) {
@@ -112,12 +170,9 @@ export default function CartScreen() {
       newSelectedItems.add(itemId);
     }
     setSelectedItems(newSelectedItems);
-    
-    // Cập nhật trạng thái select all
     setSelectAll(newSelectedItems.size === cartItems.length);
   };
 
-  // Toggle chọn/bỏ chọn tất cả
   const toggleSelectAll = () => {
     if (selectAll) {
       setSelectedItems(new Set());
@@ -129,34 +184,28 @@ export default function CartScreen() {
     }
   };
 
-  // Tính tổng tiền của các items được chọn
   const getSelectedTotal = () => {
     return cartItems
       .filter(item => selectedItems.has(item._apiId || ''))
       .reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
   };
 
-  // Lấy các items được chọn
   const getSelectedItems = () => {
     return cartItems.filter(item => selectedItems.has(item._apiId || ''));
   };
-
-  console.log('cartItems:', JSON.stringify(cartItems, null, 2));
-  console.log('selectedItems:', Array.from(selectedItems));
-  console.log('selectedTotal:', getSelectedTotal());
 
   const updateQuantity = async (id: number, delta: number) => {
     const item = cartItems.find(item => item.id === id);
     if (!item || !item._apiId) return;
 
     const newQuantity = Math.max(1, (item.quantity || 1) + delta);
-    
+
     try {
-      await dispatch(updateCartItem({ 
-        id: item._apiId, 
-        quantity: newQuantity 
+      await dispatch(updateCartItem({
+        id: item._apiId,
+        quantity: newQuantity
       })).unwrap();
-      
+
       dispatch(getCart());
     } catch (error) {
       Alert.alert('Error', 'Failed to update quantity');
@@ -178,7 +227,6 @@ export default function CartScreen() {
           onPress: async () => {
             try {
               await dispatch(removeFromCart(item._apiId)).unwrap();
-              // Xóa item khỏi danh sách được chọn
               const newSelectedItems = new Set(selectedItems);
               newSelectedItems.delete(item._apiId || '');
               setSelectedItems(newSelectedItems);
@@ -191,9 +239,6 @@ export default function CartScreen() {
       ]
     );
   };
-
-  const removeFromWishlist = (id: number) =>
-    setWishlistItems(items => items.filter(item => item.id !== id));
 
   const handleClearCart = () => {
     Alert.alert(
@@ -221,86 +266,111 @@ export default function CartScreen() {
 
   const handleCheckout = () => {
     const selectedCartItems = getSelectedItems();
-    
+
     if (selectedCartItems.length === 0) {
       Alert.alert('No Items Selected', 'Please select items to checkout');
       return;
     }
 
-    // Chuẩn hóa dữ liệu cartItems được chọn để truyền sang PaymentScreen
     const formattedCartItems = selectedCartItems.map(item => ({
-      id: item.petId || item.productId || item._apiId,
+      id: item.variantId || item.petId || item.productId || item._apiId,
       title: item.title,
       price: item.price,
       quantity: item.quantity || 1,
       image: item.image,
-      type: item.petId ? 'pet' : 'product',
+      type: item.itemType || (item.petId ? 'pet' : 'product'),
       petId: item.petId || null,
       productId: item.productId || null,
+      variantId: item.variantId || null,
+      variantInfo: item.variantInfo || null,
     }));
 
     const selectedTotal = getSelectedTotal();
-    console.log('Navigating to Payment with selected items:', { cartItems: formattedCartItems, total: selectedTotal });
-    navigation.navigate('Payment', { cartItems: formattedCartItems, total: selectedTotal });
+
+    navigation.navigate('Payment', {
+      cartItems: formattedCartItems,
+      total: selectedTotal
+    });
   };
 
-  const total = totalAmount || cartItems.reduce(
-    (sum, x) => sum + x.price * (x.quantity || 1),
-    0
-  );
-
+  // 🔧 RENDER CARD TỐI ỨU - Gọn gàng hơn
   const renderCard = (item: Item, isCart: boolean) => (
     <View key={item.id} style={styles.card}>
       {/* Checkbox */}
       {isCart && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.checkboxContainer}
           onPress={() => toggleSelectItem(item._apiId || '')}
         >
           <View style={[
-            styles.checkbox, 
+            styles.checkbox,
             selectedItems.has(item._apiId || '') && styles.checkboxSelected
           ]}>
             {selectedItems.has(item._apiId || '') && (
-              <Ionicons name="checkmark" size={16} color="#fff" />
+              <Ionicons name="checkmark" size={12} color="#fff" />
             )}
           </View>
         </TouchableOpacity>
       )}
 
+      {/* Image Container */}
       <View style={styles.imgWrapper}>
-        <Image 
-          source={typeof item.image === 'string' ? { uri: item.image } : item.image} 
-          style={styles.cardImage} 
+        <Image
+          source={typeof item.image === 'string' ? { uri: item.image } : item.image}
+          style={styles.cardImage}
           defaultSource={require('../../assets/images/dog.png')}
         />
         <TouchableOpacity
           style={styles.deleteBtn}
-          onPress={() =>
-            isCart ? handleRemoveFromCart(item.id) : removeFromWishlist(item.id)
-          }
+          onPress={() => handleRemoveFromCart(item.id)}
         >
           <MaterialCommunityIcons
             name="delete-outline"
-            size={18}
+            size={14}
             color="#e74c3c"
           />
         </TouchableOpacity>
       </View>
 
+      {/* Content Container */}
       <View style={styles.cardContent}>
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        {isCart && (
-          <Text numberOfLines={1} style={styles.cardDesc}>
-            {item.description}
-          </Text>
-        )}
-        <Text style={styles.cardPrice}>
-          {(item.price * (item.quantity || 1)).toLocaleString('vi-VN')}₫
+        <Text style={styles.cardTitle} numberOfLines={2}>
+          {item.title}
         </Text>
+
+        {/* Variant Info hoặc Description */}
+        {isCart && (
+          <>
+            {item.itemType === 'variant' && item.variantInfo ? (
+              <View style={styles.variantInfoContainer}>
+                <Text style={styles.variantDetails} numberOfLines={1}>
+                  {item.variantInfo.display_name ||
+                    `${item.variantInfo.color} - ${item.variantInfo.weight}kg`}
+                </Text>
+              </View>
+            ) : (
+              <Text numberOfLines={1} style={styles.cardDesc}>
+                {item.description}
+              </Text>
+            )}
+          </>
+        )}
+
+        {/* Price Container */}
+        <View style={styles.priceContainer}>
+          <Text style={styles.cardPrice}>
+            {(item.price * (item.quantity || 1)).toLocaleString('vi-VN')}₫
+          </Text>
+          {item.quantity && item.quantity > 1 && (
+            <Text style={styles.unitPrice}>
+              {item.price.toLocaleString('vi-VN')}₫
+            </Text>
+          )}
+        </View>
       </View>
 
-      {isCart ? (
+      {/* Quantity Control */}
+      {isCart && (
         <View style={styles.qtyControl}>
           <TouchableOpacity
             onPress={() => updateQuantity(item.id, -1)}
@@ -318,10 +388,6 @@ export default function CartScreen() {
             <Text style={styles.qtyText}>+</Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <TouchableOpacity style={styles.cartBtn}>
-          <Ionicons name="cart-outline" size={24} color="#007AFF" />
-        </TouchableOpacity>
       )}
     </View>
   );
@@ -351,6 +417,7 @@ export default function CartScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Cart</Text>
           <View style={styles.headerRight}>
@@ -368,13 +435,13 @@ export default function CartScreen() {
         {/* Select All Section */}
         {cartItems.length > 0 && (
           <View style={styles.selectAllContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.selectAllButton}
               onPress={toggleSelectAll}
             >
               <View style={[styles.checkbox, selectAll && styles.checkboxSelected]}>
                 {selectAll && (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
+                  <Ionicons name="checkmark" size={12} color="#fff" />
                 )}
               </View>
               <Text style={styles.selectAllText}>
@@ -384,6 +451,7 @@ export default function CartScreen() {
           </View>
         )}
 
+        {/* Cart Items */}
         {cartItems.length === 0 ? (
           <View style={styles.emptyCart}>
             <Ionicons name="cart-outline" size={60} color="#C0C0C0" />
@@ -396,6 +464,7 @@ export default function CartScreen() {
 
       </ScrollView>
 
+      {/* Footer */}
       {cartItems.length > 0 && (
         <View style={styles.footer}>
           <View style={styles.totalContainer}>
@@ -409,11 +478,11 @@ export default function CartScreen() {
               <ActivityIndicator size="small" color="#007AFF" style={styles.footerLoader} />
             )}
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.checkoutBtn, 
+              styles.checkoutBtn,
               (isLoading || selectedItems.size === 0) && styles.checkoutBtnDisabled
-            ]} 
+            ]}
             onPress={handleCheckout}
             disabled={isLoading || selectedItems.size === 0}
           >
@@ -428,58 +497,87 @@ export default function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  scroll: { padding: 16, paddingBottom: 140 },
-
-  header: { 
-    marginTop: 10,
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between',
-    marginBottom: 16 
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa' // Thay đổi màu nền
   },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', flex: 1 },
-  headerRight: { flexDirection: 'row', alignItems: 'center' },
+  scroll: {
+    padding: 12, // Giảm padding
+    paddingBottom: 120
+  },
+
+  // Header styles - Compact hơn
+  header: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12, // Giảm margin
+    paddingHorizontal: 4,
+  },
+  headerTitle: {
+    fontSize: 24, // Giảm từ 28
+    fontWeight: 'bold',
+    flex: 1,
+    color: '#1a1a1a'
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
   badge: {
     backgroundColor: '#007AFF',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
+    borderRadius: 10,
+    width: 20, // Giảm size
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  badgeText: { color: '#fff', fontWeight: '600', fontSize: 12 },
-  clearButton: { marginLeft: 12 },
-  clearText: { color: '#e74c3c', fontSize: 14, fontWeight: '600' },
+  badgeText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 11 // Giảm font size
+  },
+  clearButton: { marginLeft: 10 },
+  clearText: {
+    color: '#e74c3c',
+    fontSize: 13, // Giảm font size
+    fontWeight: '600'
+  },
 
-  // Select All Section
+  // Select All Section - Compact hơn
   selectAllContainer: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+    padding: 10, // Giảm padding
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
   selectAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   selectAllText: {
-    marginLeft: 12,
-    fontSize: 16,
+    marginLeft: 10,
+    fontSize: 14, // Giảm font size
     fontWeight: '600',
     color: '#333',
   },
 
-  // Checkbox Styles
+  // Checkbox Styles - Nhỏ hơn
   checkboxContainer: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 8, // Giảm padding
     justifyContent: 'center',
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
+    width: 16, // Giảm size
+    height: 16,
+    borderRadius: 3,
+    borderWidth: 1.5,
     borderColor: '#ddd',
     backgroundColor: '#fff',
     justifyContent: 'center',
@@ -490,111 +588,170 @@ const styles = StyleSheet.create({
     borderColor: '#007AFF',
   },
 
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 12,
-    marginTop: 24,
-  },
-
+  // Card styles - Compact và gọn gàng
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 8,
-    height: CARD_HEIGHT,
-    marginBottom: 12,
+    minHeight: CARD_HEIGHT,
+    marginBottom: 8, // Giảm margin
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
     elevation: 2,
+    paddingVertical: 8,
   },
   imgWrapper: {
-    width: CARD_HEIGHT,
-    height: CARD_HEIGHT,
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
+    width: CARD_HEIGHT - 16, // Nhỏ hơn một chút
+    height: CARD_HEIGHT - 16,
+    borderRadius: 6,
     overflow: 'hidden',
+    marginLeft: 8,
   },
-  cardImage: { width: '100%', height: '100%' },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover'
+  },
   deleteBtn: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 12,
-    padding: 4,
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    padding: 2,
   },
 
+  // Card content - Tối ưu spacing
   cardContent: {
     flex: 1,
     paddingHorizontal: CARD_PADDING,
+    paddingVertical: 4,
+    justifyContent: 'space-between',
   },
-  cardTitle: { fontWeight: '600', fontSize: 16, marginBottom: 4 },
-  cardDesc: { fontSize: 12, color: '#666', marginBottom: 4 },
-  cardPrice: { fontWeight: '700' },
+  cardTitle: {
+    fontWeight: '600',
+    fontSize: 14, // Giảm font size
+    marginBottom: 4,
+    color: '#1a1a1a',
+    lineHeight: 18,
+  },
+  cardDesc: {
+    fontSize: 11, // Giảm font size
+    color: '#666',
+    marginBottom: 4,
+    lineHeight: 14,
+  },
 
+  // Price container - Organized
+  priceContainer: {
+    flexDirection: 'column',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+  },
+  cardPrice: {
+    fontWeight: '700',
+    fontSize: 14, // Giảm font size
+    color: '#007AFF',
+    flex: 1,
+  },
+  unitPrice: {
+    fontSize: 10, // Giảm font size
+    color: '#999',
+    marginLeft: 8,
+  },
+
+  // Variant info styles - Compact
+  variantInfoContainer: {
+    marginBottom: 4,
+  },
+  variantDetails: {
+    fontSize: 11, // Giảm font size
+    color: '#666',
+    lineHeight: 14,
+  },
+
+  // Quantity control - Compact
   qtyControl: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
-    backgroundColor: '#f0f0f0',
+    marginRight: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
+    borderColor: '#e8e8e8',
   },
-  qtyBtn: { paddingHorizontal: 10, paddingVertical: 6 },
-  qtyText: { fontSize: 18, fontWeight: '600' },
-  qtyCount: { minWidth: 28, textAlign: 'center', paddingVertical: 6, fontSize: 16 },
-
-  cartBtn: {
-    paddingHorizontal: 16,
-    justifyContent: 'center',
+  qtyBtn: {
+    paddingHorizontal: 8, // Giảm padding
+    paddingVertical: 4,
+    minWidth: 28,
     alignItems: 'center',
   },
+  qtyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  qtyCount: {
+    minWidth: 24, // Giảm width
+    textAlign: 'center',
+    paddingVertical: 4,
+    fontSize: 14, // Giảm font size
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
 
+  // Footer styles - Compact
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 16,
+    padding: 12, // Giảm padding
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderColor: '#eee',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 3,
   },
-  totalContainer: { 
-    flexDirection: 'row', 
+  totalContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 10, // Giảm margin
   },
   totalLabel: {
-    fontSize: 14,
+    fontSize: 13, // Giảm font size
     color: '#666',
+    fontWeight: '500',
   },
-  totalText: { 
-    fontSize: 18, 
+  totalText: {
+    fontSize: 16, // Giảm font size
     fontWeight: '700',
     color: '#007AFF',
   },
   footerLoader: { marginLeft: 8 },
   checkoutBtn: {
     backgroundColor: '#007AFF',
-    paddingVertical: 14,
+    paddingVertical: 12, // Giảm padding
     borderRadius: 8,
     alignItems: 'center',
   },
   checkoutBtnDisabled: {
     backgroundColor: '#cccccc',
   },
-  checkoutText: { 
-    color: '#fff', 
+  checkoutText: {
+    color: '#fff',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 15, // Giảm font size
   },
 
+  // Loading và empty states
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -602,7 +759,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
+    fontSize: 14, // Giảm font size
     color: '#666',
   },
   emptyContainer: {
@@ -614,18 +771,19 @@ const styles = StyleSheet.create({
   emptyCart: {
     alignItems: 'center',
     paddingVertical: 40,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#fff',
     borderRadius: 12,
+    marginTop: 20,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 16, // Giảm font size
     fontWeight: '600',
     color: '#333',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: 13, // Giảm font size
     color: '#666',
     textAlign: 'center',
   },

@@ -89,7 +89,7 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
 
     const handleConfirm = () => {
         if (!currentVariant) {
-            Alert.alert('Chọn biến thể', 'Vui lòng chọn một biến thể trước khi tiếp tục');
+            Alert.alert('Chọn thú cưng', 'Vui lòng chọn một thú cưng trước khi tiếp tục');
             return;
         }
 
@@ -167,13 +167,13 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
                         <View style={styles.header}>
-                            <Text style={styles.title}>Không có biến thể</Text>
+                            <Text style={styles.title}>Không có thú cưng</Text>
                             <TouchableOpacity onPress={onClose}>
                                 <Ionicons name="close" size={24} color="#6B7280" />
                             </TouchableOpacity>
                         </View>
                         <Text style={styles.noVariantsText}>
-                            Sản phẩm này hiện không có biến thể nào khả dụng
+                            Sản phẩm này hiện không có thú cưng nào khả dụng
                         </Text>
                         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                             <Text style={styles.closeButtonText}>Đóng</Text>
@@ -190,72 +190,24 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
                 <View style={styles.modalContainer}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>Chọn biến thể</Text>
+                        <Text style={styles.title}>Chọn thú cưng</Text>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color="#6B7280" />
                         </TouchableOpacity>
                     </View>
 
                     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                        {/* Pet Info */}
-                        <View style={styles.petInfo}>
-                            <Text style={styles.petName}>{pet.name}</Text>
-                            <Text style={styles.petPrice}>Giá gốc: {pet.price.toLocaleString('vi-VN')}₫</Text>
-                        </View>
-
-                        {/* Filters */}
-                        {pet.variant_options && (
-                            <View style={styles.filtersContainer}>
-                                <Text style={styles.sectionTitle}>Lọc theo:</Text>
-
-                                {/* Colors */}
-                                {pet.variant_options.colors.length > 1 && renderFilterSection(
-                                    'Màu sắc',
-                                    pet.variant_options.colors,
-                                    selectedFilters.color,
-                                    (color) => handleFilterSelect('color', color)
-                                )}
-
-                                {/* Genders */}
-                                {pet.variant_options.genders.length > 1 && renderFilterSection(
-                                    'Giới tính',
-                                    pet.variant_options.genders,
-                                    selectedFilters.gender,
-                                    (gender) => handleFilterSelect('gender', gender)
-                                )}
-
-                                {/* Ages */}
-                                {pet.variant_options.age_range.length > 1 && renderFilterSection(
-                                    'Tuổi',
-                                    pet.variant_options.age_range,
-                                    selectedFilters.age,
-                                    (age) => handleFilterSelect('age', age),
-                                    (age) => age.toString(),
-                                    (age) => `${age} năm`
-                                )}
-
-                                {/* Weights */}
-                                {pet.variant_options.weight_range.length > 1 && renderFilterSection(
-                                    'Cân nặng',
-                                    pet.variant_options.weight_range,
-                                    selectedFilters.weight,
-                                    (weight) => handleFilterSelect('weight', weight),
-                                    (weight) => weight.toString(),
-                                    (weight) => `${weight}kg`
-                                )}
-                            </View>
-                        )}
-
+                     
                         {/* Variants List */}
                         <View style={styles.variantsContainer}>
                             <Text style={styles.sectionTitle}>
-                                Biến thể khả dụng ({filteredVariants.length})
+                                Vui lòng chọn thú cưng ({filteredVariants.length})
                             </Text>
                             {filteredVariants.length > 0 ? (
                                 filteredVariants.map(renderVariantCard)
                             ) : (
                                 <Text style={styles.noResultsText}>
-                                    Không có biến thể nào phù hợp với bộ lọc đã chọn
+                                    Không có thú cưng
                                 </Text>
                             )}
                         </View>
@@ -293,15 +245,14 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'flex-end',
     },
     modalContainer: {
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        maxHeight: '85%',
-        minHeight: '50%',
+        maxHeight: '70%',
+        minHeight: '70%',
     },
     header: {
         flexDirection: 'row',
