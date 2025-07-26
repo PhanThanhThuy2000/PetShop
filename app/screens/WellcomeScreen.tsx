@@ -1,4 +1,6 @@
-import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect } from 'react';
 import {
   Image,
   SafeAreaView,
@@ -8,11 +10,25 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../hooks/redux';
+import { loadTokenFromStorage } from '../redux/slices/authSlice';
 
 const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { token, dispatch } = useAuth();
+
+  useEffect(() => {
+    const checkToken = async () => {
+      await dispatch(loadTokenFromStorage());
+    };
+    checkToken();
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (token) {
+      navigation.navigate('app');
+    }
+  }, [token, navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -31,16 +47,16 @@ const WelcomeScreen: React.FC = () => {
       <View style={styles.footerContainer}>
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('Login')}
+          onPress={() => navigation.navigate('app')} 
         >
           <Text style={styles.primaryButtonText}>Let's get started</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.secondaryButton}
-          onPress={() => navigation.navigate('SignUp')}
+          onPress={() => navigation.navigate('SignUp')} 
         >
-          <Text style={styles.secondaryButtonText}>I already have an account</Text>
+          <Text style={styles.secondaryButtonText}>Create new account</Text>
           <View style={styles.arrowIconContainer}>
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </View>
@@ -113,6 +129,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 12,
+  },
+  loginLinkButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 16,
+  },
+  loginLinkText: {
+    fontSize: 15,
+    color: '#2563EB',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
 

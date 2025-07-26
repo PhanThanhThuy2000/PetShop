@@ -64,9 +64,7 @@ const SettingsScreen: React.FC = () => {
             
             try {
               await dispatch(logoutUser()).unwrap();
-              
               dispatch(clearError());
-              
               navigation.navigate('Login' as never);
               
             } catch (error: any) {

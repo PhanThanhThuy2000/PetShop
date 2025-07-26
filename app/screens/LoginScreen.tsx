@@ -1,3 +1,4 @@
+import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -12,7 +13,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 
 import { useAuth } from '../../hooks/redux';
 import { clearError, loginUser } from '../redux/slices/authSlice';
@@ -53,9 +53,6 @@ const LoginScreen = () => {
     const handleForgotPassword = () => {
         navigation.navigate('NewPassword');
     }
-
-    const handleGoogleLogin = () => {}
-    const handleFacebookLogin = () => {}
 
     return (
         <SafeAreaView style={styles.container}>
@@ -108,17 +105,6 @@ const LoginScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.socialContainer}>
-                     <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-                        <Image source={require('../../assets/images/google_icon.png')} style={styles.socialIcon}/>
-                        <Text style={styles.socialButtonText}>Continue with Google</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
-                        <Image source={require('@/assets/images/facebook_icon.png')} style={styles.socialIcon}/>
-                        <Text style={styles.socialButtonText}>Continue with Facebook</Text>
-                    </TouchableOpacity>
-                </View>
-
                 <View style={styles.buttonWrapper}>
                     <TouchableOpacity
                         style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
@@ -131,7 +117,7 @@ const LoginScreen = () => {
                             <Text style={styles.primaryButtonText}>Next</Text>
                          )}
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Welcome')}>
                         <Text style={styles.cancelText}>Cancel</Text>
                     </TouchableOpacity>
                 </View>
@@ -202,31 +188,6 @@ const styles = StyleSheet.create({
     footerLinkText: {
         color: '#004CFF',
         fontWeight: 'bold',
-    },
-    socialContainer: {
-        paddingHorizontal: 24,
-        marginTop: 20,
-    },
-    socialButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FCFCFC',
-        borderWidth: 1,
-        borderColor: '#EAEAEA',
-        borderRadius: 16,
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-        marginBottom: 12,
-    },
-    socialIcon: {
-        width: 24,
-        height: 24,
-        marginRight: 15,
-    },
-    socialButtonText: {
-        color: '#2A2A2A',
-        fontSize: 16,
-        fontWeight: '500',
     },
     buttonWrapper: {
         paddingHorizontal: 24,

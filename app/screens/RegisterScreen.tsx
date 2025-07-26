@@ -446,7 +446,7 @@ const RegisterScreen: React.FC = () => {
             disabled={isLoading}
           >
             <Text style={[styles.cancelText, isLoading && styles.disabledText]}>
-              Cancel
+              I have an account
             </Text>
           </TouchableOpacity>
         </View>
