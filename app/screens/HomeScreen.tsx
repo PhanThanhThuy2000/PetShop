@@ -1,4 +1,3 @@
-// HomeScreen.tsx - Load dữ liệu thực từ API
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
@@ -73,7 +72,6 @@ const HomeScreen = () => {
     { _id: '2', name: 'Cat Toy Ball', images: [{ url: 'https://cocapet.net/wp-content/uploads/2018/08/bear-tam-th%E1%BB%83.jpg' }], price: 120000, category: 'Toy' },
   ];
 
-  // Load data khi component mount
   useEffect(() => {
     loadInitialData();
   }, []);

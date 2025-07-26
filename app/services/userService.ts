@@ -1,5 +1,5 @@
 // userService.ts
-import { ApiResponse, User, LoginRequest, RegisterRequest } from '../types';
+import { ApiResponse, LoginRequest, RegisterRequest, User } from '../types';
 import api from '../utils/api-client';
 
 export const userService = {
@@ -48,10 +48,11 @@ export const userService = {
   },
 
   // Change password (for future implementation)
-  async changePassword(currentPassword: string, newPassword: string) {
+  async changePassword(currentPassword: string, newPassword: string, confirmPassword: string) {
     const response = await api.put<ApiResponse<{ message: string }>>('/users/change-password', {
       currentPassword,
       newPassword,
+      confirmPassword,
     });
     return response.data;
   },
@@ -61,6 +62,12 @@ export const userService = {
     const response = await api.delete<ApiResponse<{ message: string }>>('/users/me', {
       data: { password }
     });
+    return response.data;
+  },
+
+  // Logout user
+  async logout() {
+    const response = await api.post<ApiResponse<{ message: string }>>('/users/logout', {});
     return response.data;
   },
 };
