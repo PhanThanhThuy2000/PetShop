@@ -3,6 +3,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 // 1. Thêm import useNavigation
 import { useNavigation } from '@react-navigation/native';
+import { userService } from '../services/userService';
 
 interface PasswordInputProps {
   placeholder: string;
@@ -34,9 +36,70 @@ const ChangePasswordScreen = () => {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleUpdatePassword = () => {
-    console.log('Update password pressed');
+  const handleUpdatePassword = async () => {
+    try {
+      // Validation
+      if (!oldPassword.trim()) {
+        Alert.alert('Error', 'Please enter your current password');
+        return;
+      }
+
+      if (!newPassword.trim()) {
+        Alert.alert('Error', 'Please enter your new password');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        Alert.alert('Error', 'New password must be at least 6 characters long');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        Alert.alert('Error', 'New password and confirm password do not match');
+        return;
+      }
+
+      if (oldPassword === newPassword) {
+        Alert.alert('Error', 'New password must be different from current password');
+        return;
+      }
+
+      setIsLoading(true);
+
+      // Call API
+      const response = await userService.changePassword(oldPassword, newPassword, confirmPassword);
+
+      if (response.success) {
+        Alert.alert(
+          'Success', 
+          'Password changed successfully',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack()
+            }
+          ]
+        );
+        
+        // Clear form
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        Alert.alert('Error', response.message || 'Failed to change password');
+      }
+
+    } catch (error: any) {
+      console.error('Change password error:', error);
+      Alert.alert(
+        'Error', 
+        error.response?.data?.message || 'An error occurred while changing password'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const PasswordInput = ({
@@ -54,8 +117,13 @@ const ChangePasswordScreen = () => {
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={!showPassword}
+        editable={!isLoading}
       />
-      <TouchableOpacity style={styles.eyeIcon} onPress={onTogglePassword}>
+      <TouchableOpacity 
+        style={styles.eyeIcon} 
+        onPress={onTogglePassword}
+        disabled={isLoading}
+      >
         <Ionicons
           name={showPassword ? 'eye-off-outline' : 'eye-outline'}
           size={20}
@@ -112,10 +180,13 @@ const ChangePasswordScreen = () => {
       {/* Update Button */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={styles.updateButton}
+          style={[styles.updateButton, isLoading && styles.disabledButton]}
           onPress={handleUpdatePassword}
+          disabled={isLoading}
         >
-          <Text style={styles.updateButtonText}>Update Password</Text>
+          <Text style={styles.updateButtonText}>
+            {isLoading ? 'Updating...' : 'Update Password'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -183,6 +254,10 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#A0A0A0',
+    opacity: 0.6,
   },
   updateButtonText: {
     color: '#FFFFFF',
