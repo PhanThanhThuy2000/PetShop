@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
   Image,
@@ -8,8 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 
 const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -31,16 +31,16 @@ const WelcomeScreen: React.FC = () => {
       <View style={styles.footerContainer}>
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('Login')}
+          onPress={() => navigation.navigate('app')} // Navigate to home as guest
         >
           <Text style={styles.primaryButtonText}>Let's get started</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.secondaryButton}
-          onPress={() => navigation.navigate('SignUp')}
+          onPress={() => navigation.navigate('SignUp')} // Navigate to register
         >
-          <Text style={styles.secondaryButtonText}>I already have an account</Text>
+          <Text style={styles.secondaryButtonText}>Create new account</Text>
           <View style={styles.arrowIconContainer}>
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </View>
