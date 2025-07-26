@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-// 1. Thêm import useNavigation
 import { useNavigation } from '@react-navigation/native';
 import { userService } from '../services/userService';
 

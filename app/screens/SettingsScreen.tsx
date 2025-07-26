@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,7 @@ import { clearError, logoutUser } from '../redux/slices/authSlice';
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, dispatch } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   const Row: React.FC<{
     label: string;
@@ -26,7 +28,7 @@ const SettingsScreen: React.FC = () => {
       style={styles.row}
       activeOpacity={onPress ? 0.6 : 1}
       onPress={onPress}
-      disabled={!onPress}
+      disabled={!onPress || isLoggingOut}
     >
       <Text
         style={[
@@ -45,10 +47,37 @@ const SettingsScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
- const handleLogout = () => {
-    dispatch(logoutUser());
-    dispatch(clearError());
-    navigation.navigate('Login' as never);
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            setIsLoggingOut(true);
+            
+            try {
+              await dispatch(logoutUser()).unwrap();
+              
+              dispatch(clearError());
+              
+              navigation.navigate('Login' as never);
+              
+            } catch (error: any) {
+              navigation.navigate('Login' as never);
+            } finally {
+              setIsLoggingOut(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -80,8 +109,14 @@ const SettingsScreen: React.FC = () => {
         </View>
 
         {/* Nút Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => { handleLogout() }}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity 
+          style={[styles.logoutBtn, isLoggingOut && styles.disabledLogoutBtn]} 
+          onPress={handleLogout}
+          disabled={isLoggingOut}
+        >
+          <Text style={styles.logoutText}>
+            {isLoggingOut ? 'Logging out...' : 'Logout'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -141,6 +176,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#e5e5e5',
+  },
+  disabledLogoutBtn: {
+    backgroundColor: '#f5f5f5',
+    opacity: 0.6,
   },
   logoutText: {
     fontSize: 16,

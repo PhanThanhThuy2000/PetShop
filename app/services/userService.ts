@@ -64,4 +64,10 @@ export const userService = {
     });
     return response.data;
   },
+
+  // Logout user
+  async logout() {
+    const response = await api.post<ApiResponse<{ message: string }>>('/users/logout', {});
+    return response.data;
+  },
 };

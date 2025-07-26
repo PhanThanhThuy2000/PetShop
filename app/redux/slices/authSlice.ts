@@ -145,12 +145,18 @@ export const loadTokenFromStorage = createAsyncThunk(
 // Logout user
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
-  async () => {
+  async (_, { rejectWithValue }) => {
     try {
+      // Try to call API logout first (while token is still valid)
+      try {
+        await api.post('/users/logout', {});
+      } catch (apiError: any) {
+        console.warn('logout:', apiError.response?.data?.message || apiError.message);
+      }
       await AsyncStorage.removeItem('token');
       return true;
-    } catch (error) {
-      console.error('Error removing token:', error);
+    } catch (error: any) {
+      console.error('Error during logout:', error);
       return true;
     }
   }
