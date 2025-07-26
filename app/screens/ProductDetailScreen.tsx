@@ -37,6 +37,7 @@ import {
 import { AppDispatch, RootState } from '../redux/store';
 import { petsService, productsService } from '../services/api-services';
 import { Pet, PetImage, PetVariant, Product, ProductImage } from '../types';
+import { requiresAuth, useAuthGuard } from '../utils/authGuard';
 
 // --- Data Interfaces ---
 interface Variation { id: string; image: any; }
@@ -376,6 +377,9 @@ const ProductDetailScreen: FC = () => {
     hideToast
   } = useFavouriteToast();
 
+  // AUTH GUARD
+  const { checkAuthAndProceed } = useAuthGuard();
+
   // REDUX STATE
   const { favourites, loading: favouriteLoading, favouriteStatusMap } = useSelector((state: RootState) => state.favourites);
   const { isLoading: cartLoading } = useSelector((state: RootState) => state.cart);
@@ -419,8 +423,22 @@ const ProductDetailScreen: FC = () => {
     return item!.price;
   };
 
-  // 🆕 ENHANCED handleToggleFavorite
+  // 🆕 ENHANCED handleToggleFavorite với auth guard
   const handleToggleFavorite = async () => {
+    checkAuthAndProceed(
+      token,
+      {
+        ...requiresAuth('favorites'),
+        onLoginRequired: () => navigation.navigate('Login'),
+      },
+      async () => {
+        await performToggleFavorite();
+      }
+    );
+  };
+
+  // 🆕 Actual toggle favorite logic (extracted)
+  const performToggleFavorite = async () => {
     if (!item || isTogglingFavourite || isCheckingFavourite) {
       console.log('🚫 Toggle blocked - busy state');
       return;
@@ -535,24 +553,30 @@ const ProductDetailScreen: FC = () => {
     }
   };
 
-  // 🔧 ENHANCED handleAddToCart - không thay đổi logic cũ
+  // 🔧 ENHANCED handleAddToCart với auth guard
   const handleAddToCart = async () => {
     if (!item) {
       Alert.alert('Lỗi', 'Không tìm thấy thông tin sản phẩm');
       return;
     }
 
-    if (!token) {
-      Alert.alert('Đăng nhập', 'Vui lòng đăng nhập để thêm vào giỏ hàng', [
-        { text: 'Hủy', style: 'cancel' },
-        { text: 'Đăng nhập', onPress: () => navigation.navigate('Login' as never) }
-      ]);
-      return;
-    }
+    checkAuthAndProceed(
+      token,
+      {
+        ...requiresAuth('cart'),
+        onLoginRequired: () => navigation.navigate('Login'),
+      },
+      async () => {
+        await performAddToCart();
+      }
+    );
+  };
 
+  // Actual add to cart logic (extracted)
+  const performAddToCart = async () => {
     // 🆕 Nếu là pet và có variants, hiển thị variant selector
-    const isPet = 'breed_id' in item;
-    if (isPet && Array.isArray(item.variants) && item.variants.length > 0) {
+    const isPet = 'breed_id' in item!;
+    if (isPet && Array.isArray(item!.variants) && item!.variants.length > 0) {
       setVariantActionType('add_to_cart'); // 🔧 Set action type
       setShowVariantSelector(true);
       return;
@@ -561,30 +585,39 @@ const ProductDetailScreen: FC = () => {
     await addItemToCart();
   };
 
-  // 🆕 NEW handleBuyNow function với variant support
+  // 🆕 NEW handleBuyNow function với variant support và auth guard
   const handleBuyNow = async () => {
     if (!item) {
       Alert.alert('Lỗi', 'Không tìm thấy thông tin sản phẩm');
       return;
     }
 
-    // 🆕 Nếu là pet và có variants, hiển thị variant selector
-    const isPet = 'breed_id' in item;
-    if (isPet && Array.isArray(item.variants) && item.variants.length > 0) {
+    checkAuthAndProceed(
+      token,
+      {
+        ...requiresAuth('purchase'),
+        onLoginRequired: () => navigation.navigate('Login'),
+      },
+      async () => {
+        await performBuyNow();
+      }
+    );
+  };
+
+  const performBuyNow = async () => {
+    const isPet = 'breed_id' in item!;
+    if (isPet && Array.isArray(item!.variants) && item!.variants.length > 0) {
       setVariantActionType('buy_now'); // 🔧 Set action type
       setShowVariantSelector(true);
       return;
     }
 
-    // Nếu không có variants, chuyển thẳng đến payment
     await proceedToBuyNow();
   };
 
-  // 🆕 NEW proceedToBuyNow function - 🔧 FIX: Format dữ liệu đúng cho PaymentScreen
   const proceedToBuyNow = async (variant?: PetVariant) => {
     console.log('Buy now clicked:', { selectedVariant: variant, price: getDisplayPrice(variant) });
 
-    // 🔧 FIX: Format cartItems theo đúng structure mà PaymentScreen mong đợi
     const cartItems = [{
       id: variant?._id || item!._id,  // 🔧 Sử dụng variant._id nếu có variant
       title: item!.name,
@@ -594,10 +627,8 @@ const ProductDetailScreen: FC = () => {
         ? { uri: item!.images[0].url }
         : require('@/assets/images/dog.png'),
 
-      // 🔧 FIX: Thêm đầy đủ các field cần thiết
       type: variant ? 'variant' : (petId ? 'pet' : 'product'),
 
-      // 🔧 FIX: Các ID theo từng trường hợp
       petId: petId || undefined,
       productId: productId || undefined,
       variantId: variant?._id || undefined,  // 🔧 QUAN TRỌNG: variantId để PaymentScreen nhận diện
@@ -711,15 +742,17 @@ const ProductDetailScreen: FC = () => {
     }
   };
 
-  // FETCH FAVOURITES ON MOUNT
+  // FETCH FAVOURITES ON MOUNT - Only for authenticated users
   useEffect(() => {
-    console.log('🔄 ProductDetail mounted, fetching favourites...');
-    dispatch(fetchFavourites());
-  }, [dispatch]);
+    if (token) {
+      console.log('🔄 ProductDetail mounted, fetching favourites...');
+      dispatch(fetchFavourites());
+    }
+  }, [dispatch, token]);
 
-  // CHECK FAVOURITE STATUS WHEN ITEM LOADS
+  // CHECK FAVOURITE STATUS WHEN ITEM LOADS - Only for authenticated users
   useEffect(() => {
-    if (item && (petId || productId)) {
+    if (item && (petId || productId) && token) {
       const key = petId ? `pet_${petId}` : `product_${productId}`;
       if (!(key in favouriteStatusMap)) {
         console.log('🔍 Checking favourite status for new item:', { petId, productId });
@@ -727,23 +760,25 @@ const ProductDetailScreen: FC = () => {
         dispatch(checkFavouriteStatus(params));
       }
     }
-  }, [item, petId, productId, dispatch, favouriteStatusMap]);
+  }, [item, petId, productId, dispatch, favouriteStatusMap, token]);
 
-  // FETCH FAVOURITES KHI FOCUS VÀO SCREEN
+  // FETCH FAVOURITES KHI FOCUS VÀO SCREEN - Only for authenticated users
   useFocusEffect(
     useCallback(() => {
-      console.log('🔄 ProductDetail focused, refreshing favourites...');
-      dispatch(fetchFavourites());
+      if (token) {
+        console.log('🔄 ProductDetail focused, refreshing favourites...');
+        dispatch(fetchFavourites());
 
-      const timeoutId = setTimeout(() => {
-        if (petId || productId) {
-          const params = petId ? { pet_id: petId } : { product_id: productId };
-          dispatch(checkFavouriteStatus(params));
-        }
-      }, 500);
+        const timeoutId = setTimeout(() => {
+          if (petId || productId) {
+            const params = petId ? { pet_id: petId } : { product_id: productId };
+            dispatch(checkFavouriteStatus(params));
+          }
+        }, 500);
 
-      return () => clearTimeout(timeoutId);
-    }, [dispatch, petId, productId])
+        return () => clearTimeout(timeoutId);
+      }
+    }, [dispatch, petId, productId, token])
   );
 
   // FETCH ITEM DATA

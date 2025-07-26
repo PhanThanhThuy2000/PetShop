@@ -18,9 +18,11 @@ import {
 import Icon from 'react-native-vector-icons/Feather';
 
 // Import API services
+import { useAuth } from '../../hooks/redux';
 import { petsService, productsService } from '../services/api-services';
 import { categoriesService, Category } from '../services/categoriesService';
 import { Pet, Product } from '../types';
+import { requiresAuth, useAuthGuard } from '../utils/authGuard';
 
 // Safe navigation helper
 const safeNavigate = (navigation: any, routeName: string, params?: any) => {
@@ -39,6 +41,8 @@ const safeNavigate = (navigation: any, routeName: string, params?: any) => {
 const HomeScreen = () => {
   const navigation = useNavigation() as any;
   const route = useRoute();
+  const { token } = useAuth();
+  const { checkAuthAndProceed } = useAuthGuard();
 
   // State cho dữ liệu API
   const [pets, setPets] = useState<Pet[]>([]);
@@ -326,7 +330,18 @@ const HomeScreen = () => {
 
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Pet Store</Text>
-          <TouchableOpacity onPress={() => safeNavigate(navigation, 'Chat')}>
+          <TouchableOpacity 
+            onPress={() => 
+              checkAuthAndProceed(
+                token,
+                {
+                  ...requiresAuth('chat'),
+                  onLoginRequired: () => navigation.navigate('Login'),
+                },
+                () => safeNavigate(navigation, 'Chat')
+              )
+            }
+          >
             <Icon name="message-circle" size={26} color="#2D3748" />
           </TouchableOpacity>
         </View>

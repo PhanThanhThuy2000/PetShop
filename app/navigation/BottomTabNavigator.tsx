@@ -2,11 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import AccountScreen from "../screens/AccountScreen";
-import CartScreen from "../screens/CartScreen";
-import FavouriteScreen from "../screens/FavouriteScreen";
+import {
+    GuardedAccountScreen,
+    GuardedCartScreen,
+    GuardedFavouriteScreen,
+    GuardedNotificationScreen
+} from "../components/GuardedScreens";
 import HomeScreen from "../screens/HomeScreen";
-import NotificationScreen from "../screens/NotificationScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -54,10 +56,10 @@ const BottomTabNavigator: React.FC = () => {
             })}
         >
             <Tab.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-            <Tab.Screen name="Favourite" component={FavouriteScreen} options={{ headerShown: false }} />
-            <Tab.Screen name="Notification" component={NotificationScreen} options={{ headerShown: false }} />
-            <Tab.Screen name="Cart" component={CartScreen} options={{ headerShown: false }} />
-            <Tab.Screen name="Account" component={AccountScreen} options={{ headerShown: false }} />
+            <Tab.Screen name="Favourite" component={GuardedFavouriteScreen} options={{ headerShown: false }} />
+            <Tab.Screen name="Notification" component={GuardedNotificationScreen} options={{ headerShown: false }} />
+            <Tab.Screen name="Cart" component={GuardedCartScreen} options={{ headerShown: false }} />
+            <Tab.Screen name="Account" component={GuardedAccountScreen} options={{ headerShown: false }} />
         </Tab.Navigator>
     );
 };
