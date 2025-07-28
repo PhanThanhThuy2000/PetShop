@@ -18,6 +18,7 @@ import {
 import Icon from 'react-native-vector-icons/Feather';
 
 // Import API services
+import { NotificationBadge } from '../../components/NotificationBadge';
 import { useAuth } from '../../hooks/redux';
 import { petsService, productsService } from '../services/api-services';
 import { categoriesService, Category } from '../services/categoriesService';
@@ -79,10 +80,6 @@ const HomeScreen = () => {
   useEffect(() => {
     loadInitialData();
   }, []);
-
-  useEffect(() => {
-    console.log('route.params:', route.params);
-  }, [route.params]);
 
   const loadInitialData = async () => {
     try {
@@ -330,20 +327,36 @@ const HomeScreen = () => {
 
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Pet Store</Text>
-          <TouchableOpacity 
-            onPress={() => 
-              checkAuthAndProceed(
-                token,
-                {
-                  ...requiresAuth('chat'),
-                  onLoginRequired: () => navigation.navigate('Login'),
-                },
-                () => safeNavigate(navigation, 'Chat')
-              )
-            }
-          >
-            <Icon name="message-circle" size={26} color="#2D3748" />
-          </TouchableOpacity>
+          
+          <View style={styles.headerActions}>
+            {/* Notification Button */}
+            <TouchableOpacity 
+              style={styles.notificationButton}
+              onPress={() => navigation.navigate('PushNotifications')}
+            >
+              <Icon name="bell" size={24} color="#2D3748" />
+              <NotificationBadge 
+                style={styles.notificationBadge}
+                textStyle={styles.badgeText}
+              />
+            </TouchableOpacity>
+            
+            {/* Chat Button */}
+            <TouchableOpacity 
+              onPress={() => 
+                checkAuthAndProceed(
+                  token,
+                  {
+                    ...requiresAuth('chat'),
+                    onLoginRequired: () => navigation.navigate('Login'),
+                  },
+                  () => safeNavigate(navigation, 'Chat')
+                )
+              }
+            >
+              <Icon name="message-circle" size={26} color="#2D3748" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search Bar */}
@@ -750,17 +763,27 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   
-  debugContainer: {
-    padding: 15,
-    backgroundColor: '#F3F4F6',
-    marginHorizontal: 20,
-    borderRadius: 8,
-    marginTop: 20,
+  // Notification styles
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
-  debugText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: 'monospace',
+  notificationButton: {
+    position: 'relative',
+    padding: 4,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
 
