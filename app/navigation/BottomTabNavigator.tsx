@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { StyleSheet, View } from "react-native";
+import { NotificationBadge } from "../../components/NotificationBadge";
 import {
     GuardedAccountScreen,
     GuardedCartScreen,
@@ -42,7 +43,12 @@ const BottomTabNavigator: React.FC = () => {
 
                     return (
                         <View style={styles.iconContainer}>
-                            <Ionicons name={iconName} size={size} color={color} />
+                            <View style={{ position: 'relative' }}>
+                                <Ionicons name={iconName} size={size} color={color} />
+                                {route.name === "Notification" && (
+                                    <NotificationBadge style={styles.notificationBadge} />
+                                )}
+                            </View>
                             {focused && <View style={styles.underline} />}
                         </View>
                     );
@@ -74,6 +80,11 @@ const styles = StyleSheet.create({
         width: 10, // Width of the underline
         height: 2, // Thickness of the underline
         backgroundColor: "#000000", // Matches tabBarActiveTintColor
+    },
+    notificationBadge: {
+        position: 'absolute',
+        top: -8,
+        right: -8,
     },
 });
 

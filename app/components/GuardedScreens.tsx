@@ -5,7 +5,7 @@ import AuthGuardWrapper from '../components/AuthGuardWrapper';
 import AccountScreen from '../screens/AccountScreen';
 import CartScreen from '../screens/CartScreen';
 import FavouriteScreen from '../screens/FavouriteScreen';
-import NotificationScreen from '../screens/NotificationScreen';
+import PushNotificationScreen from '../screens/PushNotificationScreen';
 
 // Favourites - requires account (suggest signup)
 export const GuardedFavouriteScreen: React.FC = () => (
@@ -17,7 +17,7 @@ export const GuardedFavouriteScreen: React.FC = () => (
 // Notifications - requires account (suggest signup)
 export const GuardedNotificationScreen: React.FC = () => (
   <AuthGuardWrapper requiresSignUp featureName="Notifications">
-    <NotificationScreen />
+    <PushNotificationScreen />
   </AuthGuardWrapper>
 );
 

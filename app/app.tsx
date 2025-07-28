@@ -1,8 +1,14 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import BottomTabNavigator from "./navigation/BottomTabNavigator";
 
-export default function HomeScreen() {
+export default function App() {
+    const { initializePushNotifications } = usePushNotifications();
+
+    useEffect(() => {
+        initializePushNotifications();
+    }, []);
+
     return (
         <BottomTabNavigator />
     );

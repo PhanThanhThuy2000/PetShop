@@ -1,13 +1,15 @@
 {
   "expo": {
     "name": "PetShop",
-    "slug": "PetShop",
+    "slug": "petshop",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "petshop",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "owner": "potpet",
+    "projectId": "aa5837dd-aef9-4c7a-af79-aa10a98fec74",
     "ios": {
       "supportsTablet": true
     },
@@ -16,7 +18,14 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.PetShop",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -25,6 +34,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-splash-screen",
         {
@@ -33,10 +43,17 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "aa5837dd-aef9-4c7a-af79-aa10a98fec74"
+      }
     }
   }
 }

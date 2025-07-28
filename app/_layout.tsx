@@ -38,6 +38,7 @@ import PetCareBookingScreen from './screens/PetCareBookingScreen';
 import PetsByBreedScreen from './screens/PetsByBreedScreen';
 import ProductAllScreen from './screens/ProductAllScreen';
 import ProductDetailScreen from './screens/ProductDetailScreen';
+import PushNotificationScreen from './screens/PushNotificationScreen';
 import RecoveryPasswordScreen from './screens/RecoveryPasswordScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ReviewsScreen from './screens/ReviewsScreen';
@@ -129,6 +130,13 @@ const AppNavigator = () => {
       <Stack.Screen
         name="About"
         component={About}
+        options={{ headerShown: false }}
+      />
+
+      {/* Push Notifications screen */}
+      <Stack.Screen
+        name="PushNotifications"
+        component={PushNotificationScreen}
         options={{ headerShown: false }}
       />
 

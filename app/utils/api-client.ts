@@ -1,8 +1,7 @@
 
-// app/utils/api.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-export const API_BASE_URL = "http://10.0.2.2:5000/api"
+export const API_BASE_URL = "http://192.168.110.17:5000/api"
 
 // app/utils/api.ts
 
@@ -28,10 +27,10 @@ api.interceptors.request.use(
       if (token && token !== "null") {
         config.headers.Authorization = `Bearer ${token}`;
       } else {
-        console.log("Interceptor: No valid token found.");
+        console.log("No valid token found.");
       }
     } catch (error) {
-      console.error("Interceptor Request Error:", error);
+      console.error("Request Error:", error);
     }
     return config;
   },
@@ -43,11 +42,8 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // console.warn("Interceptor: 401 Unauthorized -> clearing token.");
       await AsyncStorage.removeItem("token");
-      // TODO: Optional - navigate to login screen here
     }
-
     return Promise.reject(error);
   }
 );
