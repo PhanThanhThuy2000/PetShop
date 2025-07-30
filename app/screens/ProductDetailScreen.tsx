@@ -28,6 +28,10 @@ import { FavouriteToast } from '../../components/ui/FavouriteToast';
 import { useFavouriteAlert } from '../../hooks/useFavouriteAlert';
 import { useFavouriteToast } from '../../hooks/useFavouriteToast';
 
+// 🆕 IMPORTS CHO PRODUCTLIST và PETLIST
+import PetList from '../components/Pet/PetList';
+import ProductList from '../components/ProductList';
+
 import {
   addToFavourites,
   checkFavouriteStatus,
@@ -41,15 +45,6 @@ import { requiresAuth, useAuthGuard } from '../utils/authGuard';
 
 // --- Data Interfaces ---
 interface Variation { id: string; image: any; }
-interface RelatedItem { id: string; image: any; title: string; price: string; }
-
-// --- Sample Data ---
-const RELATED_ITEMS: RelatedItem[] = Array.from({ length: 4 }).map((_, i) => ({
-  id: `${i}`,
-  image: require('@/assets/images/dog.png'),
-  title: 'Lorem ipsum dolor sit amet consectetur',
-  price: '$17.00',
-}));
 
 // --- Countdown Hook ---
 function useCountdown(initialSeconds: number) {
@@ -142,10 +137,11 @@ const ReviewCard: FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-const RelatedGrid: FC<{
+// 🆕 Thay thế RelatedGrid bằng ProductList/PetList
+const RelatedItems: FC<{
   navigation: any;
   currentItemId?: string;
-  currentItemType?: 'pet' | 'product'
+  currentItemType?: 'pet' | 'product';
 }> = ({ navigation, currentItemId, currentItemType = 'pet' }) => {
   const [relatedItems, setRelatedItems] = useState<(Pet | Product)[]>([]);
   const [loading, setLoading] = useState(false);
@@ -178,11 +174,11 @@ const RelatedGrid: FC<{
       }
     } catch (error) {
       console.error('Error loading related items:', error);
-      const fallbackData = RELATED_ITEMS.map(item => ({
-        _id: item.id,
-        name: item.title,
+      const fallbackData = Array.from({ length: 4 }).map((_, i) => ({
+        _id: `${i}`,
+        name: `Sản phẩm mẫu ${i + 1}`,
         price: 17000,
-        images: [{ url: 'https://via.placeholder.com/150' }]
+        images: [{ url: 'https://via.placeholder.com/150' }],
       })) as any[];
       setRelatedItems(fallbackData);
     } finally {
@@ -190,68 +186,58 @@ const RelatedGrid: FC<{
     }
   };
 
-  const handleRelatedItemPress = (item: Pet | Product) => {
+  const handleItemPress = (item: Pet | Product) => {
     const isPet = 'breed_id' in item || currentItemType === 'pet';
     if (isPet) {
       navigation.push('ProductDetail', {
         pet: item,
-        petId: item._id
+        petId: item._id,
       });
     } else {
       navigation.push('ProductDetail', {
-        productId: item._id
+        productId: item._id,
       });
     }
   };
 
-  const renderRelatedItem = ({ item }: { item: Pet | Product }) => (
-    <TouchableOpacity
-      style={styles.relatedItem}
-      onPress={() => handleRelatedItemPress(item)}
-      activeOpacity={0.7}
-    >
-      <Image
-        source={{
-          uri: item.images?.[0]?.url || 'https://via.placeholder.com/150'
-        }}
-        style={styles.relatedImg}
-      />
-      <Text style={styles.relatedTitle} numberOfLines={2}>
-        {item.name}
-      </Text>
-      <Text style={styles.relatedPrice}>
-        {item.price?.toLocaleString('vi-VN')}₫
-      </Text>
-    </TouchableOpacity>
-  );
-
-  if (loading) {
-    return (
-      <View style={styles.relatedLoadingContainer}>
-        <ActivityIndicator size="small" color="#2563EB" />
-        <Text style={styles.loadingText}>Đang tải sản phẩm liên quan...</Text>
-      </View>
-    );
-  }
-
   return (
-    <FlatList
-      data={relatedItems}
-      numColumns={2}
-      keyExtractor={(item) => item._id}
-      columnWrapperStyle={styles.relatedRow}
-      scrollEnabled={false}
-      renderItem={renderRelatedItem}
-      ListEmptyComponent={
-        <View style={styles.emptyRelatedContainer}>
-          <Text style={styles.emptyRelatedText}>Không có sản phẩm liên quan</Text>
-        </View>
-      }
-    />
+    <>
+      {currentItemType === 'pet' ? (
+        <PetList
+          pets={relatedItems as Pet[]}
+          loading={loading}
+          numColumns={2}
+          onPetPress={handleItemPress}
+          itemStyle="grid"
+          scrollEnabled={false}
+          contentContainerStyle={styles.relatedList}
+          ListEmptyComponent={
+            <View style={styles.emptyRelatedContainer}>
+              <Text style={styles.emptyRelatedText}>Không có thú cưng liên quan</Text>
+            </View>
+          }
+        />
+      ) : (
+        <ProductList
+          products={relatedItems as Product[]}
+          loading={loading}
+          numColumns={2}
+          onProductPress={handleItemPress}
+          itemStyle="grid"
+          scrollEnabled={false}
+          contentContainerStyle={styles.relatedList}
+          ListEmptyComponent={
+            <View style={styles.emptyRelatedContainer}>
+              <Text style={styles.emptyRelatedText}>Không có sản phẩm liên quan</Text>
+            </View>
+          }
+        />
+      )}
+    </>
   );
 };
 
-// 🔧 UPDATED FooterBar - Thêm onBuyNow prop
+// 🔧 FooterBar - Không thay đổi
 const FooterBar: FC<{
   isFavorite: boolean;
   toggleFavorite: () => void;
@@ -260,7 +246,7 @@ const FooterBar: FC<{
   productId?: string;
   item: Pet | Product;
   onAddToCart: () => void;
-  onBuyNow: () => void; // 🆕 Thêm prop cho buy now
+  onBuyNow: () => void;
   isAddingToCart: boolean;
   selectedVariant?: PetVariant | null;
   isTogglingFavourite?: boolean;
@@ -273,14 +259,12 @@ const FooterBar: FC<{
   productId,
   item,
   onAddToCart,
-  onBuyNow, // 🆕 Destructure prop mới
+  onBuyNow,
   isAddingToCart,
   selectedVariant,
   isTogglingFavourite = false,
-  isCheckingFavourite = false
+  isCheckingFavourite = false,
 }) => {
-
-    // 🆕 Tính giá hiển thị với variant
     const getDisplayPrice = () => {
       if (selectedVariant) {
         return selectedVariant.final_price || (item.price + selectedVariant.price_adjustment);
@@ -288,17 +272,15 @@ const FooterBar: FC<{
       return item.price;
     };
 
-    // 🆕 Kiểm tra có variants không  
     const hasVariants = 'breed_id' in item && Array.isArray(item.variants) && item.variants.length > 0;
 
     return (
       <View style={styles.footer}>
-        {/* 🆕 ENHANCED FAVOURITE BUTTON */}
         <TouchableOpacity
           style={[
             styles.favBtn,
             isFavorite && styles.favBtnActive,
-            (isTogglingFavourite || isCheckingFavourite) && styles.favBtnLoading
+            (isTogglingFavourite || isCheckingFavourite) && styles.favBtnLoading,
           ]}
           onPress={toggleFavorite}
           disabled={isTogglingFavourite || isAddingToCart || isCheckingFavourite}
@@ -318,11 +300,10 @@ const FooterBar: FC<{
           )}
         </TouchableOpacity>
 
-        {/* 🆕 ADD TO CART BUTTON với variant support */}
         <TouchableOpacity
           style={[
             styles.cartBtn,
-            (isAddingToCart || isTogglingFavourite || isCheckingFavourite) && styles.buttonDisabled
+            (isAddingToCart || isTogglingFavourite || isCheckingFavourite) && styles.buttonDisabled,
           ]}
           onPress={onAddToCart}
           disabled={isAddingToCart || isTogglingFavourite || isCheckingFavourite}
@@ -340,14 +321,13 @@ const FooterBar: FC<{
           )}
         </TouchableOpacity>
 
-        {/* 🔧 BUY NOW BUTTON với variant support - UPDATED */}
         <TouchableOpacity
           style={[
             styles.buyBtn,
-            (isAddingToCart || isTogglingFavourite || isCheckingFavourite) && styles.buttonDisabled
+            (isAddingToCart || isTogglingFavourite || isCheckingFavourite) && styles.buttonDisabled,
           ]}
           disabled={isAddingToCart || isTogglingFavourite || isCheckingFavourite}
-          onPress={onBuyNow} // 🔧 Sử dụng onBuyNow thay vì logic inline
+          onPress={onBuyNow}
           activeOpacity={0.8}
         >
           <Text style={styles.buyBtnTxt}>Mua ngay</Text>
@@ -356,7 +336,7 @@ const FooterBar: FC<{
     );
   };
 
-// 🔧 MAIN COMPONENT - Thêm logic cho Buy Now với variant
+// 🔧 MAIN COMPONENT - Thay thế RelatedGrid bằng RelatedItems
 const ProductDetailScreen: FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -374,7 +354,7 @@ const ProductDetailScreen: FC = () => {
     showFavouriteError,
     showNetworkError,
     toastConfig,
-    hideToast
+    hideToast,
   } = useFavouriteToast();
 
   // AUTH GUARD
@@ -401,10 +381,10 @@ const ProductDetailScreen: FC = () => {
   const [isTogglingFavourite, setIsTogglingFavourite] = useState(false);
   const [isCheckingFavourite, setIsCheckingFavourite] = useState(false);
 
-  // 🔧 VARIANT STATE - Thêm state để phân biệt add to cart vs buy now
+  // 🔧 VARIANT STATE
   const [showVariantSelector, setShowVariantSelector] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<PetVariant | null>(null);
-  const [variantActionType, setVariantActionType] = useState<'add_to_cart' | 'buy_now'>('add_to_cart'); // 🔧 State mới
+  const [variantActionType, setVariantActionType] = useState<'add_to_cart' | 'buy_now'>('add_to_cart');
 
   const { h, m, s } = useCountdown(36 * 60 + 58);
 
@@ -461,7 +441,6 @@ const ProductDetailScreen: FC = () => {
       setIsCheckingFavourite(false);
 
       if (currentServerStatus) {
-        // ITEM IS IN FAVOURITES - SHOW CUSTOM CONFIRMATION DIALOG
         console.log('💬 Item is in favourites, showing custom remove confirmation...');
 
         showRemoveAlert(
@@ -501,7 +480,6 @@ const ProductDetailScreen: FC = () => {
         );
 
       } else {
-        // ITEM NOT IN FAVOURITES - ADD DIRECTLY
         console.log('➕ Item not in favourites, adding directly...');
         setIsTogglingFavourite(true);
 
@@ -574,10 +552,9 @@ const ProductDetailScreen: FC = () => {
 
   // Actual add to cart logic (extracted)
   const performAddToCart = async () => {
-    // 🆕 Nếu là pet và có variants, hiển thị variant selector
     const isPet = 'breed_id' in item!;
     if (isPet && Array.isArray(item!.variants) && item!.variants.length > 0) {
-      setVariantActionType('add_to_cart'); // 🔧 Set action type
+      setVariantActionType('add_to_cart');
       setShowVariantSelector(true);
       return;
     }
@@ -607,7 +584,7 @@ const ProductDetailScreen: FC = () => {
   const performBuyNow = async () => {
     const isPet = 'breed_id' in item!;
     if (isPet && Array.isArray(item!.variants) && item!.variants.length > 0) {
-      setVariantActionType('buy_now'); // 🔧 Set action type
+      setVariantActionType('buy_now');
       setShowVariantSelector(true);
       return;
     }
@@ -619,29 +596,25 @@ const ProductDetailScreen: FC = () => {
     console.log('Buy now clicked:', { selectedVariant: variant, price: getDisplayPrice(variant) });
 
     const cartItems = [{
-      id: variant?._id || item!._id,  // 🔧 Sử dụng variant._id nếu có variant
+      id: variant?._id || item!._id,
       title: item!.name,
       price: getDisplayPrice(variant),
       quantity: 1,
       image: Array.isArray(item!.images) && item!.images.length > 0
         ? { uri: item!.images[0].url }
         : require('@/assets/images/dog.png'),
-
       type: variant ? 'variant' : (petId ? 'pet' : 'product'),
-
       petId: petId || undefined,
       productId: productId || undefined,
-      variantId: variant?._id || undefined,  // 🔧 QUAN TRỌNG: variantId để PaymentScreen nhận diện
-
-      // 🔧 FIX: Thêm thông tin variant cho PaymentScreen
+      variantId: variant?._id || undefined,
       variant: variant || undefined,
       variantInfo: variant ? {
         color: variant.color,
         weight: variant.weight,
         gender: variant.gender,
         age: variant.age,
-        display_name: variant.variant_name || variant.display_name
-      } : undefined
+        display_name: variant.variant_name || variant.display_name,
+      } : undefined,
     }];
 
     const total = getDisplayPrice(variant);
@@ -653,7 +626,7 @@ const ProductDetailScreen: FC = () => {
       total,
       petId,
       productId,
-      variantId: variant?._id  // 🔧 Cũng truyền variantId riêng để backup
+      variantId: variant?._id,
     });
   };
 
@@ -688,8 +661,8 @@ const ProductDetailScreen: FC = () => {
             { text: 'Tiếp tục mua sắm', style: 'cancel' },
             {
               text: 'Xem giỏ hàng',
-              onPress: () => navigation.navigate('Cart')
-            }
+              onPress: () => navigation.navigate('Cart'),
+            },
           ]
         );
       } catch (reduxError) {
@@ -730,7 +703,7 @@ const ProductDetailScreen: FC = () => {
     }
   };
 
-  // 🔧 ENHANCED handleVariantSelect - xử lý cả add to cart và buy now
+  // 🔧 ENHANCED handleVariantSelect
   const handleVariantSelect = (variant: PetVariant) => {
     console.log('Selected variant:', variant, 'Action type:', variantActionType);
     setSelectedVariant(variant);
@@ -742,7 +715,7 @@ const ProductDetailScreen: FC = () => {
     }
   };
 
-  // FETCH FAVOURITES ON MOUNT - Only for authenticated users
+  // FETCH FAVOURITES ON MOUNT
   useEffect(() => {
     if (token) {
       console.log('🔄 ProductDetail mounted, fetching favourites...');
@@ -750,7 +723,7 @@ const ProductDetailScreen: FC = () => {
     }
   }, [dispatch, token]);
 
-  // CHECK FAVOURITE STATUS WHEN ITEM LOADS - Only for authenticated users
+  // CHECK FAVOURITE STATUS WHEN ITEM LOADS
   useEffect(() => {
     if (item && (petId || productId) && token) {
       const key = petId ? `pet_${petId}` : `product_${productId}`;
@@ -762,7 +735,7 @@ const ProductDetailScreen: FC = () => {
     }
   }, [item, petId, productId, dispatch, favouriteStatusMap, token]);
 
-  // FETCH FAVOURITES KHI FOCUS VÀO SCREEN - Only for authenticated users
+  // FETCH FAVOURITES KHI FOCUS VÀO SCREEN
   useFocusEffect(
     useCallback(() => {
       if (token) {
@@ -880,7 +853,6 @@ const ProductDetailScreen: FC = () => {
   const weight = isPet ? ((item as Pet).weight ? `${(item as Pet).weight} kg` : 'Unknown') : 'N/A';
   const description = item.description || (isPet ? 'Purus in massa tempor nec feugiat...' : 'Không có mô tả');
 
-  // 🆕 Tính giá hiển thị với variant
   const displayPrice = selectedVariant
     ? (selectedVariant.final_price || (item.price + selectedVariant.price_adjustment))
     : item.price;
@@ -907,16 +879,7 @@ const ProductDetailScreen: FC = () => {
         />
 
         <View style={styles.content}>
-          {/* Sale badge và timer */}
-          <View style={[styles.rowCenter, styles.spaceBetween]}>
-            <Text style={styles.badge}>Sale</Text>
-            <View style={styles.timerBox}>
-              <Ionicons name="time-outline" size={16} color="#000" />
-              <Text style={styles.timerText}>{`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`}</Text>
-            </View>
-          </View>
-
-          {/* Price và rating - 🆕 Hiển thị giá variant */}
+          {/* Price và rating */}
           <View style={[styles.rowCenter, styles.marginTop]}>
             <Text style={styles.price}>
               {displayPrice.toLocaleString('vi-VN')}₫
@@ -982,9 +945,9 @@ const ProductDetailScreen: FC = () => {
           {/* Description image */}
           <Image source={productImage} style={styles.descImage} />
 
-          {/* Related items */}
+          {/* Related items - Sử dụng RelatedItems thay vì RelatedGrid */}
           <Text style={styles.sectionTitle}>Sản phẩm liên quan</Text>
-          <RelatedGrid
+          <RelatedItems
             navigation={navigation}
             currentItemId={item._id}
             currentItemType={isPet ? 'pet' : 'product'}
@@ -992,7 +955,7 @@ const ProductDetailScreen: FC = () => {
         </View>
       </ScrollView>
 
-      {/* 🔧 UPDATED FooterBar - thêm onBuyNow prop */}
+      {/* FooterBar */}
       <FooterBar
         isFavorite={isFavorite}
         toggleFavorite={handleToggleFavorite}
@@ -1001,14 +964,14 @@ const ProductDetailScreen: FC = () => {
         productId={productId}
         item={item}
         onAddToCart={handleAddToCart}
-        onBuyNow={handleBuyNow} // 🆕 Thêm prop mới
+        onBuyNow={handleBuyNow}
         isAddingToCart={isAddingToCart}
         selectedVariant={selectedVariant}
         isTogglingFavourite={isTogglingFavourite}
         isCheckingFavourite={isCheckingFavourite}
       />
 
-      {/* 🆕 Variant Selector Modal - không thay đổi */}
+      {/* Variant Selector Modal */}
       {item && 'breed_id' in item && Array.isArray((item as Pet).variants) && (
         <PetVariantSelector
           visible={showVariantSelector}
@@ -1019,7 +982,7 @@ const ProductDetailScreen: FC = () => {
         />
       )}
 
-      {/* 🆕 CUSTOM ALERT COMPONENT cho yêu thích */}
+      {/* CUSTOM ALERT COMPONENT cho yêu thích */}
       <CustomFavouriteAlert
         visible={alertConfig.visible}
         type={alertConfig.type}
@@ -1030,7 +993,7 @@ const ProductDetailScreen: FC = () => {
         onCancel={hideAlert}
       />
 
-      {/* 🆕 TOAST COMPONENT cho yêu thích */}
+      {/* TOAST COMPONENT cho yêu thích */}
       <FavouriteToast
         visible={toastConfig.visible}
         message={toastConfig.message}
@@ -1045,7 +1008,7 @@ const ProductDetailScreen: FC = () => {
 
 export default ProductDetailScreen;
 
-// 🆕 STYLES - Gộp tất cả styles từ cả hai phiên bản
+// 🆕 STYLES - Chỉ giữ lại styles cần thiết, loại bỏ styles của RelatedGrid
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   headerBar: {
@@ -1076,8 +1039,6 @@ const styles = StyleSheet.create({
   soldText: { color: '#6B7280' },
   title: { fontSize: 24, fontWeight: 'bold', marginVertical: 8 },
   sectionTitle: { fontSize: 18, fontWeight: '600', marginTop: 16 },
-
-  // 🆕 Styles cho variant info
   variantInfoContainer: {
     marginTop: 8,
     padding: 12,
@@ -1096,7 +1057,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#374151',
   },
-
   varList: { paddingVertical: 8 },
   varItem: { marginRight: 12, borderRadius: 8 },
   varSelected: { borderWidth: 2, borderColor: '#10B981' },
@@ -1120,24 +1080,8 @@ const styles = StyleSheet.create({
   toggleDescBtn: { marginTop: 8, alignSelf: 'flex-start' },
   toggleDescText: { color: '#2563EB', fontWeight: '600' },
   descImage: { width: '100%', height: 200, borderRadius: 8, marginVertical: 16 },
-  relatedRow: { justifyContent: 'space-between' },
-  relatedItem: { width: '48%', marginBottom: 16 },
-  relatedImg: { width: '100%', height: 120, borderRadius: 8 },
-  relatedTitle: { marginTop: 8, color: '#374151', fontSize: 14 },
-  relatedPrice: { fontWeight: '600', marginTop: 4, color: '#EF4444' },
-
-  // Styles cho RelatedGrid loading
-  relatedLoadingContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  loadingText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#666',
-  },
+  // 🆕 Style cho RelatedItems
+  relatedList: { paddingVertical: 8 },
   emptyRelatedContainer: {
     alignItems: 'center',
     paddingVertical: 20,
@@ -1146,8 +1090,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
   },
-
-  // 🆕 ENHANCED FOOTER STYLES - Gộp từ cả hai phiên bản
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1161,7 +1103,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-
   favBtn: {
     padding: 12,
     borderWidth: 1,
@@ -1180,7 +1121,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     transform: [{ scale: 1 }],
   },
-
   favBtnActive: {
     borderColor: '#EF4444',
     backgroundColor: '#FEF2F2',
@@ -1188,25 +1128,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     transform: [{ scale: 1.05 }],
   },
-
   favBtnLoading: {
     borderColor: '#9CA3AF',
     backgroundColor: '#F9FAFB',
     opacity: 0.8,
     transform: [{ scale: 0.95 }],
   },
-
   buttonDisabled: {
     opacity: 0.6,
     shadowOpacity: 0.05,
   },
-
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   cartBtn: {
     flex: 1,
     backgroundColor: '#111827',
@@ -1227,7 +1163,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
-
   buyBtn: {
     flex: 1,
     backgroundColor: '#2563EB',
@@ -1247,8 +1182,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
-
-  // Loading và error states
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
