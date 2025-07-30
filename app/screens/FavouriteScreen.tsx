@@ -1,4 +1,3 @@
-// app/screens/FavouriteScreen.tsx - CẬP NHẬT VỚI REDUX VÀ API THỰC
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import React, { useEffect } from 'react';
 import {
@@ -42,8 +41,11 @@ const FavoriteCard = ({ item }: { item: FavouriteItem }) => {
 
     // ✅ XỬ LÝ GIÁ
     const price = favoriteItem.price
-        ? `${favoriteItem.price.toLocaleString('vi-VN')} đ`
+        ? `${ favoriteItem.price.toLocaleString('vi-VN') }₫`
         : 'Liên hệ';
+
+    // ✅ XỬ LÝ LOẠI ITEM
+    const itemTypeInfo = item.pet_id ? { text: 'Pet', color: '#059669' } : { text: 'Product', color: '#8B5CF6' };
 
     // ✅ NAVIGATE ĐẾN PRODUCT DETAIL
     const handlePress = () => {
@@ -67,26 +69,29 @@ const FavoriteCard = ({ item }: { item: FavouriteItem }) => {
 
     return (
         <TouchableOpacity
-            style={styles.cardContainer}
+            style={styles.gridItemContainer}
             onPress={handlePress}
             activeOpacity={0.7}
         >
-            <Image source={imageSource} style={styles.cardImage} />
-            <View style={styles.cardDetails}>
-                <Text style={styles.cardName} numberOfLines={2}>
-                    {favoriteItem.name || 'Unknown Item'}
-                </Text>
-                <Text style={styles.cardPrice}>{price}</Text>
-
-                {/* ✅ HIỂN THỊ LOẠI ITEM */}
-                <View style={styles.itemTypeContainer}>
-                    <Text style={[
-                        styles.itemTypeText,
-                        { backgroundColor: item.pet_id ? '#E3F2FD' : '#F3E5F5' }
-                    ]}>
-                        {item.pet_id ? 'Pet' : 'Product'}
+            <View style={styles.imageContainer}>
+                <Image
+                    source={imageSource}
+                    style={styles.gridItemImage}
+                    onError={(error) => {
+                        console.log('Image load error:', error);
+                    }}
+                />
+                <View style={[styles.statusBadgeOverlay, { backgroundColor: itemTypeInfo.color }]}>
+                    <Text style={styles.statusOverlayText}>
+                        {itemTypeInfo.text}
                     </Text>
                 </View>
+            </View>
+            <View style={styles.gridItemDetails}>
+                <Text style={styles.gridItemName} numberOfLines={2}>
+                    {favoriteItem.name || 'Unknown Item'}
+                </Text>
+                <Text style={styles.gridItemPrice}>{price}</Text>
             </View>
         </TouchableOpacity>
     );
@@ -203,6 +208,7 @@ const FavouriteScreen = () => {
                         </TouchableOpacity>
                     </View>
                 }
+                columnWrapperStyle={styles.columnWrapper}
             />
         </SafeAreaView>
     );
@@ -288,60 +294,60 @@ const styles = StyleSheet.create({
     emptyListContainer: {
         flexGrow: 1,
     },
+    columnWrapper: {
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
 
-    // ✅ CARD STYLES
-    cardContainer: {
-        flex: 1,
-        margin: 8,
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        overflow: 'hidden',
+    // ✅ CARD STYLES (TƯƠNG TỰ PETLIST)
+    gridItemContainer: {
+        width: '48%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#4A5568',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
+        borderColor: '#E5E7EB',
         elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 3,
+        overflow: 'hidden',
     },
-    cardImage: {
-        width: '100%',
-        height: 150,
-        backgroundColor: '#f0f0f0',
-        resizeMode: 'cover',
-    },
-    cardDetails: {
-        padding: 12,
+    imageContainer: {
         position: 'relative',
     },
-    cardName: {
-        fontSize: 15,
+    gridItemImage: {
+        width: '100%',
+        height: 140,
+        backgroundColor: '#F9FAFB',
+    },
+    gridItemDetails: {
+        padding: 10,
+    },
+    gridItemName: {
+        fontSize: 14,
         fontWeight: '600',
-        color: '#2d3748',
-        marginBottom: 6,
+        color: '#1F2937',
+        lineHeight: 18,
         minHeight: 36,
     },
-    cardPrice: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#e53e3e',
-        marginBottom: 8,
+    gridItemPrice: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#DC2626',
     },
-
-    // ✅ ITEM TYPE BADGE
-    itemTypeContainer: {
+    statusBadgeOverlay: {
         position: 'absolute',
         top: 8,
         right: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 6,
     },
-    itemTypeText: {
+    statusOverlayText: {
         fontSize: 10,
         fontWeight: '600',
-        color: '#666',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-        overflow: 'hidden',
+        color: '#FFFFFF',
     },
 
     // ✅ EMPTY STATE

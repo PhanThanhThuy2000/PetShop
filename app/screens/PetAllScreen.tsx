@@ -1,56 +1,23 @@
-// app/screens/PetAllScreen.tsx - SỬA ĐỂ SỬ DỤNG API THỰC
+// app/screens/PetAllScreen.tsx - SỬA ĐỂ SỬ DỤNG PetList COMPONENT
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    FlatList,
-    Image,
-    RefreshControl,
     SafeAreaView,
     StatusBar,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 
-// Import API service và types
+// Import API service, types và PetList component
+import PetList from '../components/Pet/PetList'; // Import PetList component
 import { petsService } from '../services/petsService';
 import { Pet } from '../types';
-
-const PetCard = ({ item }: { item: Pet }) => {
-    const navigation = useNavigation<any>();
-    return (
-        <TouchableOpacity
-            style={styles.cardContainer}
-            onPress={() => navigation.navigate('ProductDetail', { 
-                petId: item._id,  // Sửa từ productId thành petId
-                pet: item 
-            })}
-        >
-            <Image 
-                source={{ 
-                    uri: item.images?.[0]?.url || 'https://via.placeholder.com/150' 
-                }} 
-                style={styles.cardImage} 
-            />
-            <View style={styles.cardDetails}>
-                <Text style={styles.cardName} numberOfLines={2}>
-                    {item.name}
-                </Text>
-                <Text style={styles.cardPrice}>
-                    {item.price?.toLocaleString('vi-VN')} đ
-                </Text>
-                <Text style={styles.cardSold}>
-                    {item.breed_id?.name || item.type || 'Thú cưng'}
-                </Text>
-            </View>
-        </TouchableOpacity>
-    );
-};
 
 const PetAllScreen = () => {
     const navigation = useNavigation<any>();
@@ -62,8 +29,6 @@ const PetAllScreen = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(true);
     const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
     // Load all pets từ API để có data cho search
@@ -71,22 +36,22 @@ const PetAllScreen = () => {
         try {
             setLoading(true);
             setError(null);
-            
+
             // Load nhiều trang để có đủ data cho search local
             const pages = [1, 2, 3]; // Load 3 trang đầu
             const allResults: Pet[] = [];
-            
+
             for (const pageNum of pages) {
                 try {
                     const response = await petsService.getPets({
                         page: pageNum,
                         limit: 20 // Tăng limit để lấy nhiều data hơn
                     });
-                    
+
                     if (response.data && response.data.length > 0) {
                         allResults.push(...response.data);
                     }
-                    
+
                     // Nếu page này trả về ít hơn limit thì không có page tiếp theo
                     if (response.data.length < 20) {
                         break;
@@ -96,11 +61,11 @@ const PetAllScreen = () => {
                     break;
                 }
             }
-            
+
             console.log('✅ Loaded all pets:', allResults.length);
             setAllPets(allResults);
             setPets(allResults); // Hiển thị tất cả ban đầu
-            
+
         } catch (err: any) {
             console.error('❌ Load all pets error:', err);
             setError('Không thể tải dữ liệu thú cưng');
@@ -115,15 +80,15 @@ const PetAllScreen = () => {
         try {
             setLoading(true);
             setError(null);
-            
+
             console.log('🔍 Searching pets with keyword:', keyword);
-            
+
             const response = await petsService.searchPets({
                 keyword: keyword,
                 page: 1,
                 limit: 50 // Tăng limit để có nhiều kết quả hơn
             });
-            
+
             if (response.data && response.data.pets) {
                 console.log('✅ Search results:', response.data.pets.length);
                 setPets(response.data.pets);
@@ -131,10 +96,10 @@ const PetAllScreen = () => {
                 console.log('🔍 No search results from API');
                 setPets([]);
             }
-            
+
         } catch (err: any) {
             console.error('❌ Search pets error:', err);
-            
+
             // Fallback to local search nếu API search fail
             console.log('🔄 Falling back to local search');
             performLocalSearch(keyword);
@@ -149,13 +114,13 @@ const PetAllScreen = () => {
             setPets(allPets);
             return;
         }
-        
-        const filtered = allPets.filter(pet => 
+
+        const filtered = allPets.filter(pet =>
             pet.name.toLowerCase().includes(keyword.toLowerCase()) ||
             (pet.breed_id?.name && pet.breed_id.name.toLowerCase().includes(keyword.toLowerCase())) ||
             (pet.type && pet.type.toLowerCase().includes(keyword.toLowerCase()))
         );
-        
+
         console.log(`🔍 Local search "${keyword}" found: ${filtered.length} pets`);
         setPets(filtered);
     };
@@ -163,12 +128,12 @@ const PetAllScreen = () => {
     // Handle search với debounce
     const handleSearch = (query: string) => {
         setSearchQuery(query);
-        
+
         // Clear previous timeout
         if (searchTimeout) {
             clearTimeout(searchTimeout);
         }
-        
+
         // Set new timeout
         const timeout = setTimeout(() => {
             if (query.trim()) {
@@ -177,14 +142,22 @@ const PetAllScreen = () => {
                 setPets(allPets); // Show all pets when no search
             }
         }, 500); // 500ms debounce
-        
+
         setSearchTimeout(timeout);
+    };
+
+    // Handle pet press - navigate to detail
+    const handlePetPress = (pet: Pet) => {
+        navigation.navigate('ProductDetail', {
+            petId: pet._id,
+            pet: pet
+        });
     };
 
     // Initial load
     useEffect(() => {
         loadAllPets();
-        
+
         // Cleanup timeout on unmount
         return () => {
             if (searchTimeout) {
@@ -200,45 +173,41 @@ const PetAllScreen = () => {
         loadAllPets();
     };
 
-    const renderEmpty = () => {
-        if (loading && pets.length === 0) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <ActivityIndicator size="large" color="#2563EB" />
-                    <Text style={styles.emptyText}>Đang tải...</Text>
-                </View>
-            );
-        }
-
-        return (
-            <View style={styles.emptyContainer}>
-                <FeatherIcon name="search" size={48} color="#A0AEC0" />
-                <Text style={styles.emptyText}>
-                    {searchQuery 
-                        ? `Không tìm thấy thú cưng nào với từ khóa "${searchQuery}"` 
-                        : 'Chưa có thú cưng nào'
-                    }
-                </Text>
-                {searchQuery && (
-                    <TouchableOpacity 
-                        style={styles.clearSearchBtn}
-                        onPress={() => handleSearch('')}
-                    >
-                        <Text style={styles.clearSearchText}>Xóa tìm kiếm</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-        );
-    };
+    // Custom empty component với search context
+    const renderEmptyComponent = () => (
+        <View style={styles.emptyContainer}>
+            <FeatherIcon name="search" size={48} color="#CBD5E0" />
+            <Text style={styles.emptyTitle}>
+                {searchQuery
+                    ? `Không tìm thấy thú cưng nào`
+                    : 'Chưa có thú cưng nào'
+                }
+            </Text>
+            <Text style={styles.emptyText}>
+                {searchQuery
+                    ? `Không có kết quả cho "${searchQuery}"`
+                    : 'Hãy quay lại sau để xem thêm thú cưng mới'
+                }
+            </Text>
+            {searchQuery && (
+                <TouchableOpacity
+                    style={styles.clearSearchBtn}
+                    onPress={() => handleSearch('')}
+                >
+                    <Text style={styles.clearSearchText}>Xóa tìm kiếm</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-            
+
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity 
-                    style={styles.backButton} 
+                <TouchableOpacity
+                    style={styles.backButton}
                     onPress={() => navigation.goBack()}
                 >
                     <Ionicons name="arrow-back" size={24} color="#333" />
@@ -260,7 +229,7 @@ const PetAllScreen = () => {
                         placeholderTextColor="#A0AEC0"
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             onPress={() => handleSearch('')}
                             style={styles.clearButton}
                         >
@@ -273,8 +242,8 @@ const PetAllScreen = () => {
             {/* Search Info */}
             <View style={styles.searchInfo}>
                 <Text style={styles.searchInfoText}>
-                    {searchQuery 
-                        ? `Tìm thấy ${pets.length} kết quả cho "${searchQuery}"` 
+                    {searchQuery
+                        ? `Tìm thấy ${pets.length} kết quả cho "${searchQuery}"`
                         : `Hiển thị ${pets.length} thú cưng`
                     }
                 </Text>
@@ -285,7 +254,7 @@ const PetAllScreen = () => {
             {error && (
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.retryButton}
                         onPress={loadAllPets}
                     >
@@ -294,24 +263,25 @@ const PetAllScreen = () => {
                 </View>
             )}
 
-            {/* Pets List */}
-            <FlatList
-                data={pets}
-                renderItem={({ item }) => <PetCard item={item} />}
-                keyExtractor={(item) => item._id.toString()}
-                numColumns={2}
-                columnWrapperStyle={pets.length > 1 ? styles.row : undefined}
-                contentContainerStyle={styles.listContainer}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        colors={['#2563EB']}
-                    />
-                }
-                ListEmptyComponent={renderEmpty}
-            />
+            {/* Pets List - SỬ DỤNG PetList COMPONENT */}
+            <View style={styles.listWrapper}>
+                <PetList
+                    pets={pets}
+                    loading={loading && pets.length === 0}
+                    numColumns={2}
+                    onPetPress={handlePetPress}
+                    itemStyle="grid"
+                    contentContainerStyle={styles.listContainer}
+                    ListEmptyComponent={renderEmptyComponent}
+                />
+            </View>
+
+            {/* Pull to refresh overlay */}
+            {refreshing && (
+                <View style={styles.refreshOverlay}>
+                    <ActivityIndicator size="large" color="#2563EB" />
+                </View>
+            )}
         </SafeAreaView>
     );
 };
@@ -386,81 +356,6 @@ const styles = StyleSheet.create({
     loadingIndicator: {
         marginLeft: 8,
     },
-    listContainer: {
-        paddingHorizontal: 12,
-        paddingTop: 16,
-        paddingBottom: 20,
-    },
-    row: {
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    cardContainer: {
-        flex: 1,
-        margin: 8,
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#4A5568',
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 3,
-    },
-    cardImage: {
-        width: '100%',
-        height: 160,
-    },
-    cardDetails: {
-        padding: 12,
-    },
-    cardName: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#2d3748',
-        marginBottom: 8,
-        minHeight: 36,
-    },
-    cardPrice: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#e53e3e',
-        marginBottom: 8,
-    },
-    cardSold: {
-        fontSize: 12,
-        color: '#718096',
-    },
-    emptyContainer: {
-        flex: 1,
-        marginTop: 100,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 20,
-    },
-    emptyText: {
-        fontSize: 16,
-        color: '#718096',
-        textAlign: 'center',
-        marginTop: 16,
-        marginBottom: 20,
-    },
-    clearSearchBtn: {
-        backgroundColor: '#2563EB',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 6,
-    },
-    clearSearchText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-    },
     errorContainer: {
         margin: 16,
         padding: 16,
@@ -485,6 +380,57 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 14,
         fontWeight: '600',
+    },
+    listWrapper: {
+        flex: 1,
+    },
+    listContainer: {
+        paddingHorizontal: 12,
+        paddingTop: 16,
+        paddingBottom: 20,
+    },
+    // Custom empty styles cho context cụ thể
+    emptyContainer: {
+        flex: 1,
+        marginTop: 100,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 20,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#1F2937',
+        marginTop: 12,
+        marginBottom: 6,
+        textAlign: 'center',
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#6B7280',
+        textAlign: 'center',
+        lineHeight: 20,
+        fontWeight: '400',
+        marginBottom: 20,
+    },
+    clearSearchBtn: {
+        backgroundColor: '#2563EB',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 6,
+    },
+    clearSearchText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    refreshOverlay: {
+        position: 'absolute',
+        top: 100,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 1000,
     },
 });
 

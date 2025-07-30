@@ -1008,6 +1008,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
         borderBottomColor: '#E5E7EB',
+        marginTop: 20
+
     },
     backButton: {
         marginRight: 16,

@@ -1,29 +1,23 @@
-// app/screens/ProductAllScreen.tsx
+// app/screens/ProductAllScreen.tsx - TÍCH HỢP ProductList COMPONENT
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import React, { useState, useCallback, useEffect } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  Image,
   ActivityIndicator,
-  Alert,
-  SafeAreaView,
-  StatusBar,
   Modal,
+  SafeAreaView,
   ScrollView,
-  Dimensions,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useProductSearch } from '../../hooks/useProductSearch';
-import { productsService, SearchProductsParams, FilterOptions } from '../services/productsService';
+import ProductList from '../components/ProductList'; // Import ProductList component
+import { FilterOptions, productsService, SearchProductsParams } from '../services/productsService';
 import { Product } from '../types';
-
-const { width } = Dimensions.get('window');
-const ITEM_WIDTH = (width - 48) / 2;
 
 interface FilterModalProps {
   visible: boolean;
@@ -125,9 +119,9 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onApply, in
                       styles.categoryChip,
                       localFilters.categoryId === category._id && styles.categoryChipActive
                     ]}
-                    onPress={() => setLocalFilters(prev => ({ 
-                      ...prev, 
-                      categoryId: category._id === localFilters.categoryId ? undefined : category._id 
+                    onPress={() => setLocalFilters(prev => ({
+                      ...prev,
+                      categoryId: category._id === localFilters.categoryId ? undefined : category._id
                     }))}
                   >
                     <Text style={[
@@ -180,17 +174,17 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onApply, in
                       styles.statusChip,
                       localFilters.status === status && styles.statusChipActive
                     ]}
-                    onPress={() => setLocalFilters(prev => ({ 
-                      ...prev, 
-                      status: status === localFilters.status ? undefined : status 
+                    onPress={() => setLocalFilters(prev => ({
+                      ...prev,
+                      status: status === localFilters.status ? undefined : status
                     }))}
                   >
                     <Text style={[
                       styles.statusChipText,
                       localFilters.status === status && styles.statusChipTextActive
                     ]}>
-                      {status === 'available' ? 'Có sẵn' : 
-                       status === 'sold' ? 'Đã bán' : 'Đang chờ'}
+                      {status === 'available' ? 'Có sẵn' :
+                        status === 'sold' ? 'Đã bán' : 'Đang chờ'}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -223,7 +217,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onApply, in
                   </TouchableOpacity>
                 ))}
               </View>
-              
+
               {/* Thứ tự sắp xếp */}
               <View style={styles.orderContainer}>
                 <TouchableOpacity
@@ -275,7 +269,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onApply, in
 const ProductAllScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { products, loading, error, pagination, searchProducts, resetSearch } = useProductSearch();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -322,7 +316,7 @@ const ProductAllScreen: React.FC = () => {
         keyword: searchQuery.trim() || undefined,
         page: pagination.currentPage + 1,
       };
-      
+
       console.log('📄 ProductAllScreen: Loading more, page:', pagination.currentPage + 1);
       searchProducts(loadMoreParams);
     }
@@ -342,48 +336,12 @@ const ProductAllScreen: React.FC = () => {
     handleSearch(searchQuery, filters);
   }, [searchQuery, handleSearch]);
 
-  const renderProductItem = ({ item }: { item: Product }) => (
-    <TouchableOpacity 
-      style={styles.productCard}
-      onPress={() => navigation.navigate('ProductDetail', { id: item._id })}
-    >
-      <Image 
-        source={{ 
-          uri: item.images?.[0]?.url || 'https://via.placeholder.com/150' 
-        }} 
-        style={styles.productImage}
-        resizeMode="cover"
-      />
-      <View style={styles.productInfo}>
-        <Text style={styles.categoryText}>
-          {item.category_id?.name || 'Sản phẩm'}
-        </Text>
-        <Text style={styles.productName} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={styles.productPrice}>
-          {item.price?.toLocaleString('vi-VN')} đ
-        </Text>
-        {item.status && (
-          <View style={[
-            styles.statusBadge,
-            item.status === 'available' ? styles.availableBadge :
-            item.status === 'sold' ? styles.soldBadge : styles.pendingBadge
-          ]}>
-            <Text style={[
-              styles.statusText,
-              item.status === 'available' ? styles.availableText :
-              item.status === 'sold' ? styles.soldText : styles.pendingText
-            ]}>
-              {item.status === 'available' ? 'Có sẵn' : 
-               item.status === 'sold' ? 'Đã bán' : 'Đang chờ'}
-            </Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+  // Handle product press - navigate to detail
+  const handleProductPress = (product: Product) => {
+    navigation.navigate('ProductDetail', { id: product._id });
+  };
 
+  // Custom empty component với search context
   const renderEmptyComponent = () => (
     <View style={styles.emptyContainer}>
       <MaterialIcons name="search-off" size={64} color="#9CA3AF" />
@@ -393,24 +351,25 @@ const ProductAllScreen: React.FC = () => {
       <Text style={styles.emptySubtitle}>
         {searchQuery ? 'Hãy thử từ khóa khác hoặc điều chỉnh bộ lọc' : 'Vui lòng quay lại sau'}
       </Text>
+      {searchQuery && (
+        <TouchableOpacity
+          style={styles.clearSearchBtn}
+          onPress={() => {
+            setSearchQuery('');
+            handleSearch('');
+          }}
+        >
+          <Text style={styles.clearSearchText}>Xóa tìm kiếm</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
-
-  const renderFooter = () => {
-    if (!loading) return null;
-    return (
-      <View style={styles.loadingFooter}>
-        <ActivityIndicator size="small" color="#2563EB" />
-        <Text style={styles.loadingText}>Đang tải thêm...</Text>
-      </View>
-    );
-  };
 
   const renderError = () => (
     <View style={styles.errorContainer}>
       <MaterialIcons name="error-outline" size={48} color="#EF4444" />
       <Text style={styles.errorText}>{error}</Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.retryButton}
         onPress={() => handleSearch(searchQuery)}
       >
@@ -431,17 +390,17 @@ const ProductAllScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Product All</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.filterButton}
           onPress={() => setShowFilterModal(true)}
         >
@@ -465,7 +424,7 @@ const ProductAllScreen: React.FC = () => {
             onSubmitEditing={() => handleSearch(searchQuery)}
           />
           {searchQuery ? (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 setSearchQuery('');
                 handleSearch('');
@@ -487,25 +446,33 @@ const ProductAllScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Product List */}
-      <FlatList
-        data={products}
-        renderItem={renderProductItem}
-        keyExtractor={(item) => item._id}
-        numColumns={2}
-        contentContainerStyle={styles.listContent}
-        columnWrapperStyle={styles.row}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmptyComponent}
-        ListFooterComponent={renderFooter}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.1}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-      />
+      {/* Product List - SỬ DỤNG ProductList COMPONENT */}
+      <View style={styles.listWrapper}>
+        <ProductList
+          products={products}
+          loading={loading && products.length === 0}
+          numColumns={2}
+          onProductPress={handleProductPress}
+          itemStyle="grid"
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={renderEmptyComponent}
+        />
+      </View>
+
+      {/* Load More Footer */}
+      {loading && products.length > 0 && (
+        <View style={styles.loadingFooter}>
+          <ActivityIndicator size="small" color="#2563EB" />
+          <Text style={styles.loadingText}>Đang tải thêm...</Text>
+        </View>
+      )}
+
+      {/* Pull to refresh overlay */}
+      {refreshing && (
+        <View style={styles.refreshOverlay}>
+          <ActivityIndicator size="large" color="#2563EB" />
+        </View>
+      )}
 
       {/* Filter Modal */}
       <FilterModal
@@ -532,7 +499,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    marginTop:15
+    marginTop: 15
   },
   backButton: {
     padding: 8,
@@ -583,107 +550,19 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontStyle: 'italic',
   },
-  listContent: {
+  listWrapper: {
+    flex: 1,
+  },
+  listContainer: {
     padding: 16,
     paddingBottom: 32,
-  },
-  row: {
-    justifyContent: 'space-between',
-  },
-  productCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-    width: ITEM_WIDTH,
-  },
-  productImage: {
-    width: '100%',
-    height: 120,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    backgroundColor: '#F3F4F6',
-  },
-  productInfo: {
-    padding: 12,
-  },
-  categoryText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
-    minHeight: 34,
-  },
-  productPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2563EB',
-    marginBottom: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  availableBadge: {
-    backgroundColor: '#D1FAE5',
-  },
-  soldBadge: {
-    backgroundColor: '#FEE2E2',
-  },
-  pendingBadge: {
-    backgroundColor: '#FEF3C7',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  availableText: {
-    color: '#065F46',
-  },
-  soldText: {
-    color: '#991B1B',
-  },
-  pendingText: {
-    color: '#92400E',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 64,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    paddingHorizontal: 32,
   },
   loadingFooter: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     marginLeft: 8,
@@ -713,7 +592,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  
+  // Custom empty styles
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    marginBottom: 20,
+  },
+  clearSearchBtn: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  clearSearchText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  refreshOverlay: {
+    position: 'absolute',
+    top: 150,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+
   // Modal Styles
   modalOverlay: {
     flex: 1,
@@ -724,8 +643,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '90%', // Tăng từ 80% lên 90%
-    minHeight: '70%', // Thêm chiều cao tối thiểu
+    maxHeight: '90%',
+    minHeight: '70%',
   },
   modalHeader: {
     flexDirection: 'row',
