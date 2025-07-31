@@ -73,7 +73,7 @@ const AccountScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
         <View style={styles.purchaseRow}>
-          <TouchableOpacity onPress={() => navigation.navigate('PetCareBooking')}>
+          <TouchableOpacity onPress={() => navigation.navigate('AppointmentHistory')}>
             <Item icon="paw" label="Book Pet" color="#FF4C4C" iconLib="FontAwesome5" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('History')}>
