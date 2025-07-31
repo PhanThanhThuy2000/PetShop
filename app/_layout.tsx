@@ -16,6 +16,7 @@ import App from './app';
 import About from './screens/AboutScreen';
 import AccountScreen from './screens/AccountScreen';
 import AddReviewScreen from './screens/AddReviewScreen';
+import AppointmentDetailScreen from './screens/AppointmentDetailScreen';
 import AppointmentListScreen from './screens/AppointmentListScreen';
 import BreedsScreen from './screens/BreedsScreen';
 import CartScreen from './screens/CartScreen';
@@ -48,6 +49,7 @@ import ShippingAddressScreen from './screens/ShippingAddressScreen';
 import UniversalSearchScreen from './screens/UniversalSearchScreen';
 import VoucherScreen from './screens/VoucherScreen';
 import WellcomeScreen from './screens/WellcomeScreen';
+import ppointmentHistoryScreen from './screens/ppointmentHistoryScreen';
 
 const Stack = createStackNavigator();
 
@@ -257,6 +259,18 @@ const AppNavigator = () => {
         component={PetCareBookingScreen}
         options={{ headerShown: false }}  
       />
+
+      <Stack.Screen
+        name="AppointmentHistory"
+        component={ppointmentHistoryScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AppointmentDetail"
+        component={AppointmentDetailScreen}
+        options={{ headerShown: false }}
+      />
+
       <Stack.Screen
         name="AppointmentList"
         component={AppointmentListScreen}
