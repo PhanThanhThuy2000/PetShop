@@ -6,9 +6,9 @@ import { NotificationBadge } from "../../components/NotificationBadge";
 import {
     GuardedAccountScreen,
     GuardedCartScreen,
-    GuardedFavouriteScreen,
-    GuardedNotificationScreen
+    GuardedFavouriteScreen
 } from "../components/GuardedScreens";
+import AppointmentHistory from "../screens/AppointmentHistoryScreen";
 import HomeScreen from "../screens/HomeScreen";
 
 const Tab = createBottomTabNavigator();
@@ -28,8 +28,8 @@ const BottomTabNavigator: React.FC = () => {
                         case "Favourite":
                             iconName = "heart-outline";
                             break;
-                        case "Notification":
-                            iconName = "notifications-outline";
+                        case "AppointmentHistory":
+                            iconName = "calendar";
                             break;
                         case "Cart":
                             iconName = "cart-outline";
@@ -63,7 +63,8 @@ const BottomTabNavigator: React.FC = () => {
         >
             <Tab.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
             <Tab.Screen name="Favourite" component={GuardedFavouriteScreen} options={{ headerShown: false }} />
-            <Tab.Screen name="Notification" component={GuardedNotificationScreen} options={{ headerShown: false }} />
+            {/* <Tab.Screen name="Notification" component={GuardedNotificationScreen} options={{ headerShown: false }} /> */}
+            <Tab.Screen name="AppointmentHistory" component={AppointmentHistory} options={{ headerShown: false }} />
             <Tab.Screen name="Cart" component={GuardedCartScreen} options={{ headerShown: false }} />
             <Tab.Screen name="Account" component={GuardedAccountScreen} options={{ headerShown: false }} />
         </Tab.Navigator>
