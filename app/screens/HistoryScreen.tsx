@@ -1,9 +1,10 @@
-// HistoryScreen.tsx - CẬP NHẬT ĐỂ HIỂN THỊ ẢNH ĐÚNG
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
+
 import {
+    Alert,
     Dimensions,
     FlatList,
     Image,
@@ -17,18 +18,134 @@ import {
 } from 'react-native';
 import { ordersService } from '../services/OrderApiService';
 import { OrderItem } from '../types';
-
 const { width } = Dimensions.get('window');
 
-const OrderItemComponent = ({ item }: { item: OrderItem }) => {
+const OrderItemComponent = ({ item, onOrderCancelled }: { item: OrderItem; onOrderCancelled?: () => void }) => {
     const navigation = useNavigation<any>();
     const [isReviewed, setIsReviewed] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false); // State cho trạng thái hủy đơn
 
     useEffect(() => {
         // Kiểm tra xem item đã được đánh giá chưa
     }, [item._id]);
 
-    // 🔧 HELPER FUNCTION - CẬP NHẬT ĐỂ XỬ LÝ ẢNH ĐÚNG
+    const handleCancelOrder = async () => {
+        if (!item.order_id?._id) {
+            console.error('❌ Order ID is missing for item:', item._id);
+            return;
+        }
+
+        // ✅ CONFIRMATION DIALOG
+        Alert.alert(
+            'Xác nhận hủy đơn hàng',
+            `Bạn có chắc chắn muốn hủy đơn hàng`,
+            [
+                {
+                    text: 'Không',
+                    style: 'cancel',
+                    onPress: () => {
+                        console.log('User cancelled the cancel action');
+                    }
+                },
+                {
+                    text: 'Có',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await performCancelOrder();
+                    }
+                }
+            ],
+            {
+                cancelable: true,
+                onDismiss: () => {
+                    console.log('Dialog dismissed');
+                }
+            }
+        );
+    };
+    const performCancelOrder = async () => {
+        try {
+            setIsCancelling(true);
+            console.log('🚫 Attempting to cancel order:', item.order_id._id);
+
+            const response = await ordersService.cancelOrder(item.order_id._id);
+            console.log('✅ Order cancelled successfully:', response);
+
+            // ✅ SUCCESS NOTIFICATION
+            Alert.alert(
+                '🎉 Thành công!',
+                'Đơn hàng đã được hủy ',
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            // Refresh order list
+                            if (onOrderCancelled) {
+                                onOrderCancelled();
+                            }
+                        }
+                    }
+                ]
+            );
+
+        } catch (error: any) {
+            console.error('❌ Cancel order error:', error);
+
+            // ✅ DETAILED ERROR HANDLING
+            let errorTitle = '❌ Lỗi hủy đơn hàng';
+            let errorMessage = 'Không thể hủy đơn hàng. Vui lòng thử lại.';
+
+            if (error.response?.data) {
+                if (error.response.data.message) {
+                    errorMessage = error.response.data.message;
+
+                    // Customize error message based on status
+                    if (error.response.data.message.includes('completed')) {
+                        errorTitle = '⚠️ Không thể hủy';
+                        errorMessage = 'Đơn hàng đã hoàn thành, không thể hủy.';
+                    } else if (error.response.data.message.includes('cancelled')) {
+                        errorTitle = '⚠️ Đã hủy';
+                        errorMessage = 'Đơn hàng này đã được hủy trước đó.';
+                    }
+                }
+            } else if (error.message) {
+                if (error.message === 'Network Error') {
+                    errorTitle = '🌐 Lỗi kết nối';
+                    errorMessage = 'Không thể kết nối đến server.\nVui lòng kiểm tra internet và thử lại.';
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+
+            Alert.alert(
+                errorTitle,
+                errorMessage,
+                [
+                    { text: 'Thử lại', onPress: () => handleCancelOrder() },
+                    { text: 'Đóng', style: 'cancel' }
+                ]
+            );
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+    // ✅ ENHANCED CANCEL BUTTON WITH LOADING STATE
+    <TouchableOpacity
+        style={[
+            styles.cancelButton,
+            isCancelling && styles.disabledButton
+        ]}
+        onPress={handleCancelOrder}
+        disabled={isCancelling}
+        activeOpacity={0.7}
+    >
+        <Text style={styles.cancelButtonText}>
+            {isCancelling ? '⏳ Đang hủy...' : '🚫 Hủy đơn'}
+        </Text>
+    </TouchableOpacity>
+
+    // HELPER FUNCTION - XỬ LÝ ẢNH
     const getItemDisplayInfo = () => {
         console.log('🔍 Processing order item:', JSON.stringify(item, null, 2));
 
@@ -37,7 +154,7 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
         let itemDescription = '';
         let productId = null;
 
-        // 🆕 XỬ LÝ THEO CẤU TRÚC MỚI - item_info, item_type, images
+        // XỬ LÝ THEO CẤU TRÚC MỚI - item_info, item_type, images
         if (item.item_info && item.item_type) {
             const info = item.item_info;
             const type = item.item_type;
@@ -46,12 +163,12 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
 
             if (type === 'variant' && info.variant) {
                 itemName = info.name || 'Pet Variant';
-                itemDescription = `Biến thể: ${info.variant.color} - ${info.variant.weight}kg - ${info.variant.gender} - ${info.variant.age}Y`;
+                itemDescription = `Biến thể: ${ info.variant.color } - ${ info.variant.weight } kg - ${ info.variant.gender } - ${ info.variant.age } Y`;
                 productId = info._id;
             } else if (type === 'pet') {
                 itemName = info.name || 'Pet';
                 const breedName = typeof info.breed_id === 'object' ? info.breed_id?.name : 'Unknown Breed';
-                itemDescription = `${breedName} - ${info.gender || 'Unknown'} - ${info.age || 0} tuổi`;
+                itemDescription = `${ breedName } - ${ info.gender || 'Unknown' } - ${ info.age || 0 } tuổi`;
                 productId = info._id;
             } else if (type === 'product') {
                 itemName = info.name || 'Product';
@@ -59,7 +176,7 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
                 productId = info._id;
             }
 
-            // 🔧 XỬ LÝ ẢNH TỪ IMAGES ARRAY
+            // XỬ LÝ ẢNH TỪ IMAGES ARRAY
             console.log('🖼️ Processing images:', {
                 hasImages: !!item.images,
                 imagesArray: item.images,
@@ -67,7 +184,6 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
             });
 
             if (item.images && Array.isArray(item.images) && item.images.length > 0) {
-                // Tìm ảnh primary trước
                 const primaryImage = item.images.find(img => img.is_primary === true);
                 console.log('🎯 Primary image found:', primaryImage);
 
@@ -75,7 +191,6 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
                     itemImage = primaryImage.url;
                     console.log('✅ Using primary image:', itemImage);
                 } else {
-                    // Fallback về ảnh đầu tiên
                     const firstImage = item.images[0];
                     if (firstImage && firstImage.url) {
                         itemImage = firstImage.url;
@@ -84,7 +199,7 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
                 }
             }
         }
-        // 🔧 FALLBACK: XỬ LÝ CẤU TRÚC CŨ
+        // FALLBACK: XỬ LÝ CẤU TRÚC CŨ
         else {
             console.log('🔄 Legacy format detected, processing...');
 
@@ -94,16 +209,14 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
 
                 if (variant.pet_id && typeof variant.pet_id === 'object') {
                     itemName = variant.pet_id.name || 'Pet Variant';
-                    itemDescription = `Biến thể: ${variant.color} - ${variant.weight}kg - ${variant.gender} - ${variant.age}Y`;
+                    itemDescription = `Biến thể: ${ variant.color } - ${ variant.weight } kg - ${ variant.gender } - ${ variant.age } Y`;
                     productId = variant.pet_id._id;
 
-                    // Ưu tiên lấy ảnh từ item.images nếu có
                     if (item.images && Array.isArray(item.images) && item.images.length > 0) {
                         const primaryImg = item.images.find(img => img.is_primary) || item.images[0];
                         itemImage = primaryImg?.url;
                         console.log('🖼️ Variant image from item.images:', itemImage);
                     } else if (variant.pet_id.images && Array.isArray(variant.pet_id.images)) {
-                        // Fallback về ảnh trong pet_id.images nếu có
                         const primaryImg = variant.pet_id.images.find(img => img.is_primary) || variant.pet_id.images[0];
                         itemImage = primaryImg?.url;
                         console.log('🖼️ Variant image from pet_id.images:', itemImage);
@@ -115,10 +228,9 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
 
                 itemName = pet.name || 'Pet';
                 const breedName = typeof pet.breed_id === 'object' ? pet.breed_id?.name : 'Unknown Breed';
-                itemDescription = `${breedName} - ${pet.gender || 'Unknown'} - ${pet.age || 0} tuổi`;
+                itemDescription = `${ breedName } - ${ pet.gender || 'Unknown' } - ${ pet.age || 0 } tuổi`;
                 productId = pet._id;
 
-                // ✅ XỬ LÝ ẢNH PET (Legacy format)
                 if (pet.images && Array.isArray(pet.images)) {
                     const primaryImg = pet.images.find(img => img.is_primary) || pet.images[0];
                     itemImage = primaryImg?.url;
@@ -132,7 +244,6 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
                 itemDescription = product.description || 'Pet product';
                 productId = product._id;
 
-                // Ưu tiên lấy ảnh từ item.images nếu có
                 if (item.images && Array.isArray(item.images) && item.images.length > 0) {
                     const primaryImg = item.images.find(img => img.is_primary) || item.images[0];
                     itemImage = primaryImg?.url;
@@ -204,7 +315,6 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
                 </View>
 
                 <View style={styles.orderContent}>
-                    {/* 🔧 CẬP NHẬT XỬ LÝ HIỂN THỊ ẢNH */}
                     {itemInfo.image && (itemInfo.image.startsWith('http') || itemInfo.image.startsWith('https')) ? (
                         <Image
                             source={{ uri: itemInfo.image }}
@@ -228,14 +338,12 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
                     <View style={styles.orderInfo}>
                         <Text style={styles.petName}>{itemInfo.name}</Text>
 
-                        {/* Hiển thị mô tả item */}
                         {itemInfo.description && (
                             <Text style={styles.petDescription} numberOfLines={2}>
                                 {itemInfo.description}
                             </Text>
                         )}
 
-                        {/* Hiển thị item type */}
                         {item.item_type && (
                             <Text style={styles.itemType}>
                                 {item.item_type === 'variant' ? 'Biến thể' : item.item_type === 'pet' ? 'Thú cưng' : 'Sản phẩm'}
@@ -262,24 +370,38 @@ const OrderItemComponent = ({ item }: { item: OrderItem }) => {
                 <View style={styles.orderFooter}>
                     <Text style={[
                         styles.status,
-                        item.order_id.status === 'completed' ? styles.statusCompleted : styles.statusPending
+                        item.order_id.status === 'completed' ? styles.statusCompleted :
+                        item.order_id.status === 'pending' ? styles.statusPending :
+                        styles.statusCancelled
                     ]}>
                         {item.order_id.status
                             ? item.order_id.status.charAt(0).toUpperCase() + item.order_id.status.slice(1)
                             : 'Không xác định'}
                     </Text>
-                    {!isReviewed && item.order_id.status === 'completed' && (
-                        <TouchableOpacity style={styles.reviewButton} onPress={handleReview}>
-                            <Text style={styles.reviewButtonText}>Đánh giá</Text>
-                        </TouchableOpacity>
-                    )}
+                    <View style={styles.buttonContainer}>
+                        {!isReviewed && item.order_id.status === 'completed' && (
+                            <TouchableOpacity style={styles.reviewButton} onPress={handleReview}>
+                                <Text style={styles.reviewButtonText}>Đánh giá</Text>
+                            </TouchableOpacity>
+                        )}
+                        {item.order_id.status === 'pending' && (
+                            <TouchableOpacity
+                                style={[styles.cancelButton, isCancelling && styles.disabledButton]}
+                                onPress={handleCancelOrder}
+                                disabled={isCancelling}
+                            >
+                                <Text style={styles.cancelButtonText}>
+                                    {isCancelling ? 'Đang hủy...' : 'Hủy đơn'}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
             </View>
         </TouchableOpacity>
     );
 };
 
-// Rest của component giữ nguyên...
 const HistoryScreen = () => {
     const navigation = useNavigation<any>();
     const isFocused = useIsFocused();
@@ -341,13 +463,11 @@ const HistoryScreen = () => {
             const response = await ordersService.getMyOrderItems(params);
             console.log('📋 API response (full):', JSON.stringify(response, null, 2));
 
-            // 🔧 DEBUG: Kiểm tra cấu trúc dữ liệu từ API
             if (response.data && response.data.length > 0) {
                 console.log('🔍 First item structure:', JSON.stringify(response.data[0], null, 2));
 
-                // Kiểm tra từng item xem có images không
                 response.data.forEach((orderItem, index) => {
-                    console.log(`📋 Item ${index}:`, {
+                    console.log(`📋 Item ${ index }: `, {
                         id: orderItem._id,
                         hasImages: !!orderItem.images,
                         imagesCount: orderItem.images?.length || 0,
@@ -367,7 +487,7 @@ const HistoryScreen = () => {
                 setError('Không có mục đơn hàng nào để hiển thị');
             } else {
                 setError(null);
-                console.log(`✅ Loaded ${items.length} order items`);
+                console.log(`✅ Loaded ${ items.length } order items`);
             }
         } catch (err: any) {
             console.error('❌ API error:', err.response?.data || err.message);
@@ -455,7 +575,7 @@ const HistoryScreen = () => {
 
             <FlatList
                 data={orderItems}
-                renderItem={({ item }) => <OrderItemComponent item={item} />}
+                renderItem={({ item }) => <OrderItemComponent item={item} onOrderCancelled={fetchOrderItems} />}
                 keyExtractor={item => item._id}
                 contentContainerStyle={[
                     styles.listContainer,
@@ -476,7 +596,6 @@ const HistoryScreen = () => {
     );
 };
 
-// Styles giữ nguyên như code gốc
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -640,6 +759,14 @@ const styles = StyleSheet.create({
     statusPending: {
         color: '#DD6B20',
     },
+    statusCancelled: {
+        color: '#EF4444', // Màu đỏ cho trạng thái cancelled
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8, // Khoảng cách giữa các nút
+    },
     reviewButton: {
         backgroundColor: '#3182CE',
         borderRadius: 8,
@@ -650,6 +777,21 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 13,
         fontWeight: '600',
+    },
+    cancelButton: {
+        backgroundColor: '#EF4444', // Màu đỏ cho nút hủy
+        borderRadius: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+    },
+    cancelButtonText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    disabledButton: {
+        backgroundColor: '#FCA5A5', // Màu nhạt hơn khi disabled
+        opacity: 0.7,
     },
     loadingContainer: {
         flex: 1,
@@ -707,6 +849,7 @@ const styles = StyleSheet.create({
         color: '#999',
         marginTop: 2,
     },
+    
 });
 
 export default HistoryScreen;
