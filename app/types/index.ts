@@ -581,3 +581,36 @@ export interface OrderItem {
   created_at: string;
   updated_at: string;
 }
+
+export interface Breed {
+  _id: string;
+  name: string;
+  description?: string;
+  category_id: string; // Thêm category_id
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Category {
+  _id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoryImage {
+  _id: string;
+  url: string;
+  is_primary: boolean;
+  category_id: string;
+  created_at: string;
+}
+
+export interface BreedImage {
+  _id: string;
+  url: string;
+  is_primary: boolean;
+  breed_id: string;
+  created_at: string;
+}
