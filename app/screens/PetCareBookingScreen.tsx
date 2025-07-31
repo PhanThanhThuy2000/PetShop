@@ -1,4 +1,4 @@
-// PetCareBookingScreen.tsx - CLEANED VERSION
+// PetCareBookingScreen.tsx - UPDATED VERSION
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
@@ -157,7 +157,7 @@ const getBreedName = (pet: any, orderItem: PurchasedPetOrderItem): string => {
         if (typeof pet.breed_id === 'object' && pet.breed_id.name) {
             return pet.breed_id.name;
         }
-        
+
         if (typeof pet.breed_id === 'string' && pet.breed_id.trim()) {
             return pet.breed_id;
         }
@@ -185,7 +185,7 @@ const getBreedName = (pet: any, orderItem: PurchasedPetOrderItem): string => {
         }
     }
 
-    return 'Chưa rõ giống';
+    return ''; // Changed from 'Chưa rõ giống' to empty string
 };
 
 const getVariantInfo = (orderItem: PurchasedPetOrderItem): string => {
@@ -223,7 +223,7 @@ const convertToPetFormat = (orderItem: PurchasedPetOrderItem): Pet | null => {
     if (!pet) return null;
 
     const petName = pet.name || 'Thú cưng';
-    const petType = pet.type || 'Chưa rõ loại';
+    const petType = pet.type || ''; // Changed from 'Chưa rõ loại' to empty string
     const petBreed = getBreedName(pet, orderItem);
     const variantInfo = getVariantInfo(orderItem);
     const petImage = getPetImage(pet, orderItem);
