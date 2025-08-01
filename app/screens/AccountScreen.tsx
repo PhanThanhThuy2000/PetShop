@@ -26,13 +26,6 @@ const AccountScreen: React.FC = () => {
     }, [token, dispatch])
   );
 
-  // Display user's name or default greeting
-  const getUserGreeting = () => {
-    if (user?.username) {
-      return `Hello, ${user.username}!`;
-    }
-    return 'Hello, Amanda!';
-  };
 
   // Get user avatar URL with real-time updates
   const getUserAvatar = () => {
@@ -53,7 +46,7 @@ const AccountScreen: React.FC = () => {
             key={user?.avatar_url || 'default'} // Force re-render when avatar changes
           />
           <TouchableOpacity style={styles.activityBtn} onPress={() => navigation.navigate('EditInfomation')}>
-            <Text style={styles.activityText}>My Activity</Text>
+            <Text style={styles.activityText}>{user.username}</Text>
           </TouchableOpacity>
         </View>
 
@@ -64,7 +57,6 @@ const AccountScreen: React.FC = () => {
         </View>
       </View>
 
-      <Text style={styles.greeting}>{getUserGreeting()}</Text>
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -118,13 +110,39 @@ const Item: React.FC<{ icon: string; label: string; color: string; iconLib?: 'Fo
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAFAFA', padding: 16 },
-  header: { marginTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 40, height: 40, borderRadius: 20 },
-  activityBtn: { backgroundColor: '#1976D2', paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20, marginLeft: 8 },
-  activityText: { color: '#fff', fontWeight: 'bold' },
-  icons: { flexDirection: 'row' },
-  icon: { marginRight: 10 },
+  header: {
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center', // Vertically center all items
+    justifyContent: 'space-between',
+    marginBottom:30
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center' // Vertically center avatar and button
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20
+  },
+  activityBtn: {
+    backgroundColor: '#1976D2',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    marginLeft: 8,
+    justifyContent: 'center' // Center text inside button
+  },
+  activityText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14 // Ensure consistent text size
+  },
+  icons: {
+    justifyContent: 'center', // Vertically center the icon
+    alignItems: 'center'
+  },
   greeting: { fontSize: 22, fontWeight: 'bold', marginVertical: 16 },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, elevation: 3 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
