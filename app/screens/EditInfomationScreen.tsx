@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  TextInput,
-  StatusBar,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
-import { updateUserProfile, getCurrentUser } from '../redux/slices/authSlice';
+import { getCurrentUser, updateUserProfile } from '../redux/slices/authSlice';
 
 const EditInfomationScreen = () => {
   const navigation = useNavigation<any>();
@@ -282,7 +282,7 @@ const EditInfomationScreen = () => {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle}>Thông tin cá nhân</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -297,12 +297,11 @@ const EditInfomationScreen = () => {
               <Ionicons name="pencil" size={16} color="#fff" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.changePhotoText}>Tap to change photo</Text>
         </View>
 
         {/* Form Inputs */}
         <View style={styles.form}>
-          <Text style={styles.inputLabel}>Username</Text>
+          <Text style={styles.inputLabel}>Tên hiển thị</Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -313,7 +312,7 @@ const EditInfomationScreen = () => {
             />
           </View>
 
-          <Text style={styles.inputLabel}>Email Address</Text>
+          <Text style={styles.inputLabel}>Địa chỉ email</Text>
           <TouchableOpacity 
             style={[styles.inputContainer, styles.disabledInput]}
             onPress={handleEmailTap}
@@ -333,7 +332,7 @@ const EditInfomationScreen = () => {
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.inputLabel}>Phone Number</Text>
+          <Text style={styles.inputLabel}>Số điện thoại</Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -348,13 +347,8 @@ const EditInfomationScreen = () => {
           {/* Display read-only user info */}
           {user && (
             <View style={styles.readOnlySection}>
-              <Text style={styles.readOnlyLabel}>Account Information</Text>
               <View style={styles.readOnlyItem}>
-                <Text style={styles.readOnlyItemLabel}>Role:</Text>
-                <Text style={styles.readOnlyItemValue}>{user.role}</Text>
-              </View>
-              <View style={styles.readOnlyItem}>
-                <Text style={styles.readOnlyItemLabel}>Member since:</Text>
+                <Text style={styles.readOnlyItemLabel}>Ngày tạo:</Text>
                 <Text style={styles.readOnlyItemValue}>
                   {new Date(user.created_at).toLocaleDateString()}
                 </Text>
@@ -374,7 +368,7 @@ const EditInfomationScreen = () => {
           {isLoading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <Text style={styles.saveButtonText}>Lưu thông tin</Text>
           )}
         </TouchableOpacity>
       </View>
