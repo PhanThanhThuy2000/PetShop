@@ -1,20 +1,21 @@
-// app/screens/PetsByBreedScreen.tsx - Màn hiển thị thú cưng được lọc theo breed
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-} from 'react-native';
+// app/screens/PetsByBreedScreen.tsx - GIAO DIỆN ĐÃ TỐI ƯU
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  RefreshControl,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import FeatherIcon from 'react-native-vector-icons/Feather';
 import { petsService } from '../services/petsService';
 import { Pet } from '../types';
 
@@ -28,9 +29,9 @@ type RouteParams = {
 const PetsByBreedScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  
+
   const { breedId, breedName, categoryId, categoryName } = route.params as RouteParams;
-  
+
   // State management
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +48,7 @@ const PetsByBreedScreen = () => {
   // Load pets theo breed từ API
   const loadPetsByBreed = async (reset: boolean = false) => {
     if (loading && !refreshing) return;
-    
+
     try {
       if (reset) {
         setLoading(true);
@@ -55,12 +56,12 @@ const PetsByBreedScreen = () => {
       }
 
       const currentPage = reset ? 1 : page;
-      
+
       console.log('🔍 Loading pets for breed:', breedName, 'Page:', currentPage);
-      
+
       const response = await petsService.searchPets({
         breed_id: breedId,
-        status: 'available', // Chỉ lấy pets có sẵn
+        status: 'available',
         page: currentPage,
         limit: 10,
         sortBy: 'created_at',
@@ -70,20 +71,20 @@ const PetsByBreedScreen = () => {
       if (response.success) {
         const newPets = response.data.pets;
         const pagination = response.data.pagination;
-        
+
         console.log('✅ Pets loaded:', {
           breed: breedName,
           count: newPets.length,
           total: pagination.totalCount,
           page: currentPage
         });
-        
+
         if (reset) {
           setPets(newPets);
         } else {
           setPets(prevPets => [...prevPets, ...newPets]);
         }
-        
+
         setTotalCount(pagination.totalCount);
         setHasMore(pagination.hasNextPage);
         setPage(pagination.currentPage);
@@ -117,54 +118,33 @@ const PetsByBreedScreen = () => {
     }
   };
 
-  // Navigate to pet detail - ✅ Fixed navigation params
+  // Navigate to pet detail
   const navigateToPetDetail = (pet: Pet) => {
-    navigation.navigate('ProductDetail', { 
-      pet: pet,        // Truyền object pet đầy đủ
-      petId: pet._id   // Truyền petId để ProductDetailScreen nhận diện
+    navigation.navigate('ProductDetail', {
+      pet: pet,
+      petId: pet._id
     });
   };
 
-  // ✅ Render pet item - Merged và fixed
+  // Render pet item
   const renderPetItem = ({ item }: { item: Pet }) => (
     <TouchableOpacity
       style={styles.petCard}
       onPress={() => navigateToPetDetail(item)}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-      <Image
-        source={{ 
-          uri: item.images?.[0]?.url || 'https://via.placeholder.com/150' 
-        }}
-        style={styles.petImage}
-      />
-      
-      <View style={styles.petInfo}>
-        <Text style={styles.petName} numberOfLines={2}>
-          {item.name}
-        </Text>
-        
-        <Text style={styles.petPrice}>
-          {item.price?.toLocaleString('vi-VN')}đ
-        </Text>
-        
-        <View style={styles.petDetails}>
-          {item.age && (
-            <Text style={styles.petDetail}>
-              🎂 {item.age} tuổi
-            </Text>
-          )}
-          {item.gender && (
-            <Text style={styles.petDetail}>
-              {item.gender === 'Male' ? '♂️' : '♀️'} {item.gender}
-            </Text>
-          )}
-        </View>
-        
-        <View style={styles.statusContainer}>
+      <View style={styles.imageContainer}>
+        <Image
+          source={{
+            uri: item.images?.[0]?.url || 'https://via.placeholder.com/200x150'
+          }}
+          style={styles.petImage}
+          resizeMode="cover"
+        />
+        <View style={styles.statusOverlay}>
           <View style={[
             styles.statusBadge,
-            { backgroundColor: item.status === 'available' ? '#28a745' : '#dc3545' }
+            { backgroundColor: item.status === 'available' ? '#10B981' : '#EF4444' }
           ]}>
             <Text style={styles.statusText}>
               {item.status === 'available' ? 'Có sẵn' : 'Đã bán'}
@@ -172,33 +152,58 @@ const PetsByBreedScreen = () => {
           </View>
         </View>
       </View>
+
+      <View style={styles.petInfo}>
+        <Text style={styles.petName} numberOfLines={2}>
+          {item.name}
+        </Text>
+
+        <Text style={styles.petPrice}>
+          {item.price?.toLocaleString('vi-VN')}đ
+        </Text>
+
+      </View>
     </TouchableOpacity>
   );
 
   // Render empty state
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="paw-outline" size={64} color="#ccc" />
+      <View style={styles.emptyIconWrapper}>
+        <FeatherIcon name="search" size={48} color="#D1D5DB" />
+      </View>
       <Text style={styles.emptyTitle}>Chưa có thú cưng nào</Text>
       <Text style={styles.emptySubtitle}>
         Giống {breedName} hiện chưa có thú cưng nào có sẵn
       </Text>
-      <TouchableOpacity 
-        style={styles.backButton} 
+      <TouchableOpacity
+        style={styles.emptyButton}
         onPress={() => navigation.goBack()}
+        activeOpacity={0.8}
       >
-        <Text style={styles.backButtonText}>Quay lại</Text>
+        <FeatherIcon name="arrow-left" size={16} color="#FFFFFF" />
+        <Text style={styles.emptyButtonText}>Quay lại</Text>
       </TouchableOpacity>
     </View>
   );
 
   // Render footer loading
   const renderFooter = () => {
+    if (!hasMore && pets.length > 0) {
+      return (
+        <View style={styles.endMessage}>
+          <Text style={styles.endMessageText}>
+            Đã hiển thị tất cả {totalCount} thú cưng
+          </Text>
+        </View>
+      );
+    }
+
     if (!loading || pets.length === 0) return null;
-    
+
     return (
       <View style={styles.footerLoading}>
-        <ActivityIndicator size="small" color="#0066cc" />
+        <ActivityIndicator size="small" color="#3B82F6" />
         <Text style={styles.loadingText}>Đang tải thêm...</Text>
       </View>
     );
@@ -206,43 +211,53 @@ const PetsByBreedScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.headerBackButton}
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
-        
+
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {breedName}
+            Thú cưng
           </Text>
-          {categoryName && (
-            <Text style={styles.headerSubtitle}>
-              {categoryName}
-            </Text>
-          )}
+         
         </View>
-        
-        <View style={{ width: 24 }} />
+
+        <TouchableOpacity
+          style={styles.filterButton}
+          activeOpacity={0.7}
+        >
+          <FeatherIcon name="filter" size={20} color="#6B7280" />
+        </TouchableOpacity>
       </View>
 
       {/* Results Summary */}
       <View style={styles.summaryContainer}>
-        <Text style={styles.summaryText}>
-          {totalCount > 0 
-            ? `${totalCount} thú cưng ${breedName}`
-            : `Đang tìm ${breedName}...`
-          }
-        </Text>
-        
-        {loading && pets.length === 0 && (
-          <ActivityIndicator size="small" color="#0066cc" />
-        )}
+        <View style={styles.summaryLeft}>
+          <Text style={styles.summaryText}>
+            {totalCount > 0
+              ? `${totalCount} kết quả`
+              : 'Đang tìm kiếm...'
+            }
+          </Text>
+          {loading && pets.length === 0 && (
+            <View style={styles.loadingDot}>
+              <ActivityIndicator size="small" color="#3B82F6" />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.summaryRight}>
+          <FeatherIcon name="grid" size={16} color="#6B7280" />
+          <Text style={styles.viewModeText}>Lưới</Text>
+        </View>
       </View>
 
       {/* Pets List */}
@@ -257,22 +272,29 @@ const PetsByBreedScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={['#0066cc']}
+            colors={['#3B82F6']}
+            tintColor="#3B82F6"
           />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.1}
+        onEndReachedThreshold={0.3}
         ListEmptyComponent={
           !loading && pets.length === 0 ? renderEmptyState : null
         }
         ListFooterComponent={renderFooter}
+        ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
+        columnWrapperStyle={styles.row}
       />
 
-      {/* Loading Overlay cho lần đầu load */}
+      {/* Loading Overlay */}
       {loading && pets.length === 0 && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#0066cc" />
-          <Text style={styles.loadingText}>Đang tải {breedName}...</Text>
+          <View style={styles.loadingContent}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={styles.loadingOverlayText}>
+              Đang tải {breedName}...
+            </Text>
+          </View>
         </View>
       )}
     </SafeAreaView>
@@ -282,134 +304,233 @@ const PetsByBreedScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F9FAFB',
   },
   header: {
     flexDirection: 'row',
+    marginTop: 20,
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-    marginTop: 20
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E5E7EB',
   },
-  headerBackButton: {
-    marginRight: 10,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerContent: {
     flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '700',
+    color: '#1F2937',
+    letterSpacing: -0.2,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
     marginTop: 2,
+    fontWeight: '500',
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   summaryContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E5E7EB',
+  },
+  summaryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   summaryText: {
     fontSize: 14,
-    color: '#666',
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  loadingDot: {
+    marginLeft: 8,
+  },
+  summaryRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewModeText: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginLeft: 6,
+    fontWeight: '500',
   },
   listContainer: {
-    padding: 10,
+    padding: 16,
+    paddingBottom: 24,
+  },
+  row: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
   petCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    margin: 5,
+    flex: 0.48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  imageContainer: {
+    position: 'relative',
+    height: 160,
   },
   petImage: {
     width: '100%',
-    height: 150,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    height: '100%',
   },
-  petInfo: {
-    padding: 12,
-  },
-  petName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 5,
-  },
-  petPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#e74c3c',
-    marginBottom: 5,
-  },
-  petDetails: {
-    marginBottom: 8,
-  },
-  petDetail: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-  },
-  statusContainer: {
-    alignItems: 'flex-start',
+  statusOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   statusText: {
-    fontSize: 12,
-    color: '#fff',
+    fontSize: 11,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  petInfo: {
+    padding: 12,
+  },
+  petName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 6,
+    lineHeight: 20,
+  },
+  petPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#EF4444',
+    marginBottom: 8,
+  },
+  petDetailsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  detailText: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginLeft: 4,
     fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingTop: 60,
+  },
+  emptyIconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 15,
-    marginBottom: 5,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#6B7280',
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 20,
+    marginBottom: 24,
+    maxWidth: 280,
   },
-  backButton: {
-    backgroundColor: '#0066cc',
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 24,
+    shadowColor: '#3B82F6',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  backButtonText: {
-    color: '#fff',
-    fontWeight: '500',
+  emptyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   footerLoading: {
     flexDirection: 'row',
@@ -418,9 +539,19 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   loadingText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#666',
+    marginLeft: 8,
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  endMessage: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  endMessageText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
   },
   loadingOverlay: {
     position: 'absolute',
@@ -428,9 +559,31 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  loadingContent: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 32,
+    paddingVertical: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  loadingOverlayText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
 });
 
