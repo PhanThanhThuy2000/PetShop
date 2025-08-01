@@ -3,6 +3,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import ChatSupportButton from '../components/ChatSupportButton';
 import { getCurrentUser } from '../redux/slices/authSlice';
 
 const AccountScreen: React.FC = () => {
@@ -88,6 +89,18 @@ const AccountScreen: React.FC = () => {
         </View>
       </View>
 
+      {/* Customer Support Section */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Hỗ trợ khách hàng</Text>
+        </View>
+        <ChatSupportButton 
+          variant="inline" 
+          size="medium"
+          style={styles.chatButton}
+        />
+      </View>
+
     </ScrollView>
   );
 };
@@ -125,6 +138,13 @@ const styles = StyleSheet.create({
   catBoxActive: { backgroundColor: '#7B61FF' },
   catLabel: { marginTop: 6, color: '#555', fontSize: 12, textAlign: 'center' },
   catLabelActive: { color: '#fff', fontWeight: 'bold' },
+  chatButton: { 
+    width: '100%',
+    marginTop: 8,
+  },
+  scrollContent: { 
+    paddingBottom: 80, // Add space for floating button
+  },
 });
 
 export default AccountScreen;

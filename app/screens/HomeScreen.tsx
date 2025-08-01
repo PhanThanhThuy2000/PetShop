@@ -20,12 +20,12 @@ import Icon from 'react-native-vector-icons/Feather';
 // Import API services
 import { NotificationBadge } from '../../components/NotificationBadge';
 import { useAuth } from '../../hooks/redux';
+import ChatSupportButton from '../components/ChatSupportButton';
 import PetList from '../components/Pet/PetList'; // Import the PetList component
 import ProductList from '../components/ProductList'; // Import the new ProductList component
 import { petsService, productsService } from '../services/api-services';
 import { categoriesService, Category } from '../services/categoriesService';
 import { Pet, Product } from '../types';
-import { requiresAuth, useAuthGuard } from '../utils/authGuard';
 
 // Safe navigation helper
 const safeNavigate = (navigation: any, routeName: string, params?: any) => {
@@ -45,7 +45,6 @@ const HomeScreen = () => {
   const navigation = useNavigation() as any;
   const route = useRoute();
   const { token } = useAuth();
-  const { checkAuthAndProceed } = useAuthGuard();
 
   // State cho dữ liệu API
   const [pets, setPets] = useState<Pet[]>([]);
@@ -249,21 +248,7 @@ const HomeScreen = () => {
               />
             </TouchableOpacity>
 
-            {/* Chat Button */}
-            <TouchableOpacity
-              onPress={() =>
-                checkAuthAndProceed(
-                  token,
-                  {
-                    ...requiresAuth('chat'),
-                    onLoginRequired: () => navigation.navigate('Login'),
-                  },
-                  () => safeNavigate(navigation, 'Chat')
-                )
-              }
-            >
-              <Icon name="message-circle" size={26} color="#2D3748" />
-            </TouchableOpacity>
+
           </View>
         </View>
 
@@ -371,6 +356,12 @@ const HomeScreen = () => {
         )}
 
       </ScrollView>
+      
+      {/* Floating Chat Support Button */}
+      <ChatSupportButton 
+        variant="floating" 
+        size="medium"
+      />
     </SafeAreaView>
   );
 };
