@@ -17,7 +17,16 @@ const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, dispatch } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  
+
+  // Function to show "Not Developed" alert
+  const showNotDevelopedAlert = () => {
+    Alert.alert(
+      'Thông báo',
+      'Tính năng đang phát triển',
+      [{ text: 'OK', style: 'cancel' }]
+    );
+  };
+
   const Row: React.FC<{
     label: string;
     value?: string;
@@ -33,7 +42,7 @@ const SettingsScreen: React.FC = () => {
       <Text
         style={[
           styles.rowLabel,
-          isDestructive && { color: '#E53935' }, 
+          isDestructive && { color: '#E53935' },
         ]}
       >
         {label}
@@ -49,24 +58,22 @@ const SettingsScreen: React.FC = () => {
 
   const handleLogout = async () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      'Đăng xuất',
+      'Bạn có muốn đăng xuất tài khoản không ?',
       [
         {
-          text: 'Cancel',
+          text: 'Hủy',
           style: 'cancel',
         },
         {
-          text: 'Logout',
+          text: 'Đăng xuất',
           style: 'destructive',
           onPress: async () => {
             setIsLoggingOut(true);
-            
             try {
               await dispatch(logoutUser()).unwrap();
               dispatch(clearError());
               navigation.navigate('Login' as never);
-              
             } catch (error: any) {
               navigation.navigate('Login' as never);
             } finally {
@@ -86,34 +93,34 @@ const SettingsScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.title}>Settings</Text>
-        <View style={{ width: 36 }} /> 
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Mục Personal */}
-        <Text style={styles.sectionHeader}>Personal</Text>
+        {/* Personal Section */}
+        <Text style={styles.sectionHeader}>Thông tin</Text>
         <View style={styles.sectionContainer}>
-          <Row label="Profile" onPress={() => navigation.navigate('EditInfomation')} />
-          <Row label="Shipping Address" onPress={() => navigation.navigate('ListAdress')} />
-          <Row label="Payment methods" onPress={() => navigation.goBack()} />
+          <Row label="Tài khoản" onPress={() => navigation.navigate('EditInfomation')} />
+          <Row label="Địa chỉ" onPress={() => navigation.navigate('ListAddress')} />
+          <Row label="Thanh toán" onPress={showNotDevelopedAlert} />
         </View>
 
-        <Text style={styles.sectionHeader}>Account</Text>
+        <Text style={styles.sectionHeader}>Tài khoản và bảo mật</Text>
         <View style={styles.sectionContainer}>
-          <Row label="Language" value="English" onPress={() => navigation.navigate('Language')} />
-          <Row label="About Slada" onPress={() => navigation.navigate('About')} />
-          <Row label="Change password" onPress={() => navigation.navigate('ChangePassword')} />
-          <Row label="Delete Account" onPress={() => navigation.navigate('DeleteTest')} isDestructive />
+          <Row label="Ngôn ngữ" value="English" onPress={showNotDevelopedAlert} />
+          <Row label="Thông tin" onPress={() => navigation.navigate('About')} />
+          <Row label="Đổi mật khẩu" onPress={() => navigation.navigate('ChangePassword')} />
+          <Row label="Xóa tài khoản" onPress={showNotDevelopedAlert} />
         </View>
 
-        {/* Nút Logout */}
-        <TouchableOpacity 
-          style={[styles.logoutBtn, isLoggingOut && styles.disabledLogoutBtn]} 
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={[styles.logoutBtn, isLoggingOut && styles.disabledLogoutBtn]}
           onPress={handleLogout}
           disabled={isLoggingOut}
         >
           <Text style={styles.logoutText}>
-            {isLoggingOut ? 'Logging out...' : 'Logout'}
+            {isLoggingOut ? 'Logging out...' : 'Đăng xuất'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -122,7 +129,7 @@ const SettingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f7' }, 
+  container: { flex: 1, backgroundColor: '#f2f2f7' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -132,17 +139,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#e5e5e5',
     backgroundColor: '#fff',
-    marginTop:50
+    marginTop: 50,
   },
   backBtn: { padding: 6 },
   title: { fontSize: 20, fontWeight: '600', color: '#333' },
-  content: { paddingVertical: 24 },
   sectionHeader: {
     fontSize: 14,
     fontWeight: '600',
     color: '#6d6d72',
     paddingHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 12,
+    marginTop:10
   },
   sectionContainer: {
     backgroundColor: '#fff',
@@ -167,7 +174,7 @@ const styles = StyleSheet.create({
   rowValue: { fontSize: 16, color: '#8e8e93', marginRight: 8 },
   logoutBtn: {
     marginTop: 32,
-    marginHorizontal:16,
+    marginHorizontal: 16,
     alignItems: 'center',
     paddingVertical: 14,
     backgroundColor: '#fff',
