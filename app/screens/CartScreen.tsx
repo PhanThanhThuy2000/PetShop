@@ -1,4 +1,4 @@
-// app/screens/CartScreen.tsx - GIAO DIỆN TỐI ỨU
+// app/screens/CartScreen.tsx - THÊM NÚT QUAY LẠI
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
@@ -44,8 +44,8 @@ type Item = {
 };
 
 const { width } = Dimensions.get('window');
-const CARD_HEIGHT = 100; // Giảm từ 120 xuống 100
-const CARD_PADDING = 10;   // Giảm từ 12 xuống 10
+const CARD_HEIGHT = 100;
+const CARD_PADDING = 10;
 
 export default function CartScreen() {
   const navigation = useNavigation<any>();
@@ -217,12 +217,12 @@ export default function CartScreen() {
     if (!item || !item._apiId) return;
 
     Alert.alert(
-      'Remove Item',
-      `Are you sure you want to remove ${item.title} from your cart?`,
+      'Xóa sản phẩm',
+      `Bạn có muốn xóa ${item.title} khỏi giỏ hàng không?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Hủy', style: 'cancel' },
         {
-          text: 'Remove',
+          text: 'Xóa',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -242,12 +242,12 @@ export default function CartScreen() {
 
   const handleClearCart = () => {
     Alert.alert(
-      'Clear Cart',
-      'Are you sure you want to remove all items from your cart?',
+      'Xóa',
+      'Xóa toàn bộ sản phẩm khỏi giỏ hàng?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Hủy', style: 'cancel' },
         {
-          text: 'Clear All',
+          text: 'Xóa toàn bộ',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -408,7 +408,7 @@ export default function CartScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyContainer}>
           <Ionicons name="person-circle-outline" size={80} color="#C0C0C0" />
-          <Text style={styles.emptyTitle}>Please login to view your cart</Text>
+          <Text style={styles.emptyTitle}>Làm ơn login trước</Text>
         </View>
       </SafeAreaView>
     );
@@ -417,16 +417,21 @@ export default function CartScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Header */}
+        {/* ✅ HEADER MỚI VỚI NÚT QUAY LẠI */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Cart</Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
+          </TouchableOpacity>
+
+          <Text style={styles.headerTitle}>Giỏ hàng</Text>
+
           <View style={styles.headerRight}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{totalItems || cartItems.length}</Text>
-            </View>
             {cartItems.length > 0 && (
               <TouchableOpacity onPress={handleClearCart} style={styles.clearButton}>
-                <Text style={styles.clearText}>Clear All</Text>
+                <Ionicons name="trash-outline" size={20} color="#e01111ff" />
               </TouchableOpacity>
             )}
           </View>
@@ -445,7 +450,7 @@ export default function CartScreen() {
                 )}
               </View>
               <Text style={styles.selectAllText}>
-                Select All ({selectedItems.size}/{cartItems.length})
+                Chọn tất cả ({selectedItems.size}/{cartItems.length})
               </Text>
             </TouchableOpacity>
           </View>
@@ -469,7 +474,7 @@ export default function CartScreen() {
         <View style={styles.footer}>
           <View style={styles.totalContainer}>
             <Text style={styles.totalLabel}>
-              Selected ({selectedItems.size} items):
+              Chọn ({selectedItems.size} sản phẩm):
             </Text>
             <Text style={styles.totalText}>
               {getSelectedTotal().toLocaleString('vi-VN')}₫
@@ -487,7 +492,7 @@ export default function CartScreen() {
             disabled={isLoading || selectedItems.size === 0}
           >
             <Text style={styles.checkoutText}>
-              Checkout ({selectedItems.size})
+              Đặt hàng ({selectedItems.size})
             </Text>
           </TouchableOpacity>
         </View>
@@ -499,27 +504,34 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa' // Thay đổi màu nền
+    backgroundColor: '#f8f9fa'
   },
   scroll: {
-    padding: 12, // Giảm padding
+    padding: 12,
     paddingBottom: 120
   },
 
-  // Header styles - Compact hơn
+  // ✅ HEADER STYLES MỚI - Có nút back
   header: {
     marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12, // Giảm margin
+    marginBottom: 12,
     paddingHorizontal: 4,
   },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
+    borderRadius: 8,
+  },
   headerTitle: {
-    fontSize: 24, // Giảm từ 28
+    fontSize: 18,
     fontWeight: 'bold',
     flex: 1,
-    color: '#1a1a1a'
+    color: '#1a1a1a',
+    textAlign: 'center',
+    marginRight: 8, // Để cân bằng với nút back
   },
   headerRight: {
     flexDirection: 'row',
@@ -528,7 +540,7 @@ const styles = StyleSheet.create({
   badge: {
     backgroundColor: '#007AFF',
     borderRadius: 10,
-    width: 20, // Giảm size
+    width: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
@@ -536,12 +548,15 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 11 // Giảm font size
+    fontSize: 11
   },
-  clearButton: { marginLeft: 10 },
+  clearButton: {
+    marginLeft: 10,
+    padding: 4,
+  },
   clearText: {
     color: '#e74c3c',
-    fontSize: 13, // Giảm font size
+    fontSize: 18,
     fontWeight: '600'
   },
 
@@ -549,7 +564,7 @@ const styles = StyleSheet.create({
   selectAllContainer: {
     backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 10, // Giảm padding
+    padding: 10,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.02,
@@ -563,18 +578,18 @@ const styles = StyleSheet.create({
   },
   selectAllText: {
     marginLeft: 10,
-    fontSize: 14, // Giảm font size
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
   },
 
   // Checkbox Styles - Nhỏ hơn
   checkboxContainer: {
-    paddingHorizontal: 8, // Giảm padding
+    paddingHorizontal: 8,
     justifyContent: 'center',
   },
   checkbox: {
-    width: 16, // Giảm size
+    width: 16,
     height: 16,
     borderRadius: 3,
     borderWidth: 1.5,
@@ -595,7 +610,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     minHeight: CARD_HEIGHT,
-    marginBottom: 8, // Giảm margin
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOpacity: 0.03,
     shadowRadius: 3,
@@ -604,7 +619,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   imgWrapper: {
-    width: CARD_HEIGHT - 16, // Nhỏ hơn một chút
+    width: CARD_HEIGHT - 16,
     height: CARD_HEIGHT - 16,
     borderRadius: 6,
     overflow: 'hidden',
@@ -633,13 +648,13 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontWeight: '600',
-    fontSize: 14, // Giảm font size
+    fontSize: 14,
     marginBottom: 4,
     color: '#1a1a1a',
     lineHeight: 18,
   },
   cardDesc: {
-    fontSize: 11, // Giảm font size
+    fontSize: 11,
     color: '#666',
     marginBottom: 4,
     lineHeight: 14,
@@ -653,12 +668,12 @@ const styles = StyleSheet.create({
   },
   cardPrice: {
     fontWeight: '700',
-    fontSize: 14, // Giảm font size
+    fontSize: 14,
     color: '#007AFF',
     flex: 1,
   },
   unitPrice: {
-    fontSize: 10, // Giảm font size
+    fontSize: 10,
     color: '#999',
     marginLeft: 8,
   },
@@ -668,7 +683,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   variantDetails: {
-    fontSize: 11, // Giảm font size
+    fontSize: 11,
     color: '#666',
     lineHeight: 14,
   },
@@ -684,7 +699,7 @@ const styles = StyleSheet.create({
     borderColor: '#e8e8e8',
   },
   qtyBtn: {
-    paddingHorizontal: 8, // Giảm padding
+    paddingHorizontal: 8,
     paddingVertical: 4,
     minWidth: 28,
     alignItems: 'center',
@@ -695,10 +710,10 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   qtyCount: {
-    minWidth: 24, // Giảm width
+    minWidth: 24,
     textAlign: 'center',
     paddingVertical: 4,
-    fontSize: 14, // Giảm font size
+    fontSize: 14,
     fontWeight: '600',
     color: '#1a1a1a',
   },
@@ -709,7 +724,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 12, // Giảm padding
+    padding: 12,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderColor: '#eee',
@@ -723,22 +738,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10, // Giảm margin
+    marginBottom: 10,
   },
   totalLabel: {
-    fontSize: 13, // Giảm font size
+    fontSize: 13,
     color: '#666',
     fontWeight: '500',
   },
   totalText: {
-    fontSize: 16, // Giảm font size
+    fontSize: 16,
     fontWeight: '700',
     color: '#007AFF',
   },
   footerLoader: { marginLeft: 8 },
   checkoutBtn: {
     backgroundColor: '#007AFF',
-    paddingVertical: 12, // Giảm padding
+    paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -748,7 +763,7 @@ const styles = StyleSheet.create({
   checkoutText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 15, // Giảm font size
+    fontSize: 15,
   },
 
   // Loading và empty states
@@ -759,7 +774,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 14, // Giảm font size
+    fontSize: 14,
     color: '#666',
   },
   emptyContainer: {
@@ -776,14 +791,14 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   emptyTitle: {
-    fontSize: 16, // Giảm font size
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 13, // Giảm font size
+    fontSize: 13,
     color: '#666',
     textAlign: 'center',
   },

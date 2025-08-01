@@ -202,7 +202,7 @@ export default function ReviewsScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Reviews ({reviews.length})</Text>
+        <Text style={styles.headerTitle}>Đánh giá ({reviews.length})</Text>
         <View style={{ width: 24 }} />
       </View>
 

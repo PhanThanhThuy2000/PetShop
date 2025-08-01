@@ -154,19 +154,14 @@ const VoucherScreen = () => {
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>VOUCHER</Text>
+          <Text style={styles.title}>Mã khuyễn mãi</Text>
         </View>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconCircle}>
-            <Icon name="list" size={16} color="#007aff" />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.iconCircle}>
             <View style={styles.notificationDot} />
             <Icon name="ellipsis-horizontal" size={16} color="#007aff" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconCircle}>
-            <Icon name="settings-outline" size={16} color="#007aff" />
-          </TouchableOpacity>
+          
         </View>
       </View>
 

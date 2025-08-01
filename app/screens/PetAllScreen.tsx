@@ -1,4 +1,4 @@
-// app/screens/PetAllScreen.tsx - SỬA ĐỂ SỬ DỤNG PetList COMPONENT
+// app/screens/PetAllScreen.tsx - GIAO DIỆN ĐÃ TỐI ƯU
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
@@ -15,7 +15,7 @@ import {
 import FeatherIcon from 'react-native-vector-icons/Feather';
 
 // Import API service, types và PetList component
-import PetList from '../components/Pet/PetList'; // Import PetList component
+import PetList from '../components/Pet/PetList';
 import { petsService } from '../services/petsService';
 import { Pet } from '../types';
 
@@ -24,7 +24,7 @@ const PetAllScreen = () => {
 
     // State cho API data
     const [pets, setPets] = useState<Pet[]>([]);
-    const [allPets, setAllPets] = useState<Pet[]>([]); // Store all pets for local search
+    const [allPets, setAllPets] = useState<Pet[]>([]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -37,22 +37,20 @@ const PetAllScreen = () => {
             setLoading(true);
             setError(null);
 
-            // Load nhiều trang để có đủ data cho search local
-            const pages = [1, 2, 3]; // Load 3 trang đầu
+            const pages = [1, 2, 3];
             const allResults: Pet[] = [];
 
             for (const pageNum of pages) {
                 try {
                     const response = await petsService.getPets({
                         page: pageNum,
-                        limit: 20 // Tăng limit để lấy nhiều data hơn
+                        limit: 20
                     });
 
                     if (response.data && response.data.length > 0) {
                         allResults.push(...response.data);
                     }
 
-                    // Nếu page này trả về ít hơn limit thì không có page tiếp theo
                     if (response.data.length < 20) {
                         break;
                     }
@@ -64,7 +62,7 @@ const PetAllScreen = () => {
 
             console.log('✅ Loaded all pets:', allResults.length);
             setAllPets(allResults);
-            setPets(allResults); // Hiển thị tất cả ban đầu
+            setPets(allResults);
 
         } catch (err: any) {
             console.error('❌ Load all pets error:', err);
@@ -86,7 +84,7 @@ const PetAllScreen = () => {
             const response = await petsService.searchPets({
                 keyword: keyword,
                 page: 1,
-                limit: 50 // Tăng limit để có nhiều kết quả hơn
+                limit: 50
             });
 
             if (response.data && response.data.pets) {
@@ -99,8 +97,6 @@ const PetAllScreen = () => {
 
         } catch (err: any) {
             console.error('❌ Search pets error:', err);
-
-            // Fallback to local search nếu API search fail
             console.log('🔄 Falling back to local search');
             performLocalSearch(keyword);
         } finally {
@@ -129,19 +125,17 @@ const PetAllScreen = () => {
     const handleSearch = (query: string) => {
         setSearchQuery(query);
 
-        // Clear previous timeout
         if (searchTimeout) {
             clearTimeout(searchTimeout);
         }
 
-        // Set new timeout
         const timeout = setTimeout(() => {
             if (query.trim()) {
                 searchPetsAPI(query.trim());
             } else {
-                setPets(allPets); // Show all pets when no search
+                setPets(allPets);
             }
-        }, 500); // 500ms debounce
+        }, 500);
 
         setSearchTimeout(timeout);
     };
@@ -158,7 +152,6 @@ const PetAllScreen = () => {
     useEffect(() => {
         loadAllPets();
 
-        // Cleanup timeout on unmount
         return () => {
             if (searchTimeout) {
                 clearTimeout(searchTimeout);
@@ -173,10 +166,12 @@ const PetAllScreen = () => {
         loadAllPets();
     };
 
-    // Custom empty component với search context
+    // Custom empty component
     const renderEmptyComponent = () => (
         <View style={styles.emptyContainer}>
-            <FeatherIcon name="search" size={48} color="#CBD5E0" />
+            <View style={styles.emptyIconWrapper}>
+                <FeatherIcon name="search" size={56} color="#E2E8F0" />
+            </View>
             <Text style={styles.emptyTitle}>
                 {searchQuery
                     ? `Không tìm thấy thú cưng nào`
@@ -193,6 +188,7 @@ const PetAllScreen = () => {
                 <TouchableOpacity
                     style={styles.clearSearchBtn}
                     onPress={() => handleSearch('')}
+                    activeOpacity={0.8}
                 >
                     <Text style={styles.clearSearchText}>Xóa tìm kiếm</Text>
                 </TouchableOpacity>
@@ -202,68 +198,86 @@ const PetAllScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+            <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => navigation.goBack()}
+                    activeOpacity={0.7}
                 >
-                    <Ionicons name="arrow-back" size={24} color="#333" />
+                    <Ionicons name="arrow-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Pet All</Text>
-                <View style={{ width: 24 }} />
+                <Text style={styles.headerTitle}>Thú cưng</Text>
+                <View style={styles.placeholder} />
             </View>
 
-            {/* Search Box */}
+            {/* Search Section */}
             <View style={styles.searchSection}>
                 <View style={styles.searchContainer}>
-                    <FeatherIcon name="search" size={20} color="#A0AEC0" style={styles.searchIcon} />
+                    <FeatherIcon name="search" size={18} color="#9CA3AF" style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search Pet..."
+                        placeholder="Tìm kiếm theo tên, giống..."
                         value={searchQuery}
                         onChangeText={handleSearch}
                         autoCapitalize="none"
-                        placeholderTextColor="#A0AEC0"
+                        placeholderTextColor="#9CA3AF"
+                        returnKeyType="search"
                     />
                     {searchQuery.length > 0 && (
                         <TouchableOpacity
                             onPress={() => handleSearch('')}
                             style={styles.clearButton}
+                            activeOpacity={0.7}
                         >
-                            <Ionicons name="close-circle" size={20} color="#A0AEC0" />
+                            <Ionicons name="close-circle" size={18} color="#9CA3AF" />
                         </TouchableOpacity>
                     )}
                 </View>
             </View>
 
-            {/* Search Info */}
-            <View style={styles.searchInfo}>
-                <Text style={styles.searchInfoText}>
-                    {searchQuery
-                        ? `Tìm thấy ${pets.length} kết quả cho "${searchQuery}"`
-                        : `Hiển thị ${pets.length} thú cưng`
-                    }
-                </Text>
-                {loading && <ActivityIndicator size="small" color="#2563EB" style={styles.loadingIndicator} />}
+            {/* Results Info Bar */}
+            <View style={styles.resultsBar}>
+                <View style={styles.resultsInfo}>
+                    <Text style={styles.resultsText}>
+                        {searchQuery
+                            ? `${pets.length} kết quả`
+                            : `${pets.length} thú cưng`
+                        }
+                    </Text>
+                    {loading && (
+                        <View style={styles.loadingWrapper}>
+                            <ActivityIndicator size="small" color="#3B82F6" />
+                        </View>
+                    )}
+                </View>
+                {searchQuery && (
+                    <Text style={styles.searchTerm} numberOfLines={1}>
+                        "{searchQuery}"
+                    </Text>
+                )}
             </View>
 
             {/* Error Message */}
             {error && (
                 <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
+                    <View style={styles.errorContent}>
+                        <FeatherIcon name="alert-circle" size={20} color="#EF4444" />
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>
                     <TouchableOpacity
                         style={styles.retryButton}
                         onPress={loadAllPets}
+                        activeOpacity={0.8}
                     >
                         <Text style={styles.retryText}>Thử lại</Text>
                     </TouchableOpacity>
                 </View>
             )}
 
-            {/* Pets List - SỬ DỤNG PetList COMPONENT */}
+            {/* Pets List */}
             <View style={styles.listWrapper}>
                 <PetList
                     pets={pets}
@@ -276,10 +290,13 @@ const PetAllScreen = () => {
                 />
             </View>
 
-            {/* Pull to refresh overlay */}
+            {/* Loading Overlay */}
             {refreshing && (
-                <View style={styles.refreshOverlay}>
-                    <ActivityIndicator size="large" color="#2563EB" />
+                <View style={styles.loadingOverlay}>
+                    <View style={styles.loadingContent}>
+                        <ActivityIndicator size="large" color="#3B82F6" />
+                        <Text style={styles.loadingText}>Đang tải...</Text>
+                    </View>
                 </View>
             )}
         </SafeAreaView>
@@ -289,148 +306,242 @@ const PetAllScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: '#F9FAFB',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingVertical: 15,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#eef0f2',
-        paddingTop: 35,
+        paddingVertical: 16,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 2,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#E5E7EB',
     },
     backButton: {
-        padding: 5,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: '600',
-        color: '#2d3748',
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#1F2937',
+        letterSpacing: -0.2,
+    },
+    placeholder: {
+        width: 40,
     },
     searchSection: {
-        backgroundColor: '#fff',
+        backgroundColor: '#FFFFFF',
         paddingHorizontal: 16,
-        paddingBottom: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eef0f2',
+        paddingVertical: 12,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#E5E7EB',
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f8f9fa',
-        borderRadius: 12,
-        paddingHorizontal: 15,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 16,
+        paddingHorizontal: 16,
         borderWidth: 1,
-        borderColor: '#e2e8f0'
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.02,
+        shadowRadius: 1,
+        elevation: 1,
     },
     searchIcon: {
-        marginRight: 10,
+        marginRight: 12,
     },
     searchInput: {
         flex: 1,
-        height: 48,
-        fontSize: 16,
-        color: '#2D3748'
+        height: 44,
+        fontSize: 15,
+        color: '#1F2937',
+        fontWeight: '400',
     },
     clearButton: {
-        marginLeft: 10,
+        marginLeft: 8,
         padding: 4,
     },
-    searchInfo: {
+    resultsBar: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#eef0f2',
+        paddingVertical: 12,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#E5E7EB',
     },
-    searchInfoText: {
+    resultsInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    resultsText: {
         fontSize: 14,
         color: '#6B7280',
+        fontWeight: '500',
     },
-    loadingIndicator: {
+    loadingWrapper: {
         marginLeft: 8,
+    },
+    searchTerm: {
+        fontSize: 13,
+        color: '#3B82F6',
+        fontWeight: '500',
+        fontStyle: 'italic',
+        maxWidth: 120,
     },
     errorContainer: {
         margin: 16,
         padding: 16,
         backgroundColor: '#FEF2F2',
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: '#FECACA',
     },
+    errorContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
     errorText: {
         color: '#DC2626',
-        textAlign: 'center',
-        marginBottom: 8,
+        fontSize: 14,
+        fontWeight: '500',
+        marginLeft: 8,
+        flex: 1,
     },
     retryButton: {
-        backgroundColor: '#2563EB',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 6,
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
         alignSelf: 'center',
+        shadowColor: '#3B82F6',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
     },
     retryText: {
-        color: '#fff',
+        color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '600',
     },
     listWrapper: {
         flex: 1,
+        backgroundColor: '#F9FAFB',
     },
     listContainer: {
-        paddingHorizontal: 12,
-        paddingTop: 16,
-        paddingBottom: 20,
+        paddingHorizontal: 16,
+        paddingTop: 20,
+        paddingBottom: 24,
     },
-    // Custom empty styles cho context cụ thể
     emptyContainer: {
         flex: 1,
-        marginTop: 100,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 32,
+        paddingTop: 80,
+    },
+    emptyIconWrapper: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 24,
     },
     emptyTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 20,
+        fontWeight: '700',
         color: '#1F2937',
-        marginTop: 12,
-        marginBottom: 6,
+        marginBottom: 8,
         textAlign: 'center',
+        letterSpacing: -0.2,
     },
     emptyText: {
-        fontSize: 14,
+        fontSize: 15,
         color: '#6B7280',
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 22,
         fontWeight: '400',
-        marginBottom: 20,
+        marginBottom: 32,
+        maxWidth: 280,
     },
     clearSearchBtn: {
-        backgroundColor: '#2563EB',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 6,
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 24,
+        shadowColor: '#3B82F6',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3,
     },
     clearSearchText: {
-        color: '#fff',
-        fontSize: 14,
+        color: '#FFFFFF',
+        fontSize: 15,
         fontWeight: '600',
     },
-    refreshOverlay: {
+    loadingOverlay: {
         position: 'absolute',
-        top: 100,
+        top: 0,
         left: 0,
         right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
         alignItems: 'center',
+        justifyContent: 'center',
         zIndex: 1000,
+    },
+    loadingContent: {
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 32,
+        paddingVertical: 24,
+        borderRadius: 16,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500',
     },
 });
 

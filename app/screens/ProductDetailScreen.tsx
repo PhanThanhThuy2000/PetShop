@@ -315,9 +315,13 @@ const FooterBar: FC<{
               <Text style={[styles.cartBtnTxt, { marginLeft: 8 }]}>Đang thêm...</Text>
             </View>
           ) : (
-            <Text style={styles.cartBtnTxt}>
-              {hasVariants ? 'Add cart' : 'Add cart'}
-            </Text>
+              <TouchableOpacity >
+                 <Ionicons name="cart-outline" size={24} color="#e01111ff" />
+              </TouchableOpacity>
+            //   <Text style={styles.cartBtnTxt}>
+                
+            //   {hasVariants ? 'Thêm giỏ hàng' : 'Thêm giỏ hàng'}
+            // </Text>
           )}
         </TouchableOpacity>
 
@@ -1144,18 +1148,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cartBtn: {
-    flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: '#f9fcfcff',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
     marginRight: 8,
     minHeight: 48,
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     elevation: 3,
   },
   cartBtnTxt: {
