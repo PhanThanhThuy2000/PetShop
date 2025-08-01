@@ -60,23 +60,20 @@ const AccountScreen: React.FC = () => {
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>My Purchases</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('History')}>
-            <Text style={styles.cardLink}>View Purchase History</Text>
-          </TouchableOpacity>
+          <Text style={styles.cardTitle}>Mua hàng của tôi</Text>
         </View>
         <View style={styles.purchaseRow}>
           <TouchableOpacity onPress={() => navigation.navigate('AppointmentHistory')}>
-            <Item icon="paw" label="Book Pet" color="#FF4C4C" iconLib="FontAwesome5" />
+            <Item icon="paw" label="Đặt lịch" color="#FF4C4C" iconLib="FontAwesome5" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('History')}>
-            <Item icon="shopping-cart" label="Order" color="#F9A825" iconLib="FontAwesome5" />
+            <Item icon="shopping-cart" label="Giỏ hàng" color="#F9A825" iconLib="FontAwesome5" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Reviews')}>
-            <Item icon="star" label="Review" color="yellow" iconLib="MaterialIcons" />
+            <Item icon="star" label="Đánh giá" color="yellow" iconLib="MaterialIcons" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Voucher')}>
-            <Item icon="ticket-alt" label="Voucher" color="#FF5722" iconLib="FontAwesome5" />
+            <Item icon="ticket-alt" label="Khuyễn mãi" color="#FF5722" iconLib="FontAwesome5" />
           </TouchableOpacity>
         </View>
       </View>
