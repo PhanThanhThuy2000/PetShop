@@ -22,6 +22,7 @@ import BreedsScreen from './screens/BreedsScreen';
 import CartScreen from './screens/CartScreen';
 import ChangePassword from './screens/ChangePassword';
 import ChatScreen from './screens/ChatScreen';
+import CustomerSupportChatScreen from './screens/CustomerSupportChatScreen2';
 import EditAdressScreen from './screens/EditAdressScreen';
 import EditInfomationScreen from './screens/EditInfomationScreen';
 import FavouriteScreen from './screens/FavouriteScreen';
@@ -215,6 +216,11 @@ const AppNavigator = () => {
       <Stack.Screen
         name="Chat"
         component={ChatScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CustomerSupport"
+        component={CustomerSupportChatScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
