@@ -399,7 +399,7 @@ const ProductAllScreen: React.FC = () => {
         >
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Product All</Text>
+        <Text style={styles.headerTitle}>Sản phẩm</Text>
         <TouchableOpacity
           style={styles.filterButton}
           onPress={() => setShowFilterModal(true)}
@@ -414,7 +414,7 @@ const ProductAllScreen: React.FC = () => {
           <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search Product..."
+            placeholder="Tìm kiếm..."
             value={searchQuery}
             onChangeText={(text) => {
               setSearchQuery(text);
