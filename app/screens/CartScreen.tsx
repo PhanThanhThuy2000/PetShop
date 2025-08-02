@@ -1,4 +1,3 @@
-// app/screens/CartScreen.tsx - THÊM NÚT QUAY LẠI
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
@@ -23,13 +22,13 @@ import {
 } from '../redux/slices/cartSlice';
 
 type Item = {
-  id: number;
+  id: string;
   image: any;
   title: string;
   description?: string;
   price: number;
   quantity?: number;
-  _apiId?: string;
+  _apiId: string; // 🆕 Đảm bảo _apiId luôn có
   petId?: string | null;
   productId?: string | null;
   variantId?: string | null;
@@ -62,25 +61,23 @@ export default function CartScreen() {
   }, [token, dispatch]);
 
   const getDisplayItems = () => {
-    console.log('🔍 Raw cart items from API:', JSON.stringify(items, null, 2));
-
+    console.log('🛒 Redux items:', JSON.stringify(items, null, 2)); // 🆕 Log dữ liệu từ Redux
     return items.map(apiItem => {
-      console.log('🛒 Processing cart item:', JSON.stringify(apiItem, null, 2));
-
       const itemInfo = apiItem.item_info;
       const itemType = apiItem.item_type || 'unknown';
       const unitPrice = apiItem.unit_price || 0;
+      const apiId = apiItem._id || `temp-${Math.floor(Math.random() * 1000000)}`; // 🆕 Đảm bảo _apiId luôn có
 
       if (!itemInfo) {
-        console.warn('⚠️ No item_info found');
+        console.warn('⚠️ No item_info found for item:', apiItem._id || 'no-id');
         return {
-          id: Math.floor(Math.random() * 1000000),
+          id: apiId,
           image: require('../../assets/images/dog.png'),
           title: 'Unknown Item',
           description: 'No information',
           price: 0,
           quantity: apiItem.quantity || 1,
-          _apiId: apiItem._id,
+          _apiId: apiId,
           petId: null,
           productId: null,
           variantId: null,
@@ -128,16 +125,14 @@ export default function CartScreen() {
         }
       }
 
-      const displayId = parseInt(apiItem._id.replace(/\D/g, '')) || Math.floor(Math.random() * 1000000);
-
       const processedItem = {
-        id: displayId,
+        id: apiId,
         image: primaryImage,
         title: itemInfo.name || 'Unknown Item',
         description,
         price: unitPrice,
         quantity: apiItem.quantity || 1,
-        _apiId: apiItem._id,
+        _apiId: apiId,
         petId,
         productId,
         variantId,
@@ -145,6 +140,7 @@ export default function CartScreen() {
         itemType
       };
 
+      console.log('Processed item:', JSON.stringify(processedItem, null, 2)); // 🆕 Log mục đã xử lý
       return processedItem;
     });
   };
@@ -153,7 +149,7 @@ export default function CartScreen() {
 
   useEffect(() => {
     if (cartItems.length > 0) {
-      const allItemIds = new Set(cartItems.map(item => item._apiId || ''));
+      const allItemIds = new Set(cartItems.map(item => item._apiId));
       setSelectedItems(allItemIds);
       setSelectAll(true);
     } else {
@@ -178,7 +174,7 @@ export default function CartScreen() {
       setSelectedItems(new Set());
       setSelectAll(false);
     } else {
-      const allItemIds = new Set(cartItems.map(item => item._apiId || ''));
+      const allItemIds = new Set(cartItems.map(item => item._apiId));
       setSelectedItems(allItemIds);
       setSelectAll(true);
     }
@@ -186,15 +182,15 @@ export default function CartScreen() {
 
   const getSelectedTotal = () => {
     return cartItems
-      .filter(item => selectedItems.has(item._apiId || ''))
+      .filter(item => selectedItems.has(item._apiId))
       .reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
   };
 
   const getSelectedItems = () => {
-    return cartItems.filter(item => selectedItems.has(item._apiId || ''));
+    return cartItems.filter(item => selectedItems.has(item._apiId));
   };
 
-  const updateQuantity = async (id: number, delta: number) => {
+  const updateQuantity = async (id: string, delta: number) => {
     const item = cartItems.find(item => item.id === id);
     if (!item || !item._apiId) return;
 
@@ -208,11 +204,11 @@ export default function CartScreen() {
 
       dispatch(getCart());
     } catch (error) {
-      Alert.alert('Error', 'Failed to update quantity');
+      Alert.alert('Hết hàng','Sản phẩm hết hàng vui lòng chọn sản khác');
     }
   };
 
-  const handleRemoveFromCart = async (id: number) => {
+  const handleRemoveFromCart = async (id: string) => {
     const item = cartItems.find(item => item.id === id);
     if (!item || !item._apiId) return;
 
@@ -228,7 +224,7 @@ export default function CartScreen() {
             try {
               await dispatch(removeFromCart(item._apiId)).unwrap();
               const newSelectedItems = new Set(selectedItems);
-              newSelectedItems.delete(item._apiId || '');
+              newSelectedItems.delete(item._apiId);
               setSelectedItems(newSelectedItems);
               dispatch(getCart());
             } catch (error) {
@@ -264,56 +260,67 @@ export default function CartScreen() {
     );
   };
 
-  const handleCheckout = () => {
-    const selectedCartItems = getSelectedItems();
+  const handleCheckout = async () => {
+    try {
+      // Đồng bộ giỏ hàng
+      await dispatch(getCart()).unwrap();
+      const selectedCartItems = getSelectedItems();
 
-    if (selectedCartItems.length === 0) {
-      Alert.alert('No Items Selected', 'Please select items to checkout');
-      return;
+      if (selectedCartItems.length === 0) {
+        Alert.alert('No Items Selected', 'Please select items to checkout');
+        return;
+      }
+
+      const formattedCartItems = selectedCartItems.map(item => {
+        const formattedItem = {
+          id: item._apiId,
+          title: item.title,
+          price: item.price,
+          quantity: item.quantity || 1,
+          image: item.image,
+          type: item.itemType || (item.petId ? 'pet' : 'product'),
+          petId: item.petId || null,
+          productId: item.productId || null,
+          variantId: item.variantId || null,
+          variantInfo: item.variantInfo || null,
+          _apiId: item._apiId
+        };
+        console.log('Formatted cart item:', JSON.stringify(formattedItem, null, 2)); // 🆕 Log mục được truyền
+        return formattedItem;
+      });
+
+      const selectedTotal = getSelectedTotal();
+
+      console.log('Navigating to Payment with cartItems:', JSON.stringify(formattedCartItems, null, 2));
+
+      navigation.navigate('Payment', {
+        cartItems: formattedCartItems,
+        total: selectedTotal
+      });
+    } catch (error) {
+      console.error('Error syncing cart before checkout:', error);
+      Alert.alert('Error', 'Failed to sync cart before checkout');
     }
-
-    const formattedCartItems = selectedCartItems.map(item => ({
-      id: item.variantId || item.petId || item.productId || item._apiId,
-      title: item.title,
-      price: item.price,
-      quantity: item.quantity || 1,
-      image: item.image,
-      type: item.itemType || (item.petId ? 'pet' : 'product'),
-      petId: item.petId || null,
-      productId: item.productId || null,
-      variantId: item.variantId || null,
-      variantInfo: item.variantInfo || null,
-    }));
-
-    const selectedTotal = getSelectedTotal();
-
-    navigation.navigate('Payment', {
-      cartItems: formattedCartItems,
-      total: selectedTotal
-    });
   };
 
-  // 🔧 RENDER CARD TỐI ỨU - Gọn gàng hơn
   const renderCard = (item: Item, isCart: boolean) => (
     <View key={item.id} style={styles.card}>
-      {/* Checkbox */}
       {isCart && (
         <TouchableOpacity
           style={styles.checkboxContainer}
-          onPress={() => toggleSelectItem(item._apiId || '')}
+          onPress={() => toggleSelectItem(item._apiId)}
         >
           <View style={[
             styles.checkbox,
-            selectedItems.has(item._apiId || '') && styles.checkboxSelected
+            selectedItems.has(item._apiId) && styles.checkboxSelected
           ]}>
-            {selectedItems.has(item._apiId || '') && (
+            {selectedItems.has(item._apiId) && (
               <Ionicons name="checkmark" size={12} color="#fff" />
             )}
           </View>
         </TouchableOpacity>
       )}
 
-      {/* Image Container */}
       <View style={styles.imgWrapper}>
         <Image
           source={typeof item.image === 'string' ? { uri: item.image } : item.image}
@@ -332,13 +339,11 @@ export default function CartScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Content Container */}
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle} numberOfLines={2}>
           {item.title}
         </Text>
 
-        {/* Variant Info hoặc Description */}
         {isCart && (
           <>
             {item.itemType === 'variant' && item.variantInfo ? (
@@ -356,7 +361,6 @@ export default function CartScreen() {
           </>
         )}
 
-        {/* Price Container */}
         <View style={styles.priceContainer}>
           <Text style={styles.cardPrice}>
             {(item.price * (item.quantity || 1)).toLocaleString('vi-VN')}₫
@@ -369,7 +373,6 @@ export default function CartScreen() {
         </View>
       </View>
 
-      {/* Quantity Control */}
       {isCart && (
         <View style={styles.qtyControl}>
           <TouchableOpacity
@@ -417,7 +420,6 @@ export default function CartScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* ✅ HEADER MỚI VỚI NÚT QUAY LẠI */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -437,7 +439,6 @@ export default function CartScreen() {
           </View>
         </View>
 
-        {/* Select All Section */}
         {cartItems.length > 0 && (
           <View style={styles.selectAllContainer}>
             <TouchableOpacity
@@ -456,7 +457,6 @@ export default function CartScreen() {
           </View>
         )}
 
-        {/* Cart Items */}
         {cartItems.length === 0 ? (
           <View style={styles.emptyCart}>
             <Ionicons name="cart-outline" size={60} color="#C0C0C0" />
@@ -469,7 +469,6 @@ export default function CartScreen() {
 
       </ScrollView>
 
-      {/* Footer */}
       {cartItems.length > 0 && (
         <View style={styles.footer}>
           <View style={styles.totalContainer}>
@@ -510,8 +509,6 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingBottom: 120
   },
-
-  // ✅ HEADER STYLES MỚI - Có nút back
   header: {
     marginTop: 8,
     flexDirection: 'row',
@@ -531,7 +528,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#1a1a1a',
     textAlign: 'center',
-    marginRight: 8, // Để cân bằng với nút back
+    marginRight: 8,
   },
   headerRight: {
     flexDirection: 'row',
@@ -554,13 +551,6 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     padding: 4,
   },
-  clearText: {
-    color: '#e74c3c',
-    fontSize: 18,
-    fontWeight: '600'
-  },
-
-  // Select All Section - Compact hơn
   selectAllContainer: {
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -582,8 +572,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-
-  // Checkbox Styles - Nhỏ hơn
   checkboxContainer: {
     paddingHorizontal: 8,
     justifyContent: 'center',
@@ -602,8 +590,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     borderColor: '#007AFF',
   },
-
-  // Card styles - Compact và gọn gàng
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -638,8 +624,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 2,
   },
-
-  // Card content - Tối ưu spacing
   cardContent: {
     flex: 1,
     paddingHorizontal: CARD_PADDING,
@@ -659,8 +643,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     lineHeight: 14,
   },
-
-  // Price container - Organized
   priceContainer: {
     flexDirection: 'column',
     alignItems: 'baseline',
@@ -677,8 +659,6 @@ const styles = StyleSheet.create({
     color: '#999',
     marginLeft: 8,
   },
-
-  // Variant info styles - Compact
   variantInfoContainer: {
     marginBottom: 4,
   },
@@ -687,8 +667,6 @@ const styles = StyleSheet.create({
     color: '#666',
     lineHeight: 14,
   },
-
-  // Quantity control - Compact
   qtyControl: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -717,8 +695,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1a1a1a',
   },
-
-  // Footer styles - Compact
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -765,8 +741,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
   },
-
-  // Loading và empty states
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

@@ -690,8 +690,8 @@ const ProductDetailScreen: FC = () => {
         }
       }
     } catch (error: any) {
-      console.error('Add to cart error:', error);
-      let errorMessage = 'Không thể thêm vào giỏ hàng';
+     
+      let errorMessage = 'Sản phẩm đã hết hàng';
       if (typeof error === 'string') {
         if (error.includes('already exists in cart')) {
           errorMessage = 'Sản phẩm đã có trong giỏ hàng';
@@ -701,7 +701,7 @@ const ProductDetailScreen: FC = () => {
           errorMessage = 'Lỗi kết nối. Vui lòng thử lại';
         }
       }
-      Alert.alert('Lỗi', errorMessage);
+      Alert.alert('Hết hàng', errorMessage);
     } finally {
       setIsAddingToCart(false);
     }
