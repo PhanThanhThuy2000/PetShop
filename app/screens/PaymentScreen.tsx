@@ -2,11 +2,13 @@ import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { getCart, removeFromCart } from '../redux/slices/cartSlice';
+import { AppDispatch, RootState } from '../redux/store';
 import { vouchersService } from '../services/vouchersService';
 import { ApiResponse, Order, OrderItem, Voucher } from '../types/index';
 import api, { API_BASE_URL } from '../utils/api-client';
 
-// Define Address interface (consistent with ListAddressScreen)
 interface Address {
   _id: string;
   name: string;
@@ -20,11 +22,48 @@ interface Address {
   is_default?: boolean;
 }
 
+interface CartItem {
+  id: string;
+  title: string;
+  price: number;
+  quantity: number;
+  image: any;
+  type: 'pet' | 'product' | 'variant';
+  petId?: string | null;
+  productId?: string | null;
+  variantId?: string | null;
+  variantInfo?: {
+    color?: string;
+    weight?: number;
+    gender?: string;
+    age?: number;
+    display_name?: string;
+  };
+  _apiId?: string;
+}
+
+interface VNPayData {
+  vnp_ResponseCode?: string;
+  vnp_TransactionStatus?: string;
+  vnp_TxnRef?: string;
+  vnp_PayDate?: string;
+  paymentMethod?: string;
+  user_id?: string;
+}
+
 const PaymentScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const dispatch = useDispatch<AppDispatch>();
+  const cart = useSelector((state: RootState) => state.cart.items);
 
-  const { cartItems, total, selectedAddress, petId, productId } = route.params || { cartItems: [], total: 0, selectedAddress: null, petId: null, productId: null };
+  const { cartItems, total, selectedAddress, petId, productId } = route.params as {
+    cartItems: CartItem[];
+    total: number;
+    selectedAddress: Address | null;
+    petId: string | null;
+    productId: string | null;
+  };
 
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
@@ -35,7 +74,6 @@ const PaymentScreen = () => {
   const [showVoucherModal, setShowVoucherModal] = useState(false);
   const selectedVoucherRef = useRef<Voucher | null>(null);
 
-  // Cập nhật ref mỗi khi selectedVoucher thay đổi
   useEffect(() => {
     selectedVoucherRef.current = selectedVoucher;
   }, [selectedVoucher]);
@@ -61,20 +99,12 @@ const PaymentScreen = () => {
     try {
       const response = await api.get('/vouchers');
       if (response.data.success) {
-        // Nếu có thể lấy được user ID hiện tại, uncomment dòng này và thay thế getCurrentUserId()
-        // const currentUserId = getCurrentUserId(); 
-
         const validVouchers = response.data.data.filter((voucher: Voucher) => {
           const isNotExpired = new Date(voucher.expiry_date) > new Date();
           const hasUsageLeft = (voucher.used_count || 0) < voucher.max_usage;
           const meetsMinAmount = total >= voucher.min_purchase_amount;
           const isActive = voucher.status === 'active';
-
-          // Kiểm tra user đã lưu voucher này chưa
           const isSavedByUser = voucher.saved_by_users && voucher.saved_by_users.length > 0;
-
-          // Nếu có currentUserId, có thể check chính xác hơn:
-          // const isSavedByUser = voucher.saved_by_users && voucher.saved_by_users.includes(currentUserId);
 
           console.log('Filtering voucher:', {
             voucherId: voucher._id,
@@ -98,7 +128,6 @@ const PaymentScreen = () => {
   };
 
   const calculateDiscount = () => {
-    // Ưu tiên sử dụng voucher từ ref, fallback về state
     const currentVoucher = selectedVoucherRef.current || selectedVoucher;
 
     if (!currentVoucher) return 0;
@@ -161,7 +190,7 @@ const PaymentScreen = () => {
   const calculateTotal = () => {
     const merchandise = parseCurrency(summaryData.merchandiseSubtotal);
     const shipping = parseCurrency(summaryData.shippingSubtotal);
-    const discount = calculateDiscount(); // Sử dụng calculateDiscount() trực tiếp
+    const discount = calculateDiscount();
 
     console.log('Calculating total:', {
       merchandise,
@@ -185,7 +214,6 @@ const PaymentScreen = () => {
     return finalTotal;
   };
 
-  // Hàm cập nhật voucher thành used (dùng chung cho COD và VNPay)
   const updateVoucherAsUsed = async () => {
     console.log('=== updateVoucherAsUsed called ===');
     console.log('selectedVoucher:', selectedVoucher);
@@ -198,7 +226,6 @@ const PaymentScreen = () => {
       return;
     }
 
-    // Kiểm tra nếu voucher đã được sử dụng rồi thì không cập nhật nữa
     if (currentVoucher.status === 'used' || currentVoucher.status === 'inactive') {
       console.log('Voucher already used or inactive, skipping update...');
       return;
@@ -237,7 +264,6 @@ const PaymentScreen = () => {
       const updatedVoucher = await vouchersService.updateVoucher(currentVoucher._id, updateData);
       console.log('API response for updateVoucher:', updatedVoucher);
 
-      // Cập nhật cả state và ref với data từ API response
       const apiResponseVoucher = updatedVoucher.data || updatedVoucher;
       const newVoucherState = {
         ...currentVoucher,
@@ -254,7 +280,6 @@ const PaymentScreen = () => {
     } catch (error: any) {
       console.error('Error using voucher:', error.response?.data || error.message);
 
-      // Nếu lỗi là voucher đã được sử dụng, thì cũng coi như thành công
       if (error.response?.data?.message === 'Voucher không hoạt động') {
         console.log('Voucher already used, treating as success...');
         await fetchUserVouchers();
@@ -265,12 +290,12 @@ const PaymentScreen = () => {
     }
   };
 
-  // 🔧 FIXED PaymentScreen.tsx - Hỗ trợ variant trong createOrderAndOrderItem
-  const createOrderAndOrderItem = async (vnpayData: any) => {
+  const createOrderAndOrderItem = async (vnpayData: VNPayData) => {
     try {
       console.log('vnpayData:', vnpayData);
       console.log('cartItems:', JSON.stringify(cartItems, null, 2));
       console.log('address:', address);
+      console.log('Current cart state in Redux:', JSON.stringify(cart, null, 2));
 
       // Bước 1: Tạo Order
       const orderData = {
@@ -285,64 +310,51 @@ const PaymentScreen = () => {
       const savedOrder = orderResponse.data.data;
       console.log('Order created:', savedOrder);
 
-      // Bước 2: Tạo OrderItem cho mỗi mục trong cartItems - 🔧 SỬA ĐỂ HỖ TRỢ VARIANT
+      // Bước 2: Tạo OrderItem cho mỗi mục trong cartItems
       let validItemsCount = 0;
       for (const item of cartItems) {
         console.log('Processing item:', JSON.stringify(item, null, 2));
 
-        // 🆕 Khởi tạo orderItemData cơ bản
-        const orderItemData = {
+        const orderItemData: {
+          quantity: number;
+          unit_price: number;
+          order_id: string;
+          addresses_id: string | undefined;
+          pet_id: string | null;
+          product_id: string | null;
+          variant_id: string | null;
+        } = {
           quantity: item.quantity || 1,
           unit_price: item.price,
           order_id: savedOrder._id,
           addresses_id: address?._id,
-          // Khởi tạo tất cả các ID về null
           pet_id: null,
           product_id: null,
           variant_id: null
         };
 
-        // 🆕 XỬ LÝ THEO TYPE VỚI VARIANT SUPPORT
         if (item.type === 'variant' && item.variantId) {
-          // Variant item - ưu tiên variant_id
           orderItemData.variant_id = item.variantId;
           console.log('✅ Added variant_id:', item.variantId);
-
         } else if (item.type === 'pet' && item.petId) {
-          // Direct pet item (legacy)
           orderItemData.pet_id = item.petId;
           console.log('✅ Added pet_id:', item.petId);
-
         } else if (item.type === 'product' && item.productId) {
-          // Product item
           orderItemData.product_id = item.productId;
           console.log('✅ Added product_id:', item.productId);
-
         } else {
-          // 🔧 FALLBACK: Thử tìm ID từ item.id
           console.warn('⚠️ No specific type ID found, trying item.id:', item.id);
-
           if (item.variantId) {
-            orderItemData.variant_id = item.variantId;
+            orderItemData.variant_id = item.id;
           } else if (item.petId) {
-            orderItemData.pet_id = item.petId;
+            orderItemData.pet_id = item.id;
           } else if (item.productId) {
-            orderItemData.product_id = item.productId;
-          } else if (item.id) {
-            // Cuối cùng, sử dụng item.id dựa trên type
-            if (item.type === 'variant') {
-              orderItemData.variant_id = item.id;
-            } else if (item.type === 'pet') {
-              orderItemData.pet_id = item.id;
-            } else if (item.type === 'product') {
-              orderItemData.product_id = item.id;
-            }
+            orderItemData.product_id = item.id;
           }
         }
 
         console.log('Final orderItemData:', orderItemData);
 
-        // 🔧 VALIDATION: Kiểm tra có ít nhất một ID
         if (!orderItemData.pet_id && !orderItemData.product_id && !orderItemData.variant_id) {
           console.error('❌ Invalid order item: missing all IDs', {
             item,
@@ -352,7 +364,6 @@ const PaymentScreen = () => {
           continue;
         }
 
-        // 🔧 Loại bỏ các trường null để tránh lỗi validation
         const cleanOrderItemData = Object.fromEntries(
           Object.entries(orderItemData).filter(([_, value]) => value !== null)
         );
@@ -363,20 +374,67 @@ const PaymentScreen = () => {
           const orderItemResponse = await api.post<ApiResponse<OrderItem>>('/order_items', cleanOrderItemData);
           console.log('✅ OrderItem created:', orderItemResponse.data.data);
           validItemsCount++;
+
+          // Try to remove item using _apiId or fallback to other IDs
+          const itemIdToRemove = item._apiId || item.variantId || item.petId || item.productId || item.id;
+          if (itemIdToRemove) {
+            try {
+              const itemExistsInCart = cart.some(cartItem =>
+                cartItem._id === itemIdToRemove
+              );
+              console.log(`Checking if item ${itemIdToRemove} exists in cart:`, itemExistsInCart);
+              console.log(`Item details:`, {
+                title: item.title,
+                _apiId: item._apiId,
+                id: item.id,
+                type: item.type,
+                variantId: item.variantId,
+                petId: item.petId,
+                productId: item.productId
+              });
+
+              if (itemExistsInCart) {
+                await dispatch(removeFromCart(itemIdToRemove)).unwrap();
+                console.log(`✅ Removed item from cart: ${itemIdToRemove}`);
+              } else {
+                console.warn(`⚠️ Item ${itemIdToRemove} not found in Redux cart, skipping removal`, {
+                  item,
+                  cartIds: cart.map(cartItem => cartItem._id)
+                });
+              }
+            } catch (error: any) {
+              console.error(`❌ Failed to remove item ${itemIdToRemove} from cart:`, error.message || error);
+              console.warn(`Continuing order creation despite failure to remove item ${itemIdToRemove}`);
+            }
+          } else {
+            console.warn(`⚠️ No valid ID for item: ${item.title}, cannot remove from cart`, {
+              item
+            });
+          }
         } catch (itemError: any) {
           console.error('❌ Failed to create OrderItem:', itemError.response?.data || itemError.message);
           Alert.alert('Lỗi', `Không thể tạo OrderItem cho "${item.title}": ${itemError.message}`);
         }
       }
 
-      // Kiểm tra xem có OrderItem nào được tạo không
       if (validItemsCount === 0) {
         throw new Error('No valid order items were created');
       }
 
       console.log(`✅ Successfully created ${validItemsCount} order items`);
 
-      // Chuyển hướng đến màn hình thành công
+      try {
+        await dispatch(getCart()).unwrap();
+        console.log('✅ Cart refreshed after order creation');
+      } catch (error) {
+        console.error('❌ Failed to refresh cart:', error);
+        Alert.alert('Lỗi', 'Không thể làm mới giỏ hàng sau khi đặt hàng');
+      }
+
+      if (selectedVoucher) {
+        await updateVoucherAsUsed();
+      }
+
       navigation.navigate('OrderSuccess', { orderId: savedOrder._id });
 
     } catch (error: any) {
@@ -481,7 +539,7 @@ const PaymentScreen = () => {
         const urlParams = new URLSearchParams(url.split('?')[1]);
         const responseCode = urlParams.get('vnp_ResponseCode');
         const transactionStatus = urlParams.get('vnp_TransactionStatus');
-        const vnpayData = Object.fromEntries(urlParams);
+        const vnpayData = Object.fromEntries(urlParams) as VNPayData;
 
         console.log('VNPay response:', vnpayData);
 
@@ -506,7 +564,7 @@ const PaymentScreen = () => {
         const urlParams = new URLSearchParams(url.split('?')[1]);
         const responseCode = urlParams.get('vnp_ResponseCode');
         const transactionStatus = urlParams.get('vnp_TransactionStatus');
-        const vnpayData = Object.fromEntries(urlParams);
+        const vnpayData = Object.fromEntries(urlParams) as VNPayData;
 
         console.log('VNPay initial URL response:', vnpayData);
 
@@ -526,7 +584,7 @@ const PaymentScreen = () => {
     return () => {
       subscription.remove();
     };
-  }, [navigation, address, cartItems, total]); // Không cần selectedVoucher vì đã dùng ref
+  }, [navigation, address, cartItems, total]);
 
   const handlePay = () => {
     if (!address) {
@@ -663,7 +721,7 @@ const PaymentScreen = () => {
             </>
           ) : (
             <>
-              <View style={{ flex: 1 }}>
+              <View style={styles.emptyAddress}>
                 <Text style={styles.gray}>Chưa có địa chỉ</Text>
               </View>
               <TouchableOpacity onPress={() => navigation.navigate('ListAddress', { selectMode: true, cartItems, total })}>
@@ -699,7 +757,7 @@ const PaymentScreen = () => {
               )}
             </TouchableOpacity>
           </View>
-          {cartItems.map((item: any) => (
+          {cartItems.map((item: CartItem) => (
             <ItemRow
               key={item.id}
               name={item.title}
@@ -832,6 +890,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
+  },
+  emptyAddress: {
+    flex: 1,
   },
   bold: {
     fontWeight: 'bold',

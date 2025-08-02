@@ -156,7 +156,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       
       // Load notifications
       const notificationsResponse = await getNotifications({ page: 1, limit: 50 });
-      console.log('📋 Notifications response:', notificationsResponse);
+      // console.log('📋 Notifications response:', notificationsResponse);
       
       if (notificationsResponse?.success && notificationsResponse.data) {
         setNotifications(notificationsResponse.data);
