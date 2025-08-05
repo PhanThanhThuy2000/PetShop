@@ -76,7 +76,63 @@ export const reviewService = {
       throw error; // Throw original error để có thể debug
     }
   },
+  // ✅ MỚI: Tạo review từ order item với kiểm tra quyền và trạng thái
+  async createReviewFromOrderItem(reviewData: {
+    rating: number;
+    comment: string;
+    pet_id: string;
+    product_id?: string;
+    orderItemId: string;  // ✅ Thêm orderItemId
+    images?: ImageData[];
+  }) {
+    const formData = new FormData();
 
-  
+    // Thêm các field thông tin
+    formData.append('rating', reviewData.rating.toString());
+    formData.append('comment', reviewData.comment);
+    formData.append('pet_id', reviewData.pet_id);
+    formData.append('orderItemId', reviewData.orderItemId); // ✅ Thêm orderItemId
+
+    if (reviewData.product_id) {
+      formData.append('product_id', reviewData.product_id);
+    }
+
+    // Thêm ảnh nếu có - React Native FormData format
+    if (reviewData.images && reviewData.images.length > 0) {
+      reviewData.images.forEach((image, index) => {
+        // React Native FormData cần object với uri, type, name
+        const imageFile = {
+          uri: image.uri,
+          type: image.type || 'image/jpeg',
+          name: image.name || `review_image_${Date.now()}_${index}.jpg`,
+        };
+
+        // Append với field name 'images' (backend expect array)
+        formData.append('images', imageFile as any);
+      });
+    }
+
+    console.log('FormData being sent (from order item):', {
+      rating: reviewData.rating,
+      comment: reviewData.comment,
+      pet_id: reviewData.pet_id,
+      orderItemId: reviewData.orderItemId,
+      imageCount: reviewData.images?.length || 0
+    });
+
+    try {
+      // ✅ SỬ DỤNG ENDPOINT MỚI CHO ORDER ITEM REVIEW
+      const response = await api.post<ApiResponse<Review>>('/reviews/from-order-item', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000, // Tăng timeout lên 30s cho upload ảnh
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Upload review from order item error:', error.response?.data || error.message);
+      throw error; // Throw original error để có thể debug
+    }
+  },
 };
 

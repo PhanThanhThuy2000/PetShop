@@ -300,7 +300,7 @@ const PaymentScreen = () => {
       // Bước 1: Tạo Order
       const orderData = {
         total_amount: calculateTotal(),
-        status: vnpayData.vnp_ResponseCode === '00' && vnpayData.vnp_TransactionStatus === '00' ? 'completed' : 'pending',
+        status: vnpayData.vnp_ResponseCode === '00' && vnpayData.vnp_TransactionStatus === '00' ? 'pending' : 'pending',
         payment_method: vnpayData.paymentMethod || 'vnpay',
         vnpay_transaction_id: vnpayData.vnp_TxnRef || null,
         payment_date: vnpayData.vnp_PayDate || null,

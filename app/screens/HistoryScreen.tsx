@@ -26,10 +26,38 @@ const OrderItemComponent = ({ item, onOrderCancelled }: { item: OrderItem; onOrd
     const navigation = useNavigation<any>();
     const [isReviewed, setIsReviewed] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [reviewData, setReviewData] = useState<any>(null);
+    const [isCheckingReview, setIsCheckingReview] = useState(false);
 
     useEffect(() => {
         // Kiểm tra xem item đã được đánh giá chưa
+        checkReviewStatus();
     }, [item._id]);
+
+    // ✅ MỚI: Kiểm tra trạng thái đánh giá
+    const checkReviewStatus = async () => {
+        if (item.order_id?.status !== 'completed') {
+            setIsReviewed(false);
+            return;
+        }
+
+        try {
+            setIsCheckingReview(true);
+            const response = await ordersService.checkReviewStatus(item._id);
+
+            if (response.success && response.data) {
+                setIsReviewed(response.data.isReviewed);
+                if (response.data.isReviewed && response.data.reviewData) {
+                    setReviewData(response.data.reviewData);
+                }
+            }
+        } catch (error) {
+            console.error('Error checking review status:', error);
+            // Không hiển thị lỗi cho user, chỉ log
+        } finally {
+            setIsCheckingReview(false);
+        }
+    };
 
     // ✅ STATUS TEXT HELPER - Di chuyển vào OrderItemComponent
     const getStatusText = (status: string) => {
@@ -329,6 +357,7 @@ const OrderItemComponent = ({ item, onOrderCancelled }: { item: OrderItem; onOrd
         navigation.navigate('OrderDetail', { orderId: item.order_id._id });
     };
 
+    // ✅ MỚI: Xử lý đánh giá hoặc xem đánh giá
     const handleReview = () => {
         const itemInfo = getItemDisplayInfo();
         const product = {
@@ -337,10 +366,41 @@ const OrderItemComponent = ({ item, onOrderCancelled }: { item: OrderItem; onOrd
             image: itemInfo.image || 'https://via.placeholder.com/100',
         };
 
-        navigation.navigate('AddReviewScreen', {
-            product,
-            orderItemId: item._id
-        });
+        if (isReviewed) {
+            // Nếu đã đánh giá, chuyển đến màn hình xem đánh giá
+            navigation.navigate('ViewReviewScreen', {
+                product,
+                orderItemId: item._id,
+                reviewData: reviewData
+            });
+        } else {
+            // Nếu chưa đánh giá, chuyển đến màn hình đánh giá
+            navigation.navigate('AddReviewScreen', {
+                product,
+                orderItemId: item._id
+            });
+        }
+    };
+
+    // ✅ MỚI: Xử lý xem đánh giá chi tiết
+    const handleViewReview = async () => {
+        try {
+            const response = await ordersService.getReviewByOrderItemId(item._id);
+            if (response.success && response.data.review) {
+                const itemInfo = getItemDisplayInfo();
+                navigation.navigate('ReviewDetailScreen', {
+                    review: response.data.review,
+                    orderItem: item,
+                    product: {
+                        id: itemInfo.productId || item._id,
+                        name: itemInfo.name,
+                        image: itemInfo.image || 'https://via.placeholder.com/100',
+                    }
+                });
+            }
+        } catch (error) {
+            Alert.alert('Lỗi', 'Không thể tải thông tin đánh giá');
+        }
     };
 
     const itemInfo = getItemDisplayInfo();
@@ -420,10 +480,24 @@ const OrderItemComponent = ({ item, onOrderCancelled }: { item: OrderItem; onOrd
                     </TouchableOpacity>
 
                     <View style={styles.actionButtons}>
-                        {!isReviewed && item.order_id?.status === 'completed' && (
-                            <TouchableOpacity style={styles.reviewButton} onPress={handleReview}>
-                                <Text style={styles.reviewButtonText}>Đánh giá</Text>
-                            </TouchableOpacity>
+                        {/* ✅ CẬP NHẬT: Hiển thị button đánh giá hoặc xem đánh giá */}
+                        {item.order_id?.status === 'completed' && (
+                            <>
+                                {isCheckingReview ? (
+                                    <View style={styles.loadingReviewButton}>
+                                        <ActivityIndicator size="small" color="#3B82F6" />
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        style={isReviewed ? styles.viewReviewButton : styles.reviewButton}
+                                        onPress={handleReview}
+                                    >
+                                        <Text style={isReviewed ? styles.viewReviewButtonText : styles.reviewButtonText}>
+                                            {isReviewed ? 'Xem đánh giá' : 'Đánh giá'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
+                            </>
                         )}
 
                         {item.order_id?.status === 'pending' && (
@@ -979,6 +1053,27 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 13,
         fontWeight: '600',
+    },
+    // ✅ MỚI: Style cho button "Xem đánh giá"
+    viewReviewButton: {
+        backgroundColor: '#d2d7d2ff',
+        borderRadius: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+    },
+    viewReviewButtonText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    // ✅ MỚI: Style cho loading review button
+    loadingReviewButton: {
+        backgroundColor: '#F3F4F6',
+        borderRadius: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     cancelButton: {
         backgroundColor: '#FEE2E2',

@@ -57,4 +57,22 @@ export const ordersService = {
             throw error;
         }
     },
+    // ✅ MỚI: Lấy order items với thông tin review status
+    async getMyOrderItemsWithReviewStatus(params: { page?: number; limit?: number } = {}) {
+        const { page = 1, limit = 10 } = params;
+        const response = await api.get<ApiResponse<OrderItem[]>>(`/order_items/with-review-status?page=${page}&limit=${limit}`);
+        return response.data;
+    },
+
+    // ✅ MỚI: Kiểm tra trạng thái đánh giá của order item
+    async checkReviewStatus(orderItemId: string) {
+        const response = await api.get<ApiResponse<{
+            orderItemId: string;
+            isReviewed: boolean;
+            canReview: boolean;
+            orderStatus: string;
+            reviewId?: string;
+        }>>(`/order_items/${orderItemId}/review-status`);
+        return response.data;
+    },
 };
