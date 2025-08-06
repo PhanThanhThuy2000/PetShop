@@ -1,4 +1,4 @@
-// app/screens/BreedsScreen.tsx - GIAO DIỆN ĐÃ TỐI ƯU
+// app/screens/BreedsScreen.tsx - GIAO DIỆN ĐÃ TỐI ƯU VỚI ẢNH ĐÚNG
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
@@ -93,22 +93,69 @@ const BreedsScreen = () => {
     });
   };
 
-  // Get breed image based on name
-  const getBreedImage = (breedName: string) => {
-    const name = breedName.toLowerCase();
+  // Get breed image - improved to use API images first, then fallbacks
+  const getBreedImage = (breed: Breed) => {
+    // 1. Ưu tiên sử dụng ảnh từ API nếu có
+    if (breed.images && breed.images.length > 0) {
+      // Tìm ảnh primary trước
+      const primaryImage = breed.images.find(img => img.is_primary);
+      if (primaryImage?.url) {
+        return { uri: primaryImage.url };
+      }
 
-    if (name.includes('cat') || name.includes('mèo')) {
+      // Nếu không có primary, lấy ảnh đầu tiên
+      if (breed.images[0]?.url) {
+        return { uri: breed.images[0].url };
+      }
+    }
+
+    // 2. Fallback theo category name nếu có
+    if (breed.category_id && typeof breed.category_id === 'object' && breed.category_id.name) {
+      const categoryName = breed.category_id.name.toLowerCase();
+
+      if (categoryName.includes('cat') || categoryName.includes('mèo')) {
+        return require('../../assets/images/CatBreedsScreen.png');
+      } else if (categoryName.includes('dog') || categoryName.includes('chó')) {
+        return require('../../assets/images/DogBreedsScreen.png');
+      } else if (categoryName.includes('hamster') || categoryName.includes('chuột')) {
+        return require('../../assets/images/HamsterBreedsScreen.png');
+      } else if (categoryName.includes('rabbit') || categoryName.includes('thỏ')) {
+        return require('../../assets/images/RabbitBreedsScreen.png');
+      } else if (categoryName.includes('fish') || categoryName.includes('cá')) {
+        return require('../../assets/images/FishBreedsScreen.png');
+      }
+    }
+
+    // 3. Fallback theo breed name
+    const breedName = breed.name.toLowerCase();
+
+    if (breedName.includes('cat') || breedName.includes('mèo')) {
       return require('../../assets/images/CatBreedsScreen.png');
-    } else if (name.includes('dog') || name.includes('chó')) {
+    } else if (breedName.includes('dog') || breedName.includes('chó')) {
       return require('../../assets/images/DogBreedsScreen.png');
-    } else if (name.includes('hamster') || name.includes('chuột')) {
+    } else if (breedName.includes('hamster') || breedName.includes('chuột')) {
       return require('../../assets/images/HamsterBreedsScreen.png');
-    } else if (name.includes('rabbit') || name.includes('thỏ')) {
+    } else if (breedName.includes('rabbit') || breedName.includes('thỏ')) {
       return require('../../assets/images/RabbitBreedsScreen.png');
-    } else if (name.includes('fish') || name.includes('cá')) {
+    } else if (breedName.includes('fish') || breedName.includes('cá')) {
       return require('../../assets/images/FishBreedsScreen.png');
     }
 
+    // 4. Default fallback dựa trên categoryName hiện tại
+    const currentCategoryName = categoryName.toLowerCase();
+    if (currentCategoryName.includes('cat') || currentCategoryName.includes('mèo')) {
+      return require('../../assets/images/CatBreedsScreen.png');
+    } else if (currentCategoryName.includes('dog') || currentCategoryName.includes('chó')) {
+      return require('../../assets/images/DogBreedsScreen.png');
+    } else if (currentCategoryName.includes('hamster') || currentCategoryName.includes('chuột')) {
+      return require('../../assets/images/HamsterBreedsScreen.png');
+    } else if (currentCategoryName.includes('rabbit') || currentCategoryName.includes('thỏ')) {
+      return require('../../assets/images/RabbitBreedsScreen.png');
+    } else if (currentCategoryName.includes('fish') || currentCategoryName.includes('cá')) {
+      return require('../../assets/images/FishBreedsScreen.png');
+    }
+
+    // 5. Ultimate fallback
     return require('../../assets/images/DogBreedsScreen.png');
   };
 
@@ -121,9 +168,12 @@ const BreedsScreen = () => {
     >
       <View style={styles.imageContainer}>
         <Image
-          source={getBreedImage(item.name)}
+          source={getBreedImage(item)}
           style={styles.breedImage}
           resizeMode="cover"
+          onError={(error) => {
+            console.warn('Image load error for breed:', item.name, error);
+          }}
         />
         <View style={styles.imageOverlay}>
           <FeatherIcon name="arrow-right" size={16} color="#FFFFFF" />
@@ -262,7 +312,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB'
   },
   header: {
-    marginTop:20,
+    marginTop: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

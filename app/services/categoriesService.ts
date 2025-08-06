@@ -17,11 +17,19 @@ export interface CategoryImage {
   category_id: string;
 }
 
+export interface BreedImage {
+  _id: string;
+  url: string;
+  is_primary: boolean;
+  breed_id: string;
+}
+
 export interface Breed {
   _id: string;
   name: string;
   description?: string;
-  category_id: Category;
+  category_id: Category | string;
+  images?: BreedImage[];
   created_at: string;
   updated_at: string;
 }
