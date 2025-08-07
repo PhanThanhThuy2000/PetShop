@@ -1,9 +1,11 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import 'expo-router/entry';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 
 // Redux store
 import { loadTokenFromStorage } from './redux/slices/authSlice';
@@ -285,6 +287,31 @@ const AppNavigator = () => {
 };
 
 export default function RootLayout() {
+
+  useEffect(() => {
+    const checkUserStatusOnStartup = async (token: string | null, navigation: any) => {
+      if (!token) return;
+  
+      try {
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        if (decodedToken.status === 'banned') {
+          Alert.alert('Account Banned', 'Your account has been banned. Please contact support.');
+          await AsyncStorage.removeItem('token'); 
+          navigation.navigate('Login');
+        }
+      } catch (error) {
+        console.error('Error decoding token:', error);
+      }
+    };
+    
+    const initializeApp = async () => {
+      const token = await AsyncStorage.getItem('token');
+      const navigation = useNavigation();
+      await checkUserStatusOnStartup(token, navigation);
+    };
+  
+    initializeApp();
+  }, []);
 
   return (
     <Provider store={store}>
