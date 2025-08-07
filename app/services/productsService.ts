@@ -1,5 +1,5 @@
 // app/services/productsService.ts  
-import { ApiResponse, Product } from '../types';
+import { ApiResponse, Pet, Product } from '../types';
 import api from '../utils/api-client';
 
 export interface SearchProductsParams {
@@ -31,6 +31,14 @@ export interface SearchResponse {
     limit: number;
   };
   filters: any;
+}
+export interface RelatedItemsResponse {
+  relatedItems: Array<Product | Pet>;
+  breakdown?: {
+    sameCategory?: number;
+    relatedPets?: number;
+    similarPrice?: number;
+  };
 }
 
 export const productsService = {
@@ -83,5 +91,17 @@ export const productsService = {
   async getProductById(id: string) {
     const response = await api.get<ApiResponse<Product>>(`/products/${id}`);
     return response.data;
+  },
+  // Lấy các items liên quan (products và pets) - API /products/:id/related
+  async getRelatedItems(id: string, limit: number = 8): Promise<ApiResponse<RelatedItemsResponse>> {
+    try {
+      console.log('🔗 Product Related Items API:', `/products/${id}/related?limit=${limit}`);
+      const response = await api.get<ApiResponse<RelatedItemsResponse>>(`/products/${id}/related?limit=${limit}`);
+      console.log('✅ Product Related Items Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Product Related Items API Error:', error.response?.data || error.message);
+      throw error;
+    }
   },
 };

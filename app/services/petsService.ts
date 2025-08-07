@@ -1,5 +1,5 @@
-// app/services/petsService.ts  
-import { ApiResponse, Pet } from '../types';
+// app/services/petsService.ts
+import { ApiResponse, Pet, Product } from '../types';
 import api from '../utils/api-client';
 
 export interface SearchPetsParams {
@@ -34,28 +34,44 @@ export interface PetsSearchResponse {
   filters: any;
 }
 
+export interface RelatedItemsResponse {
+  relatedItems: Array<Pet | Product>;
+  breakdown?: {
+    sameBreed?: number;
+    relatedProducts?: number;
+    sameCategoryPets?: number;
+    sameCategory?: number;
+    relatedPets?: number;
+    similarPrice?: number;
+  };
+}
+
+export interface SimilarPetsResponse {
+  similarPets: Pet[];
+}
+
+export interface CompatibleProductsResponse {
+  products: Product[];
+}
+
 export const petsService = {
   // Tìm kiếm pets - liên kết với API /pets/search
   async searchPets(params: SearchPetsParams = {}): Promise<ApiResponse<PetsSearchResponse>> {
     const queryParams = new URLSearchParams();
-    
-    // Mapping parameters để match với backend API
+
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         queryParams.append(key, value.toString());
       }
     });
-    
+
     try {
       console.log('🔍 Pets API:', `/pets/search?${queryParams.toString()}`);
-      
       const response = await api.get<ApiResponse<PetsSearchResponse>>(
         `/pets/search?${queryParams.toString()}`
       );
-      
       console.log('✅ Pets API Response:', response.data);
       return response.data;
-      
     } catch (error: any) {
       console.error('❌ Pets API Error:', error.response?.data || error.message);
       throw error;
@@ -86,6 +102,45 @@ export const petsService = {
       return response.data;
     } catch (error: any) {
       console.error('❌ Pets Filter Options Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Lấy các items liên quan (pets và products) - API /pets/:id/related
+  async getRelatedItems(id: string, limit: number = 8): Promise<ApiResponse<RelatedItemsResponse>> {
+    try {
+      console.log('🔗 Related Items API:', `/pets/${id}/related?limit=${limit}`);
+      const response = await api.get<ApiResponse<RelatedItemsResponse>>(`/pets/${id}/related?limit=${limit}`);
+      console.log('✅ Related Items Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Related Items API Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Lấy các pets tương tự - API /pets/:id/similar-advanced
+  async getSimilarPets(id: string, limit: number = 6): Promise<ApiResponse<SimilarPetsResponse>> {
+    try {
+      console.log('🧠 Similar Pets API:', `/pets/${id}/similar-advanced?limit=${limit}`);
+      const response = await api.get<ApiResponse<SimilarPetsResponse>>(`/pets/${id}/similar-advanced?limit=${limit}`);
+      console.log('✅ Similar Pets Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Similar Pets API Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Lấy các sản phẩm phù hợp cho pet type - API /pets/products-for/:petType
+  async getCompatibleProducts(petType: string, limit: number = 4): Promise<ApiResponse<CompatibleProductsResponse>> {
+    try {
+      console.log('🛍️ Compatible Products API:', `/pets/products-for/${petType}?limit=${limit}`);
+      const response = await api.get<ApiResponse<CompatibleProductsResponse>>(`/pets/products-for/${petType}?limit=${limit}`);
+      console.log('✅ Compatible Products Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Compatible Products API Error:', error.response?.data || error.message);
       throw error;
     }
   },

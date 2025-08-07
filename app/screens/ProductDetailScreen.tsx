@@ -1,4 +1,5 @@
-// app/screens/ProductDetailScreen.tsx - GỘP CHỨC NĂNG YÊU THÍCH VÀ BIẾN THỂ + BUY NOW
+// app/screens/ProductDetailScreen.tsx
+import PetVariantSelector from '@/components/PetVariantSelector';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
@@ -16,22 +17,11 @@ import {
   View,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart, getCart } from '../redux/slices/cartSlice';
-
-// 🆕 IMPORTS CHO BIẾN THỂ
-import PetVariantSelector from '@/components/PetVariantSelector';
-import { API_BASE_URL } from '../utils/api-client';
-
-// 🆕 IMPORTS CHO YÊU THÍCH
 import { CustomFavouriteAlert } from '../../components/ui/CustomFavouriteAlert';
 import { FavouriteToast } from '../../components/ui/FavouriteToast';
 import { useFavouriteAlert } from '../../hooks/useFavouriteAlert';
 import { useFavouriteToast } from '../../hooks/useFavouriteToast';
-
-// 🆕 IMPORTS CHO PRODUCTLIST và PETLIST
-import PetList from '../components/Pet/PetList';
-import ProductList from '../components/ProductList';
-
+import { addToCart, getCart } from '../redux/slices/cartSlice';
 import {
   addToFavourites,
   checkFavouriteStatus,
@@ -39,12 +29,27 @@ import {
   removeFromFavourites
 } from '../redux/slices/favouriteSlice';
 import { AppDispatch, RootState } from '../redux/store';
-import { petsService, productsService } from '../services/api-services';
+import { petsService } from '../services/petsService';
+import { productsService } from '../services/productsService';
 import { Pet, PetImage, PetVariant, Product, ProductImage } from '../types';
+import { API_BASE_URL } from '../utils/api-client';
 import { requiresAuth, useAuthGuard } from '../utils/authGuard';
 
 // --- Data Interfaces ---
 interface Variation { id: string; image: any; }
+
+interface RelatedItem {
+  _id: string;
+  name: string;
+  price: number;
+  images?: Array<{ url: string; is_primary?: boolean }>;
+  itemType: 'pet' | 'product';
+  relationshipType?: string;
+  similarityScore?: number;
+  compatibleWithPetType?: string;
+  breed_id?: any;
+  category_id?: any;
+}
 
 // --- Countdown Hook ---
 function useCountdown(initialSeconds: number) {
@@ -137,60 +142,97 @@ const ReviewCard: FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-// 🆕 Thay thế RelatedGrid bằng ProductList/PetList
+// Enhanced RelatedItems Component
 const RelatedItems: FC<{
   navigation: any;
-  currentItemId?: string;
-  currentItemType?: 'pet' | 'product';
-}> = ({ navigation, currentItemId, currentItemType = 'pet' }) => {
-  const [relatedItems, setRelatedItems] = useState<(Pet | Product)[]>([]);
+  currentItemId: string;
+  currentItemType: 'pet' | 'product';
+  limit?: number;
+}> = ({ navigation, currentItemId, currentItemType, limit = 8 }) => {
+  const [relatedItems, setRelatedItems] = useState<RelatedItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [breakdown, setBreakdown] = useState<any>(null);
 
   useEffect(() => {
-    loadRelatedItems();
-  }, [currentItemId]);
+    if (currentItemId && currentItemType) {
+      loadRelatedItems();
+    }
+  }, [currentItemId, currentItemType]);
 
   const loadRelatedItems = async () => {
     try {
       setLoading(true);
+      console.log('🔗 Loading related items for:', { currentItemId, currentItemType });
+
+      let response;
+
       if (currentItemType === 'pet') {
-        const response = await petsService.getPets({ limit: 8 });
-        console.log('Related pets response:', response.data);
-        if (response.success) {
-          const filteredPets = response.data
-            .filter((pet: Pet) => pet._id !== currentItemId)
-            .slice(0, 4);
-          setRelatedItems(filteredPets);
-        }
+        response = await petsService.getRelatedItems(currentItemId, limit);
       } else {
-        const response = await productsService.getProducts({ limit: 8 });
-        console.log('Related products response:', response.data);
-        if (response.success) {
-          const filteredProducts = response.data
-            .filter((product: Product) => product._id !== currentItemId)
-            .slice(0, 4);
-          setRelatedItems(filteredProducts);
-        }
+        response = await productsService.getRelatedItems(currentItemId, limit);
+      }
+
+      if (response.success) {
+        console.log('✅ Related items response:', response.data);
+        const relatedData = response.data.relatedItems || [];
+        setRelatedItems(relatedData);
+        setBreakdown(response.data.breakdown);
       }
     } catch (error) {
-      console.error('Error loading related items:', error);
-      const fallbackData = Array.from({ length: 4 }).map((_, i) => ({
-        _id: `${i}`,
-        name: `Sản phẩm mẫu ${i + 1}`,
-        price: 17000,
-        images: [{ url: 'https://via.placeholder.com/150' }],
-      })) as any[];
-      setRelatedItems(fallbackData);
+      console.error('❌ Error loading related items:', error);
+      await loadFallbackItems();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleItemPress = (item: Pet | Product) => {
-    const isPet = 'breed_id' in item || currentItemType === 'pet';
-    if (isPet) {
+  const loadFallbackItems = async () => {
+    try {
+      console.log('⚠️ Using fallback method for related items');
+      let items: RelatedItem[] = [];
+
+      if (currentItemType === 'pet') {
+        const response = await petsService.getPets({ limit: limit + 1 });
+        if (response.success) {
+          items = response.data
+            .filter((pet: Pet) => pet._id !== currentItemId)
+            .slice(0, limit)
+            .map((pet: Pet) => ({
+              ...pet,
+              itemType: 'pet' as const,
+              relationshipType: 'similar'
+            }));
+        }
+      } else {
+        const response = await productsService.getProducts({ limit: limit + 1 });
+        if (response.success) {
+          items = response.data
+            .filter((product: Product) => product._id !== currentItemId)
+            .slice(0, limit)
+            .map((product: Product) => ({
+              ...product,
+              itemType: 'product' as const,
+              relationshipType: 'similar'
+            }));
+        }
+      }
+
+      setRelatedItems(items);
+    } catch (error) {
+      console.error('❌ Fallback loading failed:', error);
+      setRelatedItems([]);
+    }
+  };
+
+  const handleItemPress = (item: RelatedItem) => {
+    console.log('🎯 Related item pressed:', {
+      itemType: item.itemType,
+      itemId: item._id,
+      relationshipType: item.relationshipType
+    });
+
+    if (item.itemType === 'pet') {
       navigation.push('ProductDetail', {
-        pet: item,
         petId: item._id,
       });
     } else {
@@ -200,44 +242,378 @@ const RelatedItems: FC<{
     }
   };
 
+  const getRelationshipBadge = (relationshipType?: string) => {
+    const badges = {
+      'same-breed': { text: 'Cùng giống', color: '#10B981' },
+      'same-category': { text: 'Cùng loại', color: '#3B82F6' },
+      'pet-compatible': { text: 'Phù hợp', color: '#8B5CF6' },
+      'similar-price': { text: 'Giá tương tự', color: '#F59E0B' },
+      'similar': { text: 'Tương tự', color: '#6B7280' }
+    };
+
+    const badge = badges[relationshipType as keyof typeof badges] || badges.similar;
+
+    return (
+      <View style={[styles.relationshipBadge, { backgroundColor: badge.color }]}>
+        <Text style={styles.relationshipBadgeText}>{badge.text}</Text>
+      </View>
+    );
+  };
+
+  const getImageUrl = (item: RelatedItem): string => {
+    if (item.images && item.images.length > 0) {
+      const primaryImage = item.images.find(img => img.is_primary);
+      return primaryImage?.url || item.images[0]?.url || 'https://via.placeholder.com/150';
+    }
+    return 'https://via.placeholder.com/150?text=No+Image';
+  };
+
+  const renderRelatedItem = ({ item, index }: { item: RelatedItem, index: number }) => (
+    <TouchableOpacity
+      style={styles.relatedItem}
+      onPress={() => handleItemPress(item)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: getImageUrl(item) }}
+          style={styles.relatedImage}
+          resizeMode="cover"
+        />
+        {item.relationshipType && getRelationshipBadge(item.relationshipType)}
+        <View style={styles.itemTypeBadge}>
+          <Text style={styles.itemTypeBadgeText}>
+            {item.itemType === 'pet' ? '🐾' : '🛍️'}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.itemInfo}>
+        <Text style={styles.itemName} numberOfLines={2}>
+          {item.name}
+        </Text>
+        <Text style={styles.itemPrice}>
+          {item.price?.toLocaleString('vi-VN')}₫
+        </Text>
+        {item.compatibleWithPetType && (
+          <Text style={styles.compatibilityText}>
+            Dành cho {item.compatibleWithPetType}
+          </Text>
+        )}
+        {item.similarityScore && (
+          <Text style={styles.similarityScore}>
+            Độ tương tự: {item.similarityScore}%
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color="#2563EB" />
+        <Text style={styles.loadingText}>Đang tải sản phẩm liên quan...</Text>
+      </View>
+    );
+  }
+
+  if (relatedItems.length === 0) {
+    return (
+      <View style={styles.emptyRelatedContainer}>
+        <Text style={styles.emptyRelatedText}>
+          Không có {currentItemType === 'pet' ? 'thú cưng' : 'sản phẩm'} liên quan
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <>
-      {currentItemType === 'pet' ? (
-        <PetList
-          pets={relatedItems as Pet[]}
-          loading={loading}
-          numColumns={2}
-          onPetPress={handleItemPress}
-          itemStyle="grid"
-          scrollEnabled={false}
-          contentContainerStyle={styles.relatedList}
-          ListEmptyComponent={
-            <View style={styles.emptyRelatedContainer}>
-              <Text style={styles.emptyRelatedText}>Không có thú cưng liên quan</Text>
-            </View>
-          }
-        />
-      ) : (
-        <ProductList
-          products={relatedItems as Product[]}
-          loading={loading}
-          numColumns={2}
-          onProductPress={handleItemPress}
-          itemStyle="grid"
-          scrollEnabled={false}
-          contentContainerStyle={styles.relatedList}
-          ListEmptyComponent={
-            <View style={styles.emptyRelatedContainer}>
-              <Text style={styles.emptyRelatedText}>Không có sản phẩm liên quan</Text>
-            </View>
-          }
-        />
+    <View style={styles.relatedContainer}>
+      {breakdown && (
+        <View style={styles.breakdownContainer}>
+          <Text style={styles.breakdownText}>
+            {currentItemType === 'pet'
+              ? `${breakdown.sameBreed || 0} cùng giống • ${breakdown.relatedProducts || 0} sản phẩm phù hợp • ${breakdown.sameCategoryPets || 0} cùng loại`
+              : `${breakdown.sameCategory || 0} cùng loại • ${breakdown.relatedPets || 0} pets phù hợp • ${breakdown.similarPrice || 0} giá tương tự`
+            }
+          </Text>
+        </View>
       )}
-    </>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContainer}
+      >
+        {relatedItems.map((item, index) => renderRelatedItem({ item, index }))}
+      </ScrollView>
+    </View>
   );
 };
 
-// 🔧 FooterBar - Không thay đổi
+// Enhanced SimilarPets Component
+const SimilarPets: FC<{
+  navigation: any;
+  petId?: string;
+  limit?: number;
+  showSimilarityScore?: boolean;
+}> = ({ navigation, petId, limit = 6, showSimilarityScore = true }) => {
+  const [similarPets, setSimilarPets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (petId) {
+      loadSimilarPets();
+    }
+  }, [petId]);
+
+  const loadSimilarPets = async () => {
+    if (!petId) return;
+
+    try {
+      setLoading(true);
+      console.log('🧠 Loading similar pets for:', petId);
+      const response = await petsService.getSimilarPets(petId, limit);
+      if (response.success) {
+        console.log('✅ Similar pets loaded:', response.data);
+        setSimilarPets(response.data.similarPets || []);
+      }
+    } catch (error) {
+      console.error('❌ Error loading similar pets:', error);
+      setSimilarPets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePetPress = (pet: any) => {
+    console.log('🎯 Similar pet pressed:', pet._id, 'Score:', pet.similarityScore);
+    navigation.push('ProductDetail', {
+      petId: pet._id,
+    });
+  };
+
+  const getImageUrl = (pet: any): string => {
+    if (pet.images && pet.images.length > 0) {
+      const primaryImage = pet.images.find((img: any) => img.is_primary);
+      return primaryImage?.url || pet.images[0]?.url || 'https://via.placeholder.com/150';
+    }
+    return 'https://via.placeholder.com/150?text=Pet';
+  };
+
+  const getSimilarityColor = (score: number): string => {
+    if (score >= 180) return '#10B981';
+    if (score >= 120) return '#3B82F6';
+    if (score >= 80) return '#F59E0B';
+    return '#EF4444';
+  };
+
+
+  if (similarPets.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.relatedContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContainer}
+      >
+        {similarPets.map((pet, index) => (
+          <TouchableOpacity
+            key={`similar-${pet._id}-${index}`}
+            style={styles.relatedItem}
+            onPress={() => handlePetPress(pet)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.imageContainer}>
+              <Image
+                source={{ uri: getImageUrl(pet) }}
+                style={styles.relatedImage}
+                resizeMode="cover"
+              />
+              {showSimilarityScore && pet.similarityScore && (
+                <View style={[
+                  styles.similarityBadge,
+                  { backgroundColor: getSimilarityColor(pet.similarityScore) }
+                ]}>
+                  <Text style={styles.similarityBadgeText}>
+                    {Math.round(pet.similarityScore)}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.itemTypeBadge}>
+                <Text style={styles.itemTypeBadgeText}>🐾</Text>
+              </View>
+            </View>
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName} numberOfLines={2}>
+                {pet.name}
+              </Text>
+              <Text style={styles.petBreed} numberOfLines={1}>
+                {typeof pet.breed_id === 'object' ? pet.breed_id?.name : 'Chưa rõ giống'}
+              </Text>
+              <Text style={styles.itemPrice}>
+                {pet.price?.toLocaleString('vi-VN')}₫
+              </Text>
+              {showSimilarityScore && pet.similarityScore && (
+                <View style={styles.similarityInfo}>
+                  <Ionicons
+                    name="analytics-outline"
+                    size={12}
+                    color={getSimilarityColor(pet.similarityScore)}
+                  />
+                  <Text style={[
+                    styles.similarityText,
+                    { color: getSimilarityColor(pet.similarityScore) }
+                  ]}>
+                    Giống {pet.similarityScore >= 180 ? 'rất nhiều' : pet.similarityScore >= 120 ? 'nhiều' : 'khá nhiều'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+};
+
+// Enhanced CompatibleProducts Component
+const CompatibleProducts: FC<{
+  navigation: any;
+  petType: string;
+  limit?: number;
+}> = ({ navigation, petType, limit = 4 }) => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (petType) {
+      loadCompatibleProducts();
+    }
+  }, [petType]);
+
+  const loadCompatibleProducts = async () => {
+    if (!petType) return;
+
+    try {
+      setLoading(true);
+      console.log('🛍️ Loading compatible products for pet type:', petType);
+      const response = await petsService.getCompatibleProducts(petType, limit);
+      if (response.success) {
+        console.log('✅ Compatible products loaded:', response.data);
+        setProducts(response.data.products || []);
+      }
+    } catch (error) {
+      console.error('❌ Error loading compatible products:', error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProductPress = (product: any) => {
+    console.log('🎯 Compatible product pressed:', product._id);
+    navigation.push('ProductDetail', {
+      productId: product._id,
+    });
+  };
+
+  const getImageUrl = (product: any): string => {
+    if (product.images && product.images.length > 0) {
+      const primaryImage = product.images.find((img: any) => img.is_primary);
+      return primaryImage?.url || product.images[0]?.url || 'https://via.placeholder.com/150';
+    }
+    return 'https://via.placeholder.com/150?text=Product';
+  };
+
+  const getPetTypeIcon = (type: string): string => {
+    const icons: { [key: string]: string } = {
+      'chó': '🐕',
+      'mèo': '🐱',
+      'chim': '🐦',
+      'cá': '🐟',
+      'hamster': '🐹',
+      'thỏ': '🐰',
+      'dog': '🐕',
+      'cat': '🐱',
+      'bird': '🐦',
+      'fish': '🐟',
+      'rabbit': '🐰'
+    };
+    return icons[type.toLowerCase()] || '🐾';
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color="#2563EB" />
+        <Text style={styles.loadingText}>Đang tìm sản phẩm phù hợp...</Text>
+      </View>
+    );
+  }
+
+  if (products.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.relatedContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContainer}
+      >
+        {products.map((product, index) => (
+          <TouchableOpacity
+            key={`compatible-${product._id}-${index}`}
+            style={styles.relatedItem}
+            onPress={() => handleProductPress(product)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.imageContainer}>
+              <Image
+                source={{ uri: getImageUrl(product) }}
+                style={styles.relatedImage}
+                resizeMode="cover"
+              />
+              <View style={styles.compatibilityBadge}>
+                <Text style={styles.compatibilityBadgeText}>
+                  {getPetTypeIcon(petType)}
+                </Text>
+              </View>
+              <View style={styles.itemTypeBadge}>
+                <Text style={styles.itemTypeBadgeText}>🛍️</Text>
+              </View>
+            </View>
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName} numberOfLines={2}>
+                {product.name}
+              </Text>
+              {product.category_id && (
+                <Text style={styles.petBreed} numberOfLines={1}>
+                  {typeof product.category_id === 'object' ? product.category_id?.name : 'Sản phẩm'}
+                </Text>
+              )}
+              <Text style={styles.itemPrice}>
+                {product.price?.toLocaleString('vi-VN')}₫
+              </Text>
+              <View style={styles.compatibilityInfoContainer}>
+                <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                <Text style={styles.compatibilityText}>
+                  Phù hợp cho {petType}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+};
+
+// FooterBar Component
 const FooterBar: FC<{
   isFavorite: boolean;
   toggleFavorite: () => void;
@@ -299,7 +675,6 @@ const FooterBar: FC<{
             />
           )}
         </TouchableOpacity>
-
         <TouchableOpacity
           style={[
             styles.cartBtn,
@@ -310,21 +685,11 @@ const FooterBar: FC<{
           activeOpacity={0.8}
         >
           {isAddingToCart ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#fff" />
-              <Text style={[styles.cartBtnTxt, { marginLeft: 8 }]}>Đang thêm...</Text>
-            </View>
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
-              <TouchableOpacity >
-                 <Ionicons name="cart-outline" size={24} color="#e01111ff" />
-              </TouchableOpacity>
-            //   <Text style={styles.cartBtnTxt}>
-                
-            //   {hasVariants ? 'Thêm giỏ hàng' : 'Thêm giỏ hàng'}
-            // </Text>
+            <Ionicons name="cart-outline" size={24} color="#fff" />
           )}
         </TouchableOpacity>
-
         <TouchableOpacity
           style={[
             styles.buyBtn,
@@ -340,17 +705,15 @@ const FooterBar: FC<{
     );
   };
 
-// 🔧 MAIN COMPONENT - Thay thế RelatedGrid bằng RelatedItems
+// Main Component
 const ProductDetailScreen: FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const dispatch = useDispatch<AppDispatch>();
 
-  // GET PARAMS FIRST
   const petId = route.params?.pet?._id || route.params?.petId;
   const productId = route.params?.productId || route.params?.id;
 
-  // 🆕 CUSTOM HOOKS CHO YÊU THÍCH
   const { alertConfig, showRemoveAlert, hideAlert } = useFavouriteAlert();
   const {
     showFavouriteAdded,
@@ -361,21 +724,16 @@ const ProductDetailScreen: FC = () => {
     hideToast,
   } = useFavouriteToast();
 
-  // AUTH GUARD
   const { checkAuthAndProceed } = useAuthGuard();
-
-  // REDUX STATE
   const { favourites, loading: favouriteLoading, favouriteStatusMap } = useSelector((state: RootState) => state.favourites);
   const { isLoading: cartLoading } = useSelector((state: RootState) => state.cart);
   const { token } = useSelector((state: RootState) => state.auth);
 
-  // 🆕 MEMOIZED FAVOURITE STATUS
   const isFavorite = useMemo(() => {
     const key = petId ? `pet_${petId}` : `product_${productId}`;
     return favouriteStatusMap[key] || false;
   }, [favouriteStatusMap, petId, productId]);
 
-  // LOCAL STATE
   const [item, setItem] = useState<Pet | Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -384,22 +742,18 @@ const ProductDetailScreen: FC = () => {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isTogglingFavourite, setIsTogglingFavourite] = useState(false);
   const [isCheckingFavourite, setIsCheckingFavourite] = useState(false);
-
-  // 🔧 VARIANT STATE
   const [showVariantSelector, setShowVariantSelector] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<PetVariant | null>(null);
   const [variantActionType, setVariantActionType] = useState<'add_to_cart' | 'buy_now'>('add_to_cart');
 
   const { h, m, s } = useCountdown(36 * 60 + 58);
 
-  // 🆕 Log variants khi item load
   useEffect(() => {
     if (item && 'breed_id' in item) {
       console.log('Pet variants available:', (item as Pet).variants?.length || 0);
     }
   }, [item]);
 
-  // 🆕 Helper function để tính giá với variant
   const getDisplayPrice = (variant?: PetVariant) => {
     if (variant) {
       return variant.final_price || (item!.price + variant.price_adjustment);
@@ -407,7 +761,6 @@ const ProductDetailScreen: FC = () => {
     return item!.price;
   };
 
-  // 🆕 ENHANCED handleToggleFavorite với auth guard
   const handleToggleFavorite = async () => {
     checkAuthAndProceed(
       token,
@@ -421,7 +774,6 @@ const ProductDetailScreen: FC = () => {
     );
   };
 
-  // 🆕 Actual toggle favorite logic (extracted)
   const performToggleFavorite = async () => {
     if (!item || isTogglingFavourite || isCheckingFavourite) {
       console.log('🚫 Toggle blocked - busy state');
@@ -446,18 +798,15 @@ const ProductDetailScreen: FC = () => {
 
       if (currentServerStatus) {
         console.log('💬 Item is in favourites, showing custom remove confirmation...');
-
         showRemoveAlert(
           itemDisplayName,
           itemImage,
           async () => {
             console.log('✅ User confirmed removal');
             setIsTogglingFavourite(true);
-
             try {
               await dispatch(removeFromFavourites(params)).unwrap();
               await dispatch(fetchFavourites());
-
               showFavouriteRemoved(itemDisplayName, async () => {
                 console.log('🔄 Undo removal requested');
                 setIsTogglingFavourite(true);
@@ -473,7 +822,6 @@ const ProductDetailScreen: FC = () => {
                   setIsTogglingFavourite(false);
                 }
               });
-
             } catch (error: any) {
               console.error('❌ Remove favourite error:', error);
               showFavouriteError('Không thể xóa khỏi yêu thích. Vui lòng thử lại.');
@@ -482,31 +830,25 @@ const ProductDetailScreen: FC = () => {
             }
           }
         );
-
       } else {
         console.log('➕ Item not in favourites, adding directly...');
         setIsTogglingFavourite(true);
-
         try {
           await dispatch(addToFavourites(params)).unwrap();
           await dispatch(fetchFavourites());
           showFavouriteAdded(itemDisplayName);
-
         } catch (error: any) {
           console.error('❌ Add favourite error:', error);
-
           const errorMessage = error as string;
           const isDuplicate = errorMessage?.includes('đã có trong') ||
             errorMessage?.includes('duplicate') ||
             errorMessage?.includes('yêu thích');
-
           if (isDuplicate) {
             showFavouriteAdded(itemDisplayName);
           } else {
             const isNetworkError = errorMessage?.includes('network') ||
               errorMessage?.includes('timeout') ||
               errorMessage?.includes('connection');
-
             if (isNetworkError) {
               showNetworkError();
             } else {
@@ -517,16 +859,13 @@ const ProductDetailScreen: FC = () => {
           setIsTogglingFavourite(false);
         }
       }
-
     } catch (error: any) {
       console.error('❌ Check favourite status error:', error);
       setIsCheckingFavourite(false);
-
       const isNetworkError = error?.message?.includes('network') ||
         error?.message?.includes('timeout') ||
         error?.message?.includes('connection') ||
         (typeof navigator !== 'undefined' && !navigator.onLine);
-
       if (isNetworkError) {
         showNetworkError();
       } else {
@@ -535,7 +874,6 @@ const ProductDetailScreen: FC = () => {
     }
   };
 
-  // 🔧 ENHANCED handleAddToCart với auth guard
   const handleAddToCart = async () => {
     if (!item) {
       Alert.alert('Lỗi', 'Không tìm thấy thông tin sản phẩm');
@@ -554,7 +892,6 @@ const ProductDetailScreen: FC = () => {
     );
   };
 
-  // Actual add to cart logic (extracted)
   const performAddToCart = async () => {
     const isPet = 'breed_id' in item!;
     if (isPet && Array.isArray(item!.variants) && item!.variants.length > 0) {
@@ -562,11 +899,9 @@ const ProductDetailScreen: FC = () => {
       setShowVariantSelector(true);
       return;
     }
-
     await addItemToCart();
   };
 
-  // 🆕 NEW handleBuyNow function với variant support và auth guard
   const handleBuyNow = async () => {
     if (!item) {
       Alert.alert('Lỗi', 'Không tìm thấy thông tin sản phẩm');
@@ -592,7 +927,6 @@ const ProductDetailScreen: FC = () => {
       setShowVariantSelector(true);
       return;
     }
-
     await proceedToBuyNow();
   };
 
@@ -634,13 +968,10 @@ const ProductDetailScreen: FC = () => {
     });
   };
 
-  // 🆕 addItemToCart với variant support
   const addItemToCart = async (variant?: PetVariant) => {
     setIsAddingToCart(true);
-
     try {
       let cartParams: any = { quantity: 1 };
-
       if (variant) {
         cartParams.variant_id = variant._id;
         console.log('🛒 Adding variant to cart:', variant._id);
@@ -657,7 +988,6 @@ const ProductDetailScreen: FC = () => {
       try {
         await dispatch(addToCart(cartParams)).unwrap();
         dispatch(getCart());
-
         Alert.alert(
           'Thành công',
           `${item?.name} đã được thêm vào giỏ hàng`,
@@ -690,7 +1020,6 @@ const ProductDetailScreen: FC = () => {
         }
       }
     } catch (error: any) {
-     
       let errorMessage = 'Sản phẩm đã hết hàng';
       if (typeof error === 'string') {
         if (error.includes('already exists in cart')) {
@@ -707,11 +1036,9 @@ const ProductDetailScreen: FC = () => {
     }
   };
 
-  // 🔧 ENHANCED handleVariantSelect
   const handleVariantSelect = (variant: PetVariant) => {
     console.log('Selected variant:', variant, 'Action type:', variantActionType);
     setSelectedVariant(variant);
-
     if (variantActionType === 'add_to_cart') {
       addItemToCart(variant);
     } else if (variantActionType === 'buy_now') {
@@ -719,7 +1046,6 @@ const ProductDetailScreen: FC = () => {
     }
   };
 
-  // FETCH FAVOURITES ON MOUNT
   useEffect(() => {
     if (token) {
       console.log('🔄 ProductDetail mounted, fetching favourites...');
@@ -727,7 +1053,6 @@ const ProductDetailScreen: FC = () => {
     }
   }, [dispatch, token]);
 
-  // CHECK FAVOURITE STATUS WHEN ITEM LOADS
   useEffect(() => {
     if (item && (petId || productId) && token) {
       const key = petId ? `pet_${petId}` : `product_${productId}`;
@@ -739,26 +1064,22 @@ const ProductDetailScreen: FC = () => {
     }
   }, [item, petId, productId, dispatch, favouriteStatusMap, token]);
 
-  // FETCH FAVOURITES KHI FOCUS VÀO SCREEN
   useFocusEffect(
     useCallback(() => {
       if (token) {
         console.log('🔄 ProductDetail focused, refreshing favourites...');
         dispatch(fetchFavourites());
-
         const timeoutId = setTimeout(() => {
           if (petId || productId) {
             const params = petId ? { pet_id: petId } : { product_id: productId };
             dispatch(checkFavouriteStatus(params));
           }
         }, 500);
-
         return () => clearTimeout(timeoutId);
       }
     }, [dispatch, petId, productId, token])
   );
 
-  // FETCH ITEM DATA
   const fetchItem = async (retryCount: number = 0) => {
     const maxRetries = 3;
     try {
@@ -818,7 +1139,6 @@ const ProductDetailScreen: FC = () => {
     }
   }, [petId, productId]);
 
-  // Loading state
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -830,7 +1150,6 @@ const ProductDetailScreen: FC = () => {
     );
   }
 
-  // Error state
   if (error || !item) {
     return (
       <SafeAreaView style={styles.container}>
@@ -844,7 +1163,6 @@ const ProductDetailScreen: FC = () => {
     );
   }
 
-  // Process item data
   const productTitle = item.name || 'Unknown Item';
   const productPrice = item.price ? `${item.price.toLocaleString('vi-VN')}₫` : 'N/A';
   const productImage = Array.isArray(item.images) && item.images.length > 0
@@ -863,7 +1181,6 @@ const ProductDetailScreen: FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.headerBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#000" />
@@ -873,17 +1190,13 @@ const ProductDetailScreen: FC = () => {
           <Ionicons name="share-social-outline" size={24} />
         </TouchableOpacity>
       </View>
-
       <ScrollView>
-        {/* Main image */}
         <Header
           image={productImage}
           images={Array.isArray(item.images) ? item.images : []}
           selectedImageId={selectedVar?.id || (Array.isArray(item.images) && item.images[0]?._id) || ''}
         />
-
         <View style={styles.content}>
-          {/* Price và rating */}
           <View style={[styles.rowCenter, styles.marginTop]}>
             <Text style={styles.price}>
               {displayPrice.toLocaleString('vi-VN')}₫
@@ -894,11 +1207,7 @@ const ProductDetailScreen: FC = () => {
               <Text style={styles.soldText}>(Đã bán 50)</Text>
             </View>
           </View>
-
-          {/* Title */}
           <Text style={styles.title}>{productTitle}</Text>
-
-          {/* 🆕 Hiển thị thông tin variant đã chọn */}
           {selectedVariant && (
             <View style={styles.variantInfoContainer}>
               <Text style={styles.variantInfoTitle}>Biến thể đã chọn:</Text>
@@ -910,8 +1219,6 @@ const ProductDetailScreen: FC = () => {
               </Text>
             </View>
           )}
-
-          {/* Variations */}
           {Array.isArray(item.images) && item.images.length > 0 && (
             <VariationSelector
               images={item.images}
@@ -919,8 +1226,6 @@ const ProductDetailScreen: FC = () => {
               selectedId={selectedVar?.id || ''}
             />
           )}
-
-          {/* Rating & Reviews */}
           <Text style={styles.sectionTitle}>Đánh giá & Nhận xét</Text>
           <View style={styles.reviewHeader}>
             <Text style={styles.avgRating}>4.5</Text>
@@ -928,8 +1233,6 @@ const ProductDetailScreen: FC = () => {
             <Text style={styles.ratingCount}>Đánh giá sản phẩm (90)</Text>
           </View>
           <ReviewCard navigation={navigation} />
-
-          {/* Description */}
           <Text style={styles.sectionTitle}>Mô tả</Text>
           <Text
             style={styles.descText}
@@ -945,21 +1248,39 @@ const ProductDetailScreen: FC = () => {
               {isDescriptionExpanded ? 'Thu gọn' : 'Xem thêm'}
             </Text>
           </TouchableOpacity>
-
-          {/* Description image */}
           <Image source={productImage} style={styles.descImage} />
-
-          {/* Related items - Sử dụng RelatedItems thay vì RelatedGrid */}
-          <Text style={styles.sectionTitle}>Sản phẩm liên quan</Text>
-          <RelatedItems
-            navigation={navigation}
-            currentItemId={item._id}
-            currentItemType={isPet ? 'pet' : 'product'}
-          />
+          <View style={styles.relatedSection}>
+            <Text style={styles.sectionTitle}>
+              {isPet ? '🐾 Thú cưng & Sản phẩm liên quan' : '🛍️ Sản phẩm & Thú cưng liên quan'}
+            </Text>
+            <Text style={styles.sectionSubtitle}>
+              {isPet ? 'Khám phá thú cưng tương tự và sản phẩm phù hợp' : 'Khám phá thú cưng tương tự và sản phẩm liên quan'}
+            </Text>
+            <RelatedItems
+              navigation={navigation}
+              currentItemId={item._id}
+              currentItemType={isPet ? 'pet' : 'product'}
+              limit={8}
+            />
+          </View>
+          {isPet && (item as Pet).type && (
+            <View style={styles.relatedSection}>
+              <Text style={styles.sectionTitle}>
+                🛒 Sản phẩm dành cho {(item as Pet).type}
+              </Text>
+              <Text style={styles.sectionSubtitle}>
+                Thức ăn, phụ kiện và đồ chơi phù hợp
+              </Text>
+              <CompatibleProducts
+                navigation={navigation}
+                petType={(item as Pet).type}
+                limit={4}
+              />
+            </View>
+          )}
+          <View style={{ height: 100 }} />
         </View>
       </ScrollView>
-
-      {/* FooterBar */}
       <FooterBar
         isFavorite={isFavorite}
         toggleFavorite={handleToggleFavorite}
@@ -974,8 +1295,6 @@ const ProductDetailScreen: FC = () => {
         isTogglingFavourite={isTogglingFavourite}
         isCheckingFavourite={isCheckingFavourite}
       />
-
-      {/* Variant Selector Modal */}
       {item && 'breed_id' in item && Array.isArray((item as Pet).variants) && (
         <PetVariantSelector
           visible={showVariantSelector}
@@ -985,8 +1304,6 @@ const ProductDetailScreen: FC = () => {
           selectedVariant={selectedVariant}
         />
       )}
-
-      {/* CUSTOM ALERT COMPONENT cho yêu thích */}
       <CustomFavouriteAlert
         visible={alertConfig.visible}
         type={alertConfig.type}
@@ -996,8 +1313,6 @@ const ProductDetailScreen: FC = () => {
         onConfirm={alertConfig.onConfirm}
         onCancel={hideAlert}
       />
-
-      {/* TOAST COMPONENT cho yêu thích */}
       <FavouriteToast
         visible={toastConfig.visible}
         message={toastConfig.message}
@@ -1012,7 +1327,7 @@ const ProductDetailScreen: FC = () => {
 
 export default ProductDetailScreen;
 
-// 🆕 STYLES - Chỉ giữ lại styles cần thiết, loại bỏ styles của RelatedGrid
+// Styles
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   headerBar: {
@@ -1084,15 +1399,188 @@ const styles = StyleSheet.create({
   toggleDescBtn: { marginTop: 8, alignSelf: 'flex-start' },
   toggleDescText: { color: '#2563EB', fontWeight: '600' },
   descImage: { width: '100%', height: 200, borderRadius: 8, marginVertical: 16 },
-  // 🆕 Style cho RelatedItems
-  relatedList: { paddingVertical: 8 },
+  relatedSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    backgroundColor: '#FAFAFA',
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 12,
+    lineHeight: 20,
+    fontStyle: 'italic',
+  },
+  relatedContainer: {
+    marginTop: 16,
+  },
+  breakdownContainer: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  breakdownText: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  scrollContainer: {
+    paddingHorizontal: 4,
+    gap: 12,
+  },
+  relatedItem: {
+    width: 140,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+    marginBottom: 8,
+  },
+  imageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 100,
+  },
+  relatedImage: {
+    width: '100%',
+    height: '100%',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  relationshipBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  relationshipBadgeText: {
+    fontSize: 10,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  itemTypeBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemTypeBadgeText: {
+    fontSize: 12,
+  },
+  itemInfo: {
+    padding: 12,
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  itemPrice: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#EF4444',
+    marginBottom: 4,
+  },
+  compatibilityText: {
+    fontSize: 11,
+    color: '#8B5CF6',
+    fontStyle: 'italic',
+  },
+  similarityScore: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  similarityBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 12,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  similarityBadgeText: {
+    fontSize: 10,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  petBreed: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  similarityInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  similarityText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  compatibilityBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 12,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  compatibilityBadgeText: {
+    fontSize: 12,
+    color: '#fff',
+  },
+  compatibilityInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#6B7280',
+  },
   emptyRelatedContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    justifyContent: 'center',
+    paddingVertical: 32,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    marginTop: 16,
   },
   emptyRelatedText: {
     fontSize: 14,
-    color: '#999',
+    color: '#9CA3AF',
+    textAlign: 'center',
   },
   footer: {
     flexDirection: 'row',
@@ -1142,19 +1630,15 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     shadowOpacity: 0.05,
   },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   cartBtn: {
-    backgroundColor: '#f9fcfcff',
+    backgroundColor: '#2563EB', // Fixed color
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 8,
     minHeight: 48,
-    justifyContent: 'center',
+    width: 48, // Fixed width prevents expansion
     elevation: 3,
   },
   cartBtnTxt: {

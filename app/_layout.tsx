@@ -252,6 +252,8 @@ const AppNavigator = () => {
          <Stack.Screen
         name="AddReviewScreen"
         component={AddReviewScreen}
+        options={{ headerShown: false }}
+
          />
       <Stack.Screen
         name="PetsByBreed"
