@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,8 +19,10 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useAuth } from '../../hooks/useAuth';
 import { ChatMessage, ChatRoom, customerChatService } from '../services/chatService';
 import { customerSocketService, SocketMessage } from '../services/socketService';
+import { API_BASE_URL } from '../utils/api-client';
 
 const { width, height } = Dimensions.get('window');
 
@@ -53,7 +55,17 @@ const CustomerSupportChatScreen: React.FC = () => {
   const [sending, setSending] = useState(false);
 
   const mountedRef = useRef(true);
+  // Queue tạm để giữ tin nhắn đến sớm trước khi chatRoom sẵn sàng
+  const pendingMessagesRef = useRef<SocketMessage[]>([]);
+  // Lưu roomId hiện tại ở ref để handler socket dùng ngay, tránh lệ thuộc vào setState async
+  const currentRoomIdRef = useRef<string>('');
   const flatListRef = useRef<FlatList>(null);
+
+  const { user } = useAuth();
+  const effectiveUserId = useMemo(
+    () => (user as any)?.id || (user as any)?._id || currentUserId,
+    [user, currentUserId]
+  );
 
   useEffect(() => {
     initializeChat();
@@ -85,14 +97,14 @@ const CustomerSupportChatScreen: React.FC = () => {
       const userDataString = await AsyncStorage.getItem('userData');
       if (userDataString) {
         const userData = JSON.parse(userDataString);
-        setCurrentUserId(userData._id);
+        setCurrentUserId(userData._id || userData.id || '');
       }
+
+      // Setup socket event listeners TRƯỚC khi connect để tránh miss sự kiện sớm
+      setupSocketListeners();
 
       // Kết nối socket
       await customerSocketService.connect();
-      
-      // Setup socket event listeners
-      setupSocketListeners();
       
       // Authenticate
       await customerSocketService.authenticate();
@@ -120,6 +132,7 @@ const CustomerSupportChatScreen: React.FC = () => {
       
       // Bắt đầu chat (tạo hoặc lấy room)
       const room = await customerChatService.startChat();
+      currentRoomIdRef.current = room._id;
       setChatRoom(room);
       
       // Join room
@@ -127,6 +140,40 @@ const CustomerSupportChatScreen: React.FC = () => {
       
       // Load chat history ngay sau khi có room
       await loadChatHistory(room);
+
+      // Flush các tin nhắn đã đến trước khi chatRoom sẵn sàng
+      if (pendingMessagesRef.current.length > 0) {
+        const toAppend = pendingMessagesRef.current
+          .filter(m => (m as any).room_id === room._id || (m as any).roomId === room._id)
+          .map(m => ({
+            _id: m.id,
+            content: m.content,
+            message_type: m.message_type,
+            image_url: m.image_url,
+            sender: m.sender,
+            created_at: m.created_at,
+            isOwnMessage: m.sender.id === currentUserId,
+          }));
+
+        if (toAppend.length > 0 && mountedRef.current) {
+          // Gộp và loại trùng theo _id
+          setMessages(prev => {
+            const exist = new Set(prev.map(x => x._id));
+            const merged = [...prev];
+            for (const msg of toAppend) {
+              if (!exist.has(msg._id)) {
+                merged.push(msg);
+                exist.add(msg._id);
+              }
+            }
+            // Sắp xếp theo thời gian
+            merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            return merged;
+          });
+          scrollToBottom();
+        }
+        pendingMessagesRef.current = [];
+      }
       
     } catch (error) {
       console.error('Post-authentication error:', error);
@@ -241,7 +288,7 @@ const CustomerSupportChatScreen: React.FC = () => {
             avatar_url: senderData.avatar_url,
           },
           created_at: msg.created_at,
-          isOwnMessage: senderId === currentUserId,
+          isOwnMessage: senderId === effectiveUserId,
         };
       } catch (error) {
         console.error(`Error formatting message ${index}:`, error, msg);
@@ -263,7 +310,16 @@ const CustomerSupportChatScreen: React.FC = () => {
   };
 
   const handleNewMessage = (message: SocketMessage) => {
-    if (chatRoom && message.room_id === chatRoom._id) {
+    const incomingRoomId = (message as any).room_id || (message as any).roomId || (message as any)?.room?._id || '';
+    const activeRoomId = chatRoom?._id || currentRoomIdRef.current;
+    if (!activeRoomId) {
+      // Chưa có room: đẩy vào queue để xử lý sau khi room sẵn sàng
+      pendingMessagesRef.current.push(message);
+      console.log('⏳ Queued incoming message until room is ready', { incomingRoomId });
+      return;
+    }
+
+    if (incomingRoomId === activeRoomId) {
       const formattedMessage: ChatBubbleMessage = {
         _id: message.id,
         content: message.content,
@@ -271,13 +327,64 @@ const CustomerSupportChatScreen: React.FC = () => {
         image_url: message.image_url,
         sender: message.sender,
         created_at: message.created_at,
-        isOwnMessage: message.sender.id === currentUserId,
+        isOwnMessage: (message.sender as any).id === effectiveUserId || (message.sender as any)._id === effectiveUserId,
       };
 
       setMessages(prev => [...prev, formattedMessage]);
       scrollToBottom();
+    } else {
+      // Debug log để chẩn đoán nếu không thỏa điều kiện
+      console.log('⚠️ Incoming message ignored due to room mismatch', {
+        incomingRoomId,
+        currentRoomId: activeRoomId,
+        message,
+      });
     }
   };
+
+  // Khi state chatRoom được set, flush mọi tin nhắn đã queue
+  useEffect(() => {
+    if (!chatRoom) return;
+    if (pendingMessagesRef.current.length === 0) return;
+    const toAppend = pendingMessagesRef.current
+      .filter(m => ((m as any).room_id || (m as any).roomId) === chatRoom._id)
+      .map(m => ({
+        _id: m.id,
+        content: m.content,
+        message_type: m.message_type,
+        image_url: m.image_url,
+        sender: m.sender,
+        created_at: m.created_at,
+        isOwnMessage: (m.sender as any).id === effectiveUserId || (m.sender as any)._id === effectiveUserId,
+      }));
+    if (toAppend.length > 0) {
+      setMessages(prev => {
+        const exist = new Set(prev.map(x => x._id));
+        const merged = [...prev];
+        for (const msg of toAppend) {
+          if (!exist.has(msg._id)) {
+            merged.push(msg);
+            exist.add(msg._id);
+          }
+        }
+        merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        return merged;
+      });
+      scrollToBottom();
+    }
+    pendingMessagesRef.current = [];
+  }, [chatRoom, effectiveUserId]);
+
+  // Re-calc isOwnMessage if effectiveUserId changes
+  useEffect(() => {
+    if (!effectiveUserId || messages.length === 0) return;
+    setMessages(prev => prev.map(m => ({
+      ...m,
+      isOwnMessage:
+        (m.sender as any)?.id === effectiveUserId ||
+        (m.sender as any)?._id === effectiveUserId,
+    })));
+  }, [effectiveUserId]);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -369,56 +476,87 @@ const CustomerSupportChatScreen: React.FC = () => {
     }
   };
 
-  const renderMessage = ({ item }: { item: ChatBubbleMessage }) => (
-    <View style={[
-      styles.messageContainer,
-      item.isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer
-    ]}>
-      {!item.isOwnMessage && (
-        <View style={styles.senderInfo}>
-          <Text style={styles.senderName}>{item.sender.username}</Text>
-          <Text style={styles.senderRole}>{item.sender.role === 'Staff' ? 'Nhân viên' : 'Admin'}</Text>
-        </View>
-      )}
-      
-      <View style={[
-        styles.messageBubble,
-        item.isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble
-      ]}>
-        {item.message_type === 'image' && item.image_url ? (
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: item.image_url }}
-              style={styles.messageImage}
-              resizeMode="cover"
-            />
-            {item.content !== 'Đã gửi một hình ảnh' && (
-              <Text style={[
-                styles.messageText,
-                item.isOwnMessage ? styles.ownMessageText : styles.otherMessageText
-              ]}>
-                {item.content}
-              </Text>
-            )}
-          </View>
-        ) : (
-          <Text style={[
-            styles.messageText,
-            item.isOwnMessage ? styles.ownMessageText : styles.otherMessageText
-          ]}>
-            {item.content}
-          </Text>
-        )}
-      </View>
-      
-      <Text style={styles.messageTime}>
-        {new Date(item.created_at).toLocaleTimeString('vi-VN', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        })}
-      </Text>
-    </View>
+  const getAvatarSource = (avatar_url?: string) => {
+    if (!avatar_url) return require('../../assets/images/imageChatdog.png');
+    if (avatar_url.startsWith('http')) return { uri: avatar_url };
+    // Dùng host từ API_BASE_URL
+    const host = API_BASE_URL.replace(/\/?api\/?$/, '');
+    return { uri: `${host}${avatar_url}` };
+  };
+
+  const isSameDay = (d1: Date, d2: Date) => (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
   );
+
+  const renderDateSeparator = (dateISO: string) => {
+    const date = new Date(dateISO);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    const label = isSameDay(date, today)
+      ? 'Hôm nay'
+      : isSameDay(date, yesterday)
+      ? 'Hôm qua'
+      : date.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    return (
+      <View style={styles.dateSeparatorContainer}>
+        <View style={styles.dateSeparatorLine} />
+        <Text style={styles.dateSeparatorText}>{label}</Text>
+        <View style={styles.dateSeparatorLine} />
+      </View>
+    );
+  };
+
+  const renderMessage = ({ item, index }: { item: ChatBubbleMessage; index: number }) => {
+    const prev = index > 0 ? messages[index - 1] : undefined;
+    const showDateSeparator = !prev || !isSameDay(new Date(prev.created_at), new Date(item.created_at));
+    const isSameSenderAsPrev = !!prev && prev.sender.id === item.sender.id;
+    const showAvatar = !item.isOwnMessage && (!isSameSenderAsPrev || showDateSeparator);
+    const showName = showAvatar; // chỉ hiển thị tên khi bắt đầu nhóm mới
+
+    return (
+      <View>
+        {showDateSeparator && renderDateSeparator(item.created_at)}
+        <View style={[styles.messageRow, item.isOwnMessage ? styles.rowOwn : styles.rowOther]}>
+          {!item.isOwnMessage && (
+            <View style={styles.leftMeta}>
+              {showAvatar ? (
+                <Image source={getAvatarSource(item.sender.avatar_url)} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarSpacer} />
+              )}
+            </View>
+          )}
+
+          <View style={styles.bubbleGroup}>
+            {!item.isOwnMessage && showName && (
+              <Text style={styles.senderCaption}>{item.sender.username}</Text>
+            )}
+
+            <View style={[
+              styles.messageBubble,
+              item.isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble,
+            ]}>
+              {item.message_type === 'image' && item.image_url ? (
+                <Image source={{ uri: item.image_url }} style={styles.messageImage} resizeMode="cover" />
+              ) : (
+                <Text style={[styles.messageText, item.isOwnMessage ? styles.ownMessageText : styles.otherMessageText]}>
+                  {item.content}
+                </Text>
+              )}
+              <Text style={[styles.messageTimeInline, item.isOwnMessage ? styles.timeOnOwn : styles.timeOnOther]}>
+                {new Date(item.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+          </View>
+
+          {item.isOwnMessage && <View style={styles.rightSpacer} />}
+        </View>
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -498,7 +636,7 @@ const CustomerSupportChatScreen: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <FlatList
+         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item._id}
@@ -506,6 +644,7 @@ const CustomerSupportChatScreen: React.FC = () => {
           style={styles.messagesList}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={scrollToBottom}
+           contentContainerStyle={styles.messagesContent}
           ListHeaderComponent={
             loadingHistory ? (
               <View style={styles.loadingHistoryContainer}>
@@ -613,10 +752,52 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     flex: 1,
-    paddingHorizontal: 16,
+  },
+  messagesContent: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
   messageContainer: {
     marginVertical: 4,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 6,
+  },
+  rowOther: {
+    justifyContent: 'flex-start',
+  },
+  rowOwn: {
+    justifyContent: 'flex-end',
+  },
+  leftMeta: {
+    width: 32,
+    alignItems: 'center',
+  },
+  rightSpacer: {
+    width: 32,
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#dfe7f1',
+  },
+  avatarSpacer: {
+    width: 28,
+    height: 28,
+  },
+  bubbleGroup: {
+    maxWidth: '80%',
+    flexShrink: 1,
+  },
+  senderCaption: {
+    fontSize: 11,
+    color: '#667085',
+    marginLeft: 8,
+    marginBottom: 3,
   },
   ownMessageContainer: {
     alignItems: 'flex-end',
@@ -637,16 +818,16 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   messageBubble: {
-    maxWidth: '80%',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
+    minHeight: 36,
   },
   ownMessageBubble: {
     backgroundColor: '#4CAF50',
   },
   otherMessageBubble: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#E6F0FF',
   },
   messageText: {
     fontSize: 16,
@@ -656,6 +837,17 @@ const styles = StyleSheet.create({
   },
   otherMessageText: {
     color: '#333333',
+  },
+  messageTimeInline: {
+    fontSize: 10,
+    marginTop: 4,
+    alignSelf: 'flex-end',
+  },
+  timeOnOwn: {
+    color: 'rgba(255,255,255,0.85)',
+  },
+  timeOnOther: {
+    color: '#6b7280',
   },
   messageTime: {
     fontSize: 10,
@@ -674,31 +866,48 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: '#E6EAF0',
   },
   imageButton: {
-    padding: 8,
+    padding: 10,
     marginRight: 8,
   },
   textInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E6EAF0',
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    maxHeight: 100,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    maxHeight: 120,
+    backgroundColor: '#f8fafc',
   },
   sendButton: {
     backgroundColor: '#4CAF50',
-    borderRadius: 20,
-    padding: 12,
+    borderRadius: 22,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     marginLeft: 8,
+  },
+  dateSeparatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  dateSeparatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E6EAF0',
+  },
+  dateSeparatorText: {
+    marginHorizontal: 10,
+    fontSize: 12,
+    color: '#8A8F98',
   },
   loadingContainer: {
     flex: 1,

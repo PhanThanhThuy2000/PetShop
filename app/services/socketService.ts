@@ -84,9 +84,38 @@ class CustomerSocketService {
           this.emit('room_joined', data);
         });
 
-        this.socket.on('new_message', (message: SocketMessage) => {
-          console.log('📩 New message received:', message);
-          this.emit('new_message', message);
+        this.socket.on('new_message', (raw: any) => {
+          console.log('📩 New message received (raw):', raw);
+
+          const getId = (val: any): string => {
+            if (!val) return '';
+            if (typeof val === 'string') return val;
+            if (typeof val === 'object') return val._id || val.id || '';
+            return '';
+          };
+
+          const normalized: SocketMessage = {
+            id: getId(raw.id) || getId(raw._id) || getId(raw.messageId),
+            room_id:
+              (typeof raw.room_id === 'object' ? getId(raw.room_id) : raw.room_id) ||
+              (typeof raw.roomId === 'object' ? getId(raw.roomId) : raw.roomId) ||
+              (typeof raw.room === 'object' ? getId(raw.room) : raw.room) ||
+              '',
+            content: raw.content ?? raw.message ?? '',
+            message_type: raw.message_type || raw.messageType || 'text',
+            image_url: raw.image_url || raw.imageUrl,
+            sender: {
+              id: getId(raw.sender) || getId(raw.sender_id) || getId(raw.user),
+              username: raw.sender?.username || raw.sender_id?.username || raw.user?.username || 'Unknown',
+              role: (raw.sender?.role || raw.sender_role || raw.sender_id?.role || 'Staff') as SocketMessage['sender']['role'],
+              avatar_url: raw.sender?.avatar_url || raw.sender_id?.avatar_url || raw.user?.avatar_url,
+            },
+            sender_role: (raw.sender_role || raw.sender?.role || raw.sender_id?.role || 'Staff') as SocketMessage['sender_role'],
+            created_at: raw.created_at || raw.timestamp || new Date().toISOString(),
+          };
+
+          console.log('📩 New message normalized:', normalized);
+          this.emit('new_message', normalized);
         });
 
         this.socket.on('message_sent', (data) => {

@@ -18,7 +18,7 @@ const ChatSupportButton: React.FC<ChatSupportButtonProps> = ({
   const navigation = useNavigation();
 
   const handlePress = () => {
-    // Navigate to chat screen
+    // Navigate to customer support chat
     navigation.navigate('CustomerSupport' as never);
   };
 
