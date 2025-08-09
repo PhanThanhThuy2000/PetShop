@@ -1,7 +1,8 @@
-// app/screens/AppointmentHistoryScreen.tsx - CHỈ MÀN NÀY CÓ CHỨC NĂNG HỦY LỊCH
+// app/screens/AppointmentHistoryScreen.tsx - TÍCH HỢP ĐẦY ĐỦ CHỨC NĂNG SỬA VÀ HỦY LỊCH HẸN
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { addHours, isAfter, parseISO } from 'date-fns';
+import { addHours, format, isAfter, parseISO, setHours, setMinutes } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
@@ -17,6 +18,7 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../hooks/redux';
+import EditAppointmentModal from '../components/Appointment/EditAppointmentModal'; // Import modal sửa lịch
 import { cancelAppointment, getUserAppointments } from '../redux/slices/appointmentSlice';
 import { AppDispatch, RootState } from '../redux/store';
 import { Appointment } from '../types';
@@ -33,6 +35,10 @@ const AppointmentHistoryScreen: React.FC = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
     const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+    // ✅ THÊM: State cho modal sửa lịch hẹn
+    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
     // Load appointments when screen is focused
     useFocusEffect(
@@ -58,7 +64,83 @@ const AppointmentHistoryScreen: React.FC = () => {
         setRefreshing(false);
     };
 
-    // ✅ CHỨC NĂNG HỦY LỊCH - CHỈ CÓ Ở MÀN NÀY
+    // ✅ THÊM: Chức năng sửa lịch hẹn
+    const handleEditAppointment = (appointment: Appointment) => {
+        // Kiểm tra có thể sửa không
+        const canEdit = canEditAppointment(appointment);
+
+        if (!canEdit.allowed) {
+            Alert.alert(
+                'Không thể sửa lịch hẹn',
+                canEdit.message,
+                [{ text: 'Đóng', style: 'default' }]
+            );
+            return;
+        }
+
+        setSelectedAppointment(appointment);
+        setIsEditModalVisible(true);
+    };
+
+    // ✅ THÊM: Logic kiểm tra có thể sửa lịch hẹn
+    const canEditAppointment = (appointment: Appointment) => {
+        console.log('Checking canEdit:', {
+            id: appointment._id,
+            status: appointment.status,
+            date: appointment.appointment_date,
+            time: appointment.appointment_time,
+        });
+
+        // Chỉ cho phép sửa khi status là 'pending'
+        if (appointment.status !== 'pending') {
+            let message = '';
+            switch (appointment.status) {
+                case 'confirmed':
+                    message = 'Lịch hẹn đã được xác nhận và không thể sửa. Vui lòng liên hệ phòng khám nếu cần thay đổi.';
+                    break;
+                case 'in_progress':
+                    message = 'Lịch hẹn đang được thực hiện và không thể sửa.';
+                    break;
+                case 'completed':
+                    message = 'Lịch hẹn đã hoàn thành và không thể sửa.';
+                    break;
+                case 'cancelled':
+                    message = 'Lịch hẹn đã được hủy và không thể sửa.';
+                    break;
+                default:
+                    message = 'Không thể sửa lịch hẹn ở trạng thái hiện tại.';
+            }
+            return { allowed: false, message };
+        }
+
+        try {
+            // Parse appointment_date và thêm appointment_time using date-fns
+            const appointmentDate = parseISO(appointment.appointment_date);
+            const [hours, minutes] = appointment.appointment_time.split(':').map(Number);
+            const appointmentDateTime = setMinutes(setHours(appointmentDate, hours), minutes);
+
+            // Chuyển về múi giờ +07
+            const appointmentDateTimeLocal = addHours(appointmentDateTime, 7);
+            const now = new Date();
+
+            if (!isAfter(appointmentDateTimeLocal, now)) {
+                return {
+                    allowed: false,
+                    message: 'Không thể sửa lịch hẹn đã qua thời gian đặt lịch.'
+                };
+            }
+
+            return { allowed: true, message: '' };
+        } catch (error) {
+            console.error('Error in canEditAppointment:', error);
+            return {
+                allowed: false,
+                message: 'Lỗi xử lý thời gian. Vui lòng thử lại.'
+            };
+        }
+    };
+
+    // ✅ CHỨC NĂNG HỦY LỊCH - GIỮ NGUYÊN CODE CŨ
     const handleCancelAppointment = (appointment: Appointment) => {
         // Kiểm tra xem có thể hủy không
         const canCancel = canCancelAppointment(appointment);
@@ -175,9 +257,9 @@ const AppointmentHistoryScreen: React.FC = () => {
 
         try {
             // Parse appointment_date và thêm appointment_time
-            const datePart = parseISO(appointment.appointment_date);
+            const appointmentDate = parseISO(appointment.appointment_date);
             const [hours, minutes] = appointment.appointment_time.split(':').map(Number);
-            const appointmentDateTime = new Date(datePart.setHours(hours, minutes, 0, 0));
+            const appointmentDateTime = setMinutes(setHours(appointmentDate, hours), minutes);
 
             // Chuyển về múi giờ +07
             const appointmentDateTimeLocal = addHours(appointmentDateTime, 7);
@@ -194,8 +276,8 @@ const AppointmentHistoryScreen: React.FC = () => {
             }
 
             // Kiểm tra thời gian hủy muộn (trong vòng 2 giờ)
-            const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-            const isLateCancel = isAfter(twoHoursFromNow, appointmentDateTimeLocal);
+            const twoHoursFromNow = addHours(now, 2);
+            const isLateCancel = !isAfter(appointmentDateTimeLocal, twoHoursFromNow);
 
             console.log('Can cancel:', { isLateCancel });
             return {
@@ -254,13 +336,19 @@ const AppointmentHistoryScreen: React.FC = () => {
     };
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('vi-VN', {
-            weekday: 'long',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
+        try {
+            const date = parseISO(dateString);
+            return format(date, 'EEEE, dd/MM/yyyy', { locale: vi });
+        } catch (error) {
+            // Fallback to original format if date-fns fails
+            const date = new Date(dateString);
+            return date.toLocaleDateString('vi-VN', {
+                weekday: 'long',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
     };
 
     const getPetImage = (appointment: Appointment) => {
@@ -312,19 +400,19 @@ const AppointmentHistoryScreen: React.FC = () => {
         );
     };
 
-
     const renderAppointmentItem = ({ item }: { item: Appointment }) => {
         const canCancel = canCancelAppointment(item);
+        const canEdit = canEditAppointment(item); // ✅ THÊM: Check có thể sửa
         let isUpcoming = false;
 
         try {
             // Parse appointment_date (ISO format) và thêm appointment_time
-            const datePart = parseISO(item.appointment_date); // Chuyển ISO thành Date
+            const appointmentDate = parseISO(item.appointment_date);
             const [hours, minutes] = item.appointment_time.split(':').map(Number);
-            const appointmentDateTime = new Date(datePart.setHours(hours, minutes, 0, 0));
+            const appointmentDateTime = setMinutes(setHours(appointmentDate, hours), minutes);
 
-            // Chuyển về múi giờ +07 (nếu server trả UTC)
-            const appointmentDateTimeLocal = addHours(appointmentDateTime, 7); // Điều chỉnh +07
+            // Chuyển về múi giờ +07
+            const appointmentDateTimeLocal = addHours(appointmentDateTime, 7);
 
             isUpcoming = isAfter(appointmentDateTimeLocal, new Date());
 
@@ -355,7 +443,7 @@ const AppointmentHistoryScreen: React.FC = () => {
                         </View>
                     </View>
                     <Text style={styles.appointmentDate}>
-                        {new Date(item.created_at).toLocaleDateString('vi-VN')}
+                        {format(parseISO(item.created_at), 'dd/MM/yyyy', { locale: vi })}
                     </Text>
                 </View>
 
@@ -393,6 +481,17 @@ const AppointmentHistoryScreen: React.FC = () => {
                         <Text style={styles.detailButtonText}>Chi tiết</Text>
                     </TouchableOpacity>
 
+                    {/* ✅ THÊM: Nút sửa lịch hẹn - chỉ hiện khi pending và có thể sửa */}
+                    {item.status === 'pending' && canEdit.allowed && (
+                        <TouchableOpacity
+                            style={styles.editButton}
+                            onPress={() => handleEditAppointment(item)}
+                        >
+                            <Ionicons name="pencil-outline" size={16} color="#3B82F6" />
+                            <Text style={styles.editButtonText}>Sửa</Text>
+                        </TouchableOpacity>
+                    )}
+
                     {item.status === 'pending' && isUpcoming && (
                         <TouchableOpacity
                             style={[
@@ -428,6 +527,7 @@ const AppointmentHistoryScreen: React.FC = () => {
             </View>
         );
     };
+
     const renderEmptyList = () => (
         <View style={styles.emptyContainer}>
             <Ionicons name="calendar-outline" size={64} color="#9CA3AF" />
@@ -537,6 +637,19 @@ const AppointmentHistoryScreen: React.FC = () => {
                     </TouchableOpacity>
                 </View>
             )}
+
+            {/* ✅ THÊM: Modal sửa lịch hẹn */}
+            <EditAppointmentModal
+                visible={isEditModalVisible}
+                onClose={() => {
+                    setIsEditModalVisible(false);
+                    setSelectedAppointment(null);
+                }}
+                appointment={selectedAppointment}
+                onSuccess={() => {
+                    loadAppointments(); // Refresh danh sách
+                }}
+            />
         </SafeAreaView>
     );
 };
@@ -728,6 +841,26 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#374151',
     },
+
+    // ✅ THÊM: Styles cho nút sửa lịch hẹn
+    editButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#EFF6FF',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        marginRight: 8,
+        borderWidth: 1,
+        borderColor: '#DBEAFE',
+    },
+    editButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#3B82F6',
+        marginLeft: 4,
+    },
+
     // ✅ STYLES CHO NÚT HỦY LỊCH
     cancelButton: {
         flex: 1,
@@ -746,6 +879,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#F3F4F6',
         opacity: 0.6,
     },
+
     // ✅ STYLES CHO NÚT LIÊN HỆ HỖ TRỢ
     contactSupportButton: {
         flex: 1,
