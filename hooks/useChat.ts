@@ -16,9 +16,9 @@ import {
     updateTypingUsers
 } from '../app/redux/slices/chatSlice';
 import { AppDispatch, RootState } from '../app/redux/store';
+import chatApiService from '../app/services/chatApiService';
 import chatSocketService from '../app/services/chatSocketService';
 import { SocketNewMessageData, SocketRoomUpdatedData, SocketStaffJoinedData, SocketUserTypingData } from '../app/types';
-import chatApiService from '../app/services/chatApiService';
 
 export const useChat = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -80,6 +80,8 @@ export const useChat = () => {
 
     // New message received
     chatSocketService.onNewMessage = (data: SocketNewMessageData) => {
+      console.log('🔥 useChat: onNewMessage received:', data.content?.substring(0, 50));
+      console.log('🔥 useChat: dispatching addNewMessage to Redux...');
       dispatch(addNewMessage(data));
     };
 

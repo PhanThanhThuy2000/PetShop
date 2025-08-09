@@ -23,7 +23,6 @@ import ppointmentHistoryScreen from './screens/AppointmentHistoryScreen';
 import BreedsScreen from './screens/BreedsScreen';
 import CartScreen from './screens/CartScreen';
 import ChangePassword from './screens/ChangePassword';
-import ChatScreen from './screens/ChatScreen';
 import CustomerSupportChatScreen from './screens/CustomerSupportChatScreen2';
 import EditAdressScreen from './screens/EditAdressScreen';
 import EditInfomationScreen from './screens/EditInfomationScreen';
@@ -217,7 +216,7 @@ const AppNavigator = () => {
       {/* Communication screens */}
       <Stack.Screen
         name="Chat"
-        component={ChatScreen}
+        component={CustomerSupportChatScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
@@ -248,7 +247,7 @@ const AppNavigator = () => {
       />
       <Stack.Screen
         name="OrderDetail"
-        component={OrderDetailScreen}
+        component={OrderDetailScreen as any}
         options={{ headerShown: false }}
       />
          <Stack.Screen
