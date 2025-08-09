@@ -22,7 +22,7 @@ import { ChatMessage } from '../types';
 const ChatScreen = () => {
   const navigation = useNavigation<any>();
   const scrollViewRef = useRef<ScrollView>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Redux state
   const authState = useSelector((state: RootState) => state.auth);
@@ -48,6 +48,15 @@ const ChatScreen = () => {
   // Local state
   const [inputText, setInputText] = useState('');
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+  // Quick reply suggestions (UX improvement)
+  const QUICK_REPLIES: Array<{ label: string; value: string }> = [
+    { label: 'Vấn đề đơn hàng', value: 'Order Issues' },
+    { label: 'Tư vấn sản phẩm', value: 'Product Inquiry' },
+    { label: 'Chính sách đổi trả', value: 'Return Policy' },
+    { label: 'Vận chuyển & giao hàng', value: 'Shipping' },
+  ];
 
   // ================================
   // LIFECYCLE & INITIALIZATION
@@ -86,8 +95,24 @@ const ChatScreen = () => {
         return;
       }
 
-      // Wait a bit for socket connection to initialize
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for socket connection to be established
+      console.log('🔌 Waiting for socket connection...');
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      while (!isConnected && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
+        console.log(`🔄 Connection attempt ${attempts}/${maxAttempts}, connected: ${isConnected}`);
+      }
+
+      if (!isConnected) {
+        console.log('❌ Socket connection timeout');
+        Alert.alert('Connection Error', 'Unable to connect to chat server. Please check your internet connection.');
+        return;
+      }
+
+      console.log('✅ Socket connected, creating chat room...');
 
       // Try to create or get existing chat room
       const room = await createNewChatRoom('Customer Support', 'medium');
@@ -169,6 +194,43 @@ const ChatScreen = () => {
       typingTimeoutRef.current = null;
     }
   };
+
+  // ================================
+  // MESSAGE UTILITIES (UX)
+  // ================================
+
+  const isSameDay = (d1: Date, d2: Date) => {
+    return (
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate()
+    );
+  };
+
+  const formatDateHeader = (iso: string) => {
+    const date = new Date(iso);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (isSameDay(date, today)) return 'Hôm nay';
+    if (isSameDay(date, yesterday)) return 'Hôm qua';
+
+    return date.toLocaleDateString('vi-VN', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const renderDateSeparator = (dateISO: string) => (
+    <View style={styles.dateSeparatorContainer}>
+      <View style={styles.dateSeparatorLine} />
+      <Text style={styles.dateSeparatorText}>{formatDateHeader(dateISO)}</Text>
+      <View style={styles.dateSeparatorLine} />
+    </View>
+  );
 
   // ================================
   // MESSAGE RENDERING
@@ -253,12 +315,22 @@ const ChatScreen = () => {
           {message.text}
         </Text>
 
-        {/* Show sender name for staff messages */}
-        {!message.isUser && message.sender && (
-          <Text style={styles.senderName}>
-            {message.sender.username}
+        {/* Footer meta: timestamp and sender info/checkmark */}
+        <View style={[styles.bubbleFooter, message.isUser ? styles.footerRight : styles.footerLeft]}>
+          {!message.isUser && message.sender && (
+            <View style={styles.staffMetaContainer}>
+              <Image source={require('../../assets/images/imageChatdog.png')} style={styles.staffAvatarSmall} />
+              <Text style={styles.senderName}>{message.sender.username}</Text>
+            </View>
+          )}
+          <View style={styles.footerSpacer} />
+          <Text style={[styles.timestampText, message.isUser ? styles.timestampTextOnPrimary : null]}>
+            {message.timestamp}
           </Text>
-        )}
+          {message.isUser && (
+            <Image source={require('../../assets/images/Check.png')} style={[styles.checkIconSmall, message.isUser ? styles.checkOnPrimary : null]} />
+          )}
+        </View>
       </View>
     );
   };
@@ -288,6 +360,35 @@ const ChatScreen = () => {
       );
     }
     return null;
+  };
+
+  const handleQuickReplyPress = (value: string) => {
+    if (!isConnected || !currentRoom) return;
+    sendMessage(value, 'text');
+  };
+
+  const renderQuickReplies = () => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.quickRepliesContainer}
+    >
+      {QUICK_REPLIES.map((qr) => (
+        <TouchableOpacity
+          key={qr.value}
+          onPress={() => handleQuickReplyPress(qr.value)}
+          style={styles.quickReplyChip}
+        >
+          <Text style={styles.quickReplyText}>{qr.label}</Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+
+  const handleScroll = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom = contentSize.height - (contentOffset.y + layoutMeasurement.height);
+    setShowScrollToBottom(distanceFromBottom > 120);
   };
 
   const renderLoadingState = () => {
@@ -344,12 +445,17 @@ const ChatScreen = () => {
         ]} />
       </View>
 
-      {/* Messages */}
+      {/* Quick replies (only when no messages) */}
+      {messages.length === 0 && renderQuickReplies()}
+
+      {/* Messages with date separators */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         {isLoadingMessages && (
           <View style={styles.loadingMessagesContainer}>
@@ -358,13 +464,39 @@ const ChatScreen = () => {
           </View>
         )}
 
-        {messages.map((message) => (
-          <MessageBubble key={message._id} message={formatMessageForUI(message)} />
-        ))}
+        {!isLoadingMessages && messages.length === 0 && (
+          <View style={styles.emptyStateContainer}>
+            <Image source={require('../../assets/images/illustration.png')} style={styles.emptyStateImage} />
+            <Text style={styles.emptyStateTitle}>Hỗ trợ khách hàng</Text>
+            <Text style={styles.emptyStateSubtitle}>Hãy bắt đầu cuộc trò chuyện hoặc chọn một gợi ý ở trên</Text>
+          </View>
+        )}
+
+        {messages.map((message, index) => {
+          const prev = index > 0 ? messages[index - 1] : null;
+          const showSeparator = !prev ||
+            !isSameDay(new Date(prev.created_at), new Date(message.created_at));
+
+          return (
+            <View key={message._id}>
+              {showSeparator && renderDateSeparator(message.created_at)}
+              <MessageBubble message={formatMessageForUI(message)} />
+            </View>
+          );
+        })}
 
         {/* Typing indicator */}
         {renderTypingIndicator()}
       </ScrollView>
+
+      {showScrollToBottom && (
+        <TouchableOpacity
+          style={styles.scrollToBottomButton}
+          onPress={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        >
+          <Ionicons name="chevron-down" size={20} color="#fff" />
+        </TouchableOpacity>
+      )}
 
       {/* Input */}
       <View style={styles.inputContainer}>
@@ -390,7 +522,7 @@ const ChatScreen = () => {
           placeholder="Nhập tin nhắn..."
           multiline
           onSubmitEditing={handleSendMessage}
-          editable={isConnected && currentRoom && !isSendingMessage}
+          editable={Boolean(isConnected && currentRoom && !isSendingMessage)}
         />
 
         <View style={styles.rightButtons}>
@@ -471,6 +603,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     maxWidth: '80%',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   userMessage: {
     backgroundColor: '#4A90E2',
@@ -478,8 +615,10 @@ const styles = StyleSheet.create({
   },
   userMessageText: { color: '#fff' },
   botMessage: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#F4F6FA',
     alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#E6EAF0',
   },
   botMessageText: { color: '#333' },
   messageText: {
@@ -619,6 +758,48 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: '500',
   },
+  staffMetaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  staffAvatarSmall: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 6,
+  },
+  bubbleFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  footerLeft: {
+    justifyContent: 'flex-start',
+  },
+  footerRight: {
+    justifyContent: 'flex-end',
+  },
+  footerSpacer: {
+    flex: 1,
+  },
+  timestampText: {
+    fontSize: 10,
+    color: '#8A8F98',
+    marginLeft: 8,
+  },
+  timestampTextOnPrimary: {
+    color: 'rgba(255,255,255,0.85)',
+  },
+  checkIconSmall: {
+    width: 14,
+    height: 14,
+    marginLeft: 6,
+    tintColor: '#8A8F98',
+  },
+  checkOnPrimary: {
+    tintColor: 'rgba(255,255,255,0.85)',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -648,6 +829,79 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4A90E2',
     fontStyle: 'italic',
+  },
+  // Empty state
+  emptyStateContainer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  emptyStateImage: {
+    width: 160,
+    height: 120,
+    resizeMode: 'contain',
+    marginBottom: 12,
+  },
+  emptyStateTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  emptyStateSubtitle: {
+    fontSize: 13,
+    color: '#666',
+  },
+  // Scroll to bottom
+  scrollToBottomButton: {
+    position: 'absolute',
+    right: 16,
+    bottom: 94,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#4A90E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  // Date separators
+  dateSeparatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  dateSeparatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E6EAF0',
+  },
+  dateSeparatorText: {
+    marginHorizontal: 10,
+    fontSize: 12,
+    color: '#8A8F98',
+  },
+  // Quick replies
+  quickRepliesContainer: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  quickReplyChip: {
+    backgroundColor: '#F4F6FA',
+    borderWidth: 1,
+    borderColor: '#E6EAF0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  quickReplyText: {
+    color: '#333',
+    fontSize: 13,
   },
 });
 
