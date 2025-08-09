@@ -73,11 +73,14 @@ export const getAppointmentById = createAsyncThunk(
 
 export const updateAppointment = createAsyncThunk(
     'appointments/update',
-    async ({ id, data }: { id: string; data: UpdateAppointmentRequest }, { rejectWithValue }) => {
+    async (payload: { id: string; data: UpdateAppointmentRequest }, { rejectWithValue }) => {
         try {
-            const response = await appointmentService.updateAppointment(id, data);
-            return response.data;
+            console.log('🔄 Redux: Updating appointment:', payload);
+            const response = await appointmentService.updateAppointment(payload.id, payload.data);
+            console.log('✅ Redux: Appointment updated successfully:', response.data);
+            return { id: payload.id, appointment: response.data };
         } catch (error: any) {
+            console.error('❌ Redux: Update appointment error:', error);
             const message = error.response?.data?.message || error.message || 'Không thể cập nhật lịch hẹn';
             return rejectWithValue(message);
         }

@@ -234,11 +234,6 @@ const AppointmentDetailScreen: React.FC = () => {
                         <Image source={{ uri: getPetImage() }} style={styles.petImage} />
                         <View style={styles.petDetails}>
                             <Text style={styles.petName}>{currentAppointment.pet_id?.name || 'N/A'}</Text>
-                            <Text style={styles.petBreed}>
-                                Giống: {typeof currentAppointment.pet_id?.breed_id === 'object'
-                                    ? currentAppointment.pet_id.breed_id.name
-                                    : currentAppointment.pet_id?.breed_id || 'Chưa rõ'}
-                            </Text>
                             {currentAppointment.pet_id?.age && (
                                 <Text style={styles.petAge}>Tuổi: {currentAppointment.pet_id.age}</Text>
                             )}
