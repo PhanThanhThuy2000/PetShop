@@ -8,6 +8,61 @@ export interface ImageData {
   name?: string;
 }
 
+export interface Review {
+  _id: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+  pet_id?: {
+    _id: string;
+    name: string;
+    breed: string;
+  };
+  product_id?: {
+    _id: string;
+    name: string;
+    price: number;
+  };
+  user_id: {
+    _id: string;
+    username: string;
+    email: string;
+    avatar?: string;
+  };
+  images?: ReviewImage[];
+  order_item_id?: string;
+}
+
+export interface ReviewImage {
+  _id: string;
+  url: string;
+  is_primary: boolean;
+  review_id: string;
+  created_at: string;
+}
+export interface ReviewStats {
+  avgRating: number;
+  totalReviews: number;
+  distribution: {
+    star1: number;
+    star2: number;
+    star3: number;
+    star4: number;
+    star5: number;
+  };
+}
+export interface ReviewsResponse {
+  reviews: Review[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalReviews: number;
+    hasMore: boolean;
+  };
+  stats: ReviewStats;
+}
+
 export const reviewService = {
   async getReviews() {
     const response = await api.get<ApiResponse<Review[]>>('/reviews');
@@ -132,6 +187,80 @@ export const reviewService = {
     } catch (error: any) {
       console.error('Upload review from order item error:', error.response?.data || error.message);
       throw error; // Throw original error để có thể debug
+    }
+  },
+
+  // ✅ Lấy đánh giá theo Product ID
+  async getReviewsByProduct(
+    productId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      rating?: number;
+    } = {}
+  ): Promise<ApiResponse<ReviewsResponse>> {
+    try {
+      const { page = 1, limit = 10, rating } = params;
+
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', limit.toString());
+      if (rating) {
+        queryParams.append('rating', rating.toString());
+      }
+
+      console.log('🔍 Getting reviews for product:', productId, params);
+
+      const url = `/reviews/product/${productId}?${queryParams.toString()}`;
+      const response = await api.get<ApiResponse<ReviewsResponse>>(url);
+
+      console.log('✅ Product reviews loaded:', {
+        productId,
+        totalReviews: response.data?.data?.stats?.totalReviews || 0,
+        avgRating: response.data?.data?.stats?.avgRating || 0
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Get product reviews error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // ✅ Lấy đánh giá theo Pet ID  
+  async getReviewsByPet(
+    petId: string,
+    params: {
+      page?: number;
+      limit?: number;
+      rating?: number;
+    } = {}
+  ): Promise<ApiResponse<ReviewsResponse>> {
+    try {
+      const { page = 1, limit = 10, rating } = params;
+
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', limit.toString());
+      if (rating) {
+        queryParams.append('rating', rating.toString());
+      }
+
+      console.log('🔍 Getting reviews for pet:', petId, params);
+
+      const url = `/reviews/pet/${petId}?${queryParams.toString()}`;
+      const response = await api.get<ApiResponse<ReviewsResponse>>(url);
+
+      console.log('✅ Pet reviews loaded:', {
+        petId,
+        totalReviews: response.data?.data?.stats?.totalReviews || 0,
+        avgRating: response.data?.data?.stats?.avgRating || 0
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Get pet reviews error:', error.response?.data || error.message);
+      throw error;
     }
   },
 };

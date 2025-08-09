@@ -16,6 +16,7 @@ import App from './app';
 import About from './screens/AboutScreen';
 import AccountScreen from './screens/AccountScreen';
 import AddReviewScreen from './screens/AddReviewScreen';
+import AllReviewsScreen from './screens/AllReviewsScreen';
 import AppointmentDetailScreen from './screens/AppointmentDetailScreen';
 import ppointmentHistoryScreen from './screens/AppointmentHistoryScreen';
 import BreedsScreen from './screens/BreedsScreen';
@@ -275,6 +276,11 @@ const AppNavigator = () => {
       <Stack.Screen
         name="AppointmentDetail"
         component={AppointmentDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AllReviewsScreen"
+        component={AllReviewsScreen}
         options={{ headerShown: false }}
       />
 

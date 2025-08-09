@@ -31,6 +31,7 @@ import {
 import { AppDispatch, RootState } from '../redux/store';
 import { petsService } from '../services/petsService';
 import { productsService } from '../services/productsService';
+import { Review, reviewService, ReviewStats } from '../services/ReviewServices'; // ✅ Import reviewService
 import { Pet, PetImage, PetVariant, Product, ProductImage } from '../types';
 import { API_BASE_URL } from '../utils/api-client';
 import { requiresAuth, useAuthGuard } from '../utils/authGuard';
@@ -109,33 +110,71 @@ const InfoRow: FC<{ label: string; value: string }> = ({ label, value }) => (
   </View>
 );
 
-const ReviewCard: FC<{ navigation: any }> = ({ navigation }) => {
-  const handleViewAllReviews = () => {
-    try {
-      console.log('🔍 Navigating to Reviews screen');
-      navigation.navigate('Reviews');
-    } catch (error) {
-      console.error('❌ Navigation error:', error);
-      Alert.alert('Lỗi', 'Không thể mở màn hình đánh giá');
-    }
-  };
+// ✅ ENHANCED ReviewCard với Reviews thật
+const ReviewCard: FC<{
+  navigation: any;
+  reviews: Review[];
+  reviewStats: ReviewStats;
+  onViewAllPress: () => void;
+  loading: boolean;
+}> = ({ navigation, reviews, reviewStats, onViewAllPress, loading }) => {
+
+  if (loading) {
+    return (
+      <View style={styles.reviewLoadingContainer}>
+        <ActivityIndicator size="small" color="#2563EB" />
+        <Text style={styles.reviewLoadingText}>Đang tải đánh giá...</Text>
+      </View>
+    );
+  }
+
+  if (reviews.length === 0) {
+    return (
+      <View style={styles.noReviewsContainer}>
+        <FontAwesome name="star-o" size={32} color="#9CA3AF" />
+        <Text style={styles.noReviewsText}>Chưa có đánh giá nào</Text>
+        <Text style={styles.noReviewsSubtext}>Hãy là người đầu tiên đánh giá!</Text>
+      </View>
+    );
+  }
+
+  const latestReview = reviews[0];
 
   return (
     <View style={styles.reviewCard}>
-      <Image source={require('@/assets/images/dog.png')} style={styles.avatar} />
+      <Image
+        source={{
+          uri: latestReview.user_id?.avatar || 'https://via.placeholder.com/40'
+        }}
+        style={styles.avatar}
+      />
       <View style={styles.reviewContent}>
-        <Text style={styles.reviewer}>Veronika</Text>
+        <Text style={styles.reviewer}>
+          {latestReview.user_id?.username || 'Người dùng'}
+        </Text>
         <View style={styles.starRow}>
           {Array.from({ length: 5 }).map((_, i) => (
-            <FontAwesome key={i} name="star" size={14} color="#FBBF24" />
+            <FontAwesome
+              key={i}
+              name="star"
+              size={14}
+              color={i < latestReview.rating ? "#FBBF24" : "#E5E7EB"}
+            />
           ))}
+          <Text style={styles.reviewDate}>
+            {new Date(latestReview.created_at).toLocaleDateString('vi-VN')}
+          </Text>
         </View>
-        <Text numberOfLines={3} style={styles.reviewText}>Lorem ipsum dolor sit amet...</Text>
+        <Text numberOfLines={3} style={styles.reviewText}>
+          {latestReview.comment}
+        </Text>
         <TouchableOpacity
           style={styles.viewAllBtn}
-          onPress={handleViewAllReviews}
+          onPress={onViewAllPress}
         >
-          <Text style={styles.viewAllText}>Xem tất cả đánh giá</Text>
+          <Text style={styles.viewAllText}>
+            Xem tất cả {reviewStats.totalReviews} đánh giá
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -746,11 +785,87 @@ const ProductDetailScreen: FC = () => {
   const [selectedVariant, setSelectedVariant] = useState<PetVariant | null>(null);
   const [variantActionType, setVariantActionType] = useState<'add_to_cart' | 'buy_now'>('add_to_cart');
 
+  // ✅ REVIEWS STATES
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewStats, setReviewStats] = useState<ReviewStats>({
+    avgRating: 0,
+    totalReviews: 0,
+    distribution: {
+      star1: 0,
+      star2: 0,
+      star3: 0,
+      star4: 0,
+      star5: 0
+    }
+  });
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
   const { h, m, s } = useCountdown(36 * 60 + 58);
+
+  // ✅ LOAD REVIEWS FUNCTION
+  const loadReviews = async () => {
+    if (!item) return;
+
+    try {
+      setReviewsLoading(true);
+
+      let response;
+      const isPet = 'breed_id' in item;
+
+      if (isPet) {
+        // Gọi API reviews cho Pet
+        response = await reviewService.getReviewsByPet(item._id, {
+          page: 1,
+          limit: 3, // Chỉ lấy 3 reviews gần nhất cho preview
+        });
+      } else {
+        // Gọi API reviews cho Product
+        response = await reviewService.getReviewsByProduct(item._id, {
+          page: 1,
+          limit: 3, // Chỉ lấy 3 reviews gần nhất cho preview
+        });
+      }
+
+      if (response.success && response.data) {
+        setReviews(response.data.reviews);
+        setReviewStats(response.data.stats);
+        console.log('✅ Reviews loaded:', {
+          total: response.data.stats.totalReviews,
+          avgRating: response.data.stats.avgRating
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error loading reviews:', error);
+      // Không hiển thị error cho user, chỉ log
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  // ✅ HANDLE VIEW ALL REVIEWS
+  const handleViewAllReviews = () => {
+    if (!item) return;
+
+    const isPet = 'breed_id' in item;
+    navigation.navigate('AllReviewsScreen', {
+      itemId: item._id,
+      itemName: item.name,
+      itemImage: item.images?.[0]?.url || 'https://via.placeholder.com/150',
+      isPet: isPet,
+      stats: reviewStats
+    });
+  };
 
   useEffect(() => {
     if (item && 'breed_id' in item) {
       console.log('Pet variants available:', (item as Pet).variants?.length || 0);
+    }
+  }, [item]);
+
+  // ✅ LOAD REVIEWS KHI ITEM THAY ĐỔI
+  useEffect(() => {
+    if (item) {
+      loadReviews();
     }
   }, [item]);
 
@@ -1203,8 +1318,12 @@ const ProductDetailScreen: FC = () => {
             </Text>
             <View style={styles.ratingRow}>
               <FontAwesome name="star" size={14} color="#FBBF24" />
-              <Text style={styles.ratingText}>4.9</Text>
-              <Text style={styles.soldText}>(Đã bán 50)</Text>
+              <Text style={styles.ratingText}>
+                {reviewStats.avgRating > 0 ? reviewStats.avgRating.toFixed(1) : '0.0'}
+              </Text>
+              <Text style={styles.soldText}>
+                ({reviewStats.totalReviews} đánh giá)
+              </Text>
             </View>
           </View>
           <Text style={styles.title}>{productTitle}</Text>
@@ -1226,13 +1345,29 @@ const ProductDetailScreen: FC = () => {
               selectedId={selectedVar?.id || ''}
             />
           )}
+
+          {/* ✅ REVIEWS SECTION */}
           <Text style={styles.sectionTitle}>Đánh giá & Nhận xét</Text>
           <View style={styles.reviewHeader}>
-            <Text style={styles.avgRating}>4.5</Text>
+            <Text style={styles.avgRating}>
+              {reviewStats.avgRating > 0 ? reviewStats.avgRating.toFixed(1) : '0.0'}
+            </Text>
             <FontAwesome name="star" size={16} color="#FBBF24" />
-            <Text style={styles.ratingCount}>Đánh giá sản phẩm (90)</Text>
+            <Text style={styles.ratingCount}>
+              {reviewStats.totalReviews > 0
+                ? `${reviewStats.totalReviews} đánh giá`
+                : 'Chưa có đánh giá'
+              }
+            </Text>
           </View>
-          <ReviewCard navigation={navigation} />
+          <ReviewCard
+            navigation={navigation}
+            reviews={reviews}
+            reviewStats={reviewStats}
+            onViewAllPress={handleViewAllReviews}
+            loading={reviewsLoading}
+          />
+
           <Text style={styles.sectionTitle}>Mô tả</Text>
           <Text
             style={styles.descText}
@@ -1387,14 +1522,81 @@ const styles = StyleSheet.create({
   reviewHeader: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   avgRating: { fontSize: 18, fontWeight: '600', marginRight: 4 },
   ratingCount: { color: '#6B7280', marginLeft: 8 },
-  reviewCard: { flexDirection: 'row', marginTop: 12, backgroundColor: '#F9FAFB', padding: 12, borderRadius: 8 },
+  reviewCard: {
+    flexDirection: 'row',
+    marginTop: 12,
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
   reviewContent: { flex: 1 },
-  reviewer: { fontWeight: '600' },
-  starRow: { flexDirection: 'row', marginVertical: 4 },
-  reviewText: { color: '#374151', marginBottom: 8 },
-  viewAllBtn: { backgroundColor: '#2563EB', borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
-  viewAllText: { color: '#fff', fontWeight: '600' },
+  reviewer: { fontWeight: '600', fontSize: 14, color: '#1F2937' },
+  starRow: { flexDirection: 'row', marginVertical: 4, alignItems: 'center' },
+  reviewText: { color: '#374151', marginBottom: 8, fontSize: 13, lineHeight: 18 },
+  reviewDate: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginLeft: 8,
+  },
+  viewAllBtn: {
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  viewAllText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+
+  // ✅ Reviews Loading & Empty States
+  reviewLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  reviewLoadingText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 8,
+  },
+  noReviewsContainer: {
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  noReviewsText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 8,
+    fontWeight: '500',
+  },
+  noReviewsSubtext: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+
   descText: { color: '#6B7280', lineHeight: 20, marginTop: 8 },
   toggleDescBtn: { marginTop: 8, alignSelf: 'flex-start' },
   toggleDescText: { color: '#2563EB', fontWeight: '600' },
