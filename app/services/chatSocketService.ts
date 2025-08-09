@@ -1,19 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import io, { Socket } from 'socket.io-client';
 import {
-    SocketAuthData,
-    SocketJoinRoomData,
-    SocketNewMessageData,
-    SocketRoomUpdatedData,
-    SocketSendMessageData,
-    SocketStaffJoinedData,
-    SocketTypingData,
-    SocketUserTypingData
+  SocketAuthData,
+  SocketJoinRoomData,
+  SocketNewMessageData,
+  SocketRoomUpdatedData,
+  SocketStaffJoinedData,
+  SocketTypingData,
+  SocketUserTypingData
 } from '../types';
+import { API_BASE_URL } from '../utils/api-client';
 
 class ChatSocketService {
   private socket: Socket | null = null;
-  private serverUrl = 'http://10.0.2.2:5000';
+  // Derive socket server from REST API base to avoid environment mismatch
+  private serverUrl = API_BASE_URL.replace(/\/?api\/?$/, '');
   private isConnected = false;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
@@ -142,7 +143,12 @@ class ChatSocketService {
     }
 
     console.log(`📥 Joining room: ${roomId}`);
-    this.socket.emit('join_room', { roomId } as SocketJoinRoomData);
+    console.log('🔥 Socket connected:', this.socket.connected);
+    console.log('🔥 Socket ID:', this.socket.id);
+    console.log('🔥 Emitting join_chat event...');
+    
+    // Server expects 'join_chat'
+    this.socket.emit('join_chat', { roomId } as SocketJoinRoomData);
   }
 
   /**
@@ -173,12 +179,18 @@ class ChatSocketService {
     }
 
     console.log(`💬 Sending message to room ${roomId}: ${content.substring(0, 50)}...`);
+    console.log('🔥 Socket connected:', this.socket.connected);
+    console.log('🔥 Socket ID:', this.socket.id);
     
-    this.socket.emit('send_message', {
+    const messageData = {
       roomId,
       content: content.trim(),
       messageType
-    } as SocketSendMessageData);
+    };
+    
+    console.log('🔥 Emitting send_message with data:', JSON.stringify(messageData, null, 2));
+    
+    this.socket.emit('send_message', messageData);
   }
 
   /**
@@ -248,12 +260,54 @@ class ChatSocketService {
     });
 
     // Chat events
-    this.socket.on('new_message', (data: SocketNewMessageData) => {
-      console.log('📨 New message received:', data.content?.substring(0, 50));
-      this.onNewMessage?.(data);
-    });
+    const normalizeId = (value: any): string => {
+      if (!value) return '';
+      if (typeof value === 'string') return value;
+      if (typeof value === 'object') return value.id || value._id || '';
+      return '';
+    };
 
-    this.socket.on('user_typing', (data: SocketUserTypingData) => {
+    const handleIncomingMessage = (raw: any) => {
+      console.log('🔥 RAW MESSAGE RECEIVED:', JSON.stringify(raw, null, 2));
+
+      const data: SocketNewMessageData = {
+        id: normalizeId(raw.id) || normalizeId(raw._id) || normalizeId(raw.messageId),
+        roomId:
+          (typeof raw.roomId === 'object' ? normalizeId(raw.roomId) : raw.roomId) ||
+          (typeof raw.room_id === 'object' ? normalizeId(raw.room_id) : raw.room_id) ||
+          (typeof raw.room === 'object' ? normalizeId(raw.room) : raw.room) ||
+          '',
+        content: raw.content ?? raw.message ?? '',
+        messageType: raw.messageType || raw.message_type || 'text',
+        sender: {
+          id: normalizeId(raw.sender) || normalizeId(raw.sender_id) || normalizeId(raw.user) || '',
+          username: raw.sender?.username || raw.sender_id?.username || raw.user?.username || 'Unknown',
+          avatar_url: raw.sender?.avatar_url || raw.sender_id?.avatar_url || raw.user?.avatar_url,
+          role: raw.sender?.role || raw.sender_role || raw.sender_id?.role || 'Staff',
+        },
+        timestamp: raw.timestamp || raw.created_at || new Date().toISOString(),
+        isRead: raw.isRead ?? raw.is_read ?? false,
+      };
+
+      console.log('📨 Normalized message data:', JSON.stringify(data, null, 2));
+      console.log('📨 Calling onNewMessage callback...');
+      this.onNewMessage?.(data);
+    };
+
+    // Primary event name
+    this.socket.on('new_message', handleIncomingMessage);
+    // Possible alternate event names from server
+    this.socket.on('message', handleIncomingMessage);
+    this.socket.on('message_created', handleIncomingMessage);
+    this.socket.on('chat_message', handleIncomingMessage);
+    this.socket.on('room_message', handleIncomingMessage);
+
+    this.socket.on('user_typing', (raw: any) => {
+      const data: SocketUserTypingData = {
+        userId: raw.userId || raw.user_id || raw.id || '',
+        username: raw.username || raw.user_name || 'Unknown',
+        isTyping: raw.isTyping ?? raw.is_typing ?? false,
+      };
       this.onUserTyping?.(data);
     });
 
@@ -268,11 +322,19 @@ class ChatSocketService {
     });
 
     this.socket.on('room_joined', (data) => {
-      console.log('✅ Successfully joined room:', data.roomId);
+      console.log('✅ Successfully joined room:', JSON.stringify(data, null, 2));
     });
 
     this.socket.on('message_sent', (data) => {
-      console.log('✅ Message sent confirmation:', data.messageId);
+      console.log('✅ Message sent confirmation:', JSON.stringify(data, null, 2));
+    });
+
+    this.socket.on('user_joined', (data) => {
+      console.log('👤 User joined room:', JSON.stringify(data, null, 2));
+    });
+
+    this.socket.on('user_left', (data) => {
+      console.log('👤 User left room:', JSON.stringify(data, null, 2));
     });
 
     // Error events

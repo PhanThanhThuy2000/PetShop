@@ -334,7 +334,7 @@ export function handleNotificationNavigation(
       navigation.navigate('OrderDetailScreen', { orderId: relatedEntityId });
       break;
     case 'chat':
-      navigation.navigate('ChatScreen', { userId: senderId });
+      navigation.navigate('CustomerSupport', { userId: senderId });
       break;
     case 'appointment':
       navigation.navigate('AppointmentListScreen', { appointmentId: relatedEntityId });

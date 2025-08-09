@@ -38,6 +38,12 @@ const LoginScreen = () => {
         }
     }, [error, dispatch]);
 
+    useEffect(() => {
+        if (error === 'Your account is not allowed to log in.') {
+            Alert.alert('Account Banned', 'Your account has been banned. Please contact support.');
+        }
+    }, [error]);
+
     const handleLogin = async () => {
         if (!email.trim() || !password.trim()) {
             Alert.alert('Error', 'Please enter both email and password');

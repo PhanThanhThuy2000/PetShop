@@ -1,15 +1,15 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  RefreshControl,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    RefreshControl,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { NotificationBadge } from '../../components/NotificationBadge';
@@ -63,10 +63,10 @@ export default function PushNotificationScreen() {
           }
           break;
         case 'chat':
-          if (navigation.getState().routeNames.includes('ChatScreen')) {
-            navigation.navigate('ChatScreen', { userId: notification.data?.senderId });
+          if (navigation.getState().routeNames.includes('CustomerSupport')) {
+            navigation.navigate('CustomerSupport', { userId: notification.data?.senderId });
           } else {
-            console.log('ChatScreen not found');
+            console.log('CustomerSupport screen not found');
           }
           break;
         case 'appointment':
