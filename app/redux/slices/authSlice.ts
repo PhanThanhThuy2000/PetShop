@@ -182,6 +182,12 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
+        const decodedToken = JSON.parse(atob(action.payload.token.split('.')[1]));
+        if (decodedToken.status === 'banned' || decodedToken.status === 'suspended') {
+            state.error = 'Your account is not allowed to log in.';
+            state.token = null;
+            return;
+        }
         state.token = action.payload.token;
         state.error = null;
       })
