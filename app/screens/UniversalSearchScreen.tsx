@@ -142,7 +142,7 @@ export default function UniversalSearchScreen({ navigation }: any) {
   const renderPetItem = ({ item }: { item: Pet }) => (
     <TouchableOpacity 
       style={styles.card}
-      onPress={() => navigation.navigate('PetDetail', { id: item._id })}
+      onPress={() => navigation.navigate('ProductDetail', { id: item._id })}
     >
       <Image 
         source={{ 

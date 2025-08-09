@@ -117,7 +117,7 @@ const LoginScreen = () => {
                             <Text style={styles.primaryButtonText}>Next</Text>
                          )}
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate('Welcome')}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Wellcome')}>
                         <Text style={styles.cancelText}>Cancel</Text>
                     </TouchableOpacity>
                 </View>
