@@ -172,12 +172,6 @@ const OrderItemComponent = ({ item, onOrderCancelled }: { item: OrderItem; onOrd
 
     // ✅ LOGIC KIỂM TRA CÓ THỂ HỦY ĐƠN HÀNG
     const canCancelOrder = (orderItem: OrderItem) => {
-        console.log('Checking canCancel:', {
-            id: orderItem._id,
-            status: orderItem.order_id?.status,
-            createdAt: orderItem.created_at,
-        });
-
         // Chỉ cho phép hủy khi status là 'pending'
         if (orderItem.order_id?.status !== 'pending') {
             let message = '';
@@ -197,7 +191,6 @@ const OrderItemComponent = ({ item, onOrderCancelled }: { item: OrderItem; onOrd
                 default:
                     message = 'Không thể hủy đơn hàng ở trạng thái hiện tại.';
             }
-            console.log('Cannot cancel:', message);
             return { allowed: false, message };
         }
 
@@ -253,8 +246,6 @@ const OrderItemComponent = ({ item, onOrderCancelled }: { item: OrderItem; onOrd
 
     // HELPER FUNCTION - XỬ LÝ ẢNH (giữ nguyên)
     const getItemDisplayInfo = () => {
-        console.log('🔍 Processing order item:', JSON.stringify(item, null, 2));
-
         let itemName = 'Sản phẩm không xác định';
         let itemImage = null;
         let itemDescription = '';
@@ -297,8 +288,6 @@ const OrderItemComponent = ({ item, onOrderCancelled }: { item: OrderItem; onOrd
         }
         // FALLBACK: XỬ LÝ CẤU TRÚC CŨ
         else {
-            console.log('🔄 Legacy format detected, processing...');
-
             if (item.variant_id && typeof item.variant_id === 'object') {
                 const variant = item.variant_id;
                 if (variant.pet_id && typeof variant.pet_id === 'object') {
@@ -561,15 +550,22 @@ const HistoryScreen = () => {
             setIsLoading(true);
             setIsSearching(true);
 
-            // Tìm kiếm trước, sau đó filter theo status
+            // ✅ SỬA: Dùng đúng parameter name
             const params = {
-                keyword: searchQuery,
+                query: searchQuery, // ✅ Dùng 'query' thay vì 'keyword'
                 page: 1,
                 limit: 50
             };
 
             console.log('🔍 Searching with params:', params);
+
+            // ✅ THÊM DEBUG: Kiểm tra API call
+            console.log('🌐 API URL:', `/order_items/search?query=${encodeURIComponent(searchQuery)}&page=1&limit=50`);
+
             const response = await ordersService.searchOrderItems(params);
+
+            console.log('📡 API Response:', response);
+
             let searchResults = response.data || [];
 
             // Filter theo trạng thái ở client-side
@@ -589,8 +585,10 @@ const HistoryScreen = () => {
                 setError(null);
             }
         } catch (err: any) {
-            console.error('❌ Search error:', err.response?.data || err.message);
-            setError('Không thể tìm kiếm mục đơn hàng');
+            console.error('❌ Search error:', err);
+            console.error('❌ Error response:', err.response?.data);
+            console.error('❌ Error message:', err.message);
+            setError('Không thể tìm kiếm mục đơn hàng: ' + (err.response?.data?.message || err.message));
         } finally {
             setIsLoading(false);
         }
