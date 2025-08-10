@@ -1,4 +1,4 @@
-// app/screens/BreedsScreen.tsx - GIAO DIỆN ĐÃ TỐI ƯU VỚI ẢNH ĐÚNG
+// app/screens/BreedsScreen.tsx - THÊM CHỨC NĂNG TÌM KIẾM TRỰC TIẾP
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
@@ -12,6 +12,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -29,19 +30,75 @@ const BreedsScreen = () => {
 
   const { categoryId, categoryName } = route.params as RouteParams;
 
-  // State management
+  // State management - GIỮ NGUYÊN CŨ
   const [breeds, setBreeds] = useState<Breed[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Load breeds khi component mount
+  // ✅ THÊM MỚI: State cho search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredBreeds, setFilteredBreeds] = useState<Breed[]>([]);
+  const [showSearchInput, setShowSearchInput] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Load breeds khi component mount - GIỮ NGUYÊN
   useEffect(() => {
     if (categoryId) {
       loadBreedsByCategory();
     }
   }, [categoryId]);
 
-  // Load breeds theo category từ API
+  // ✅ THÊM MỚI: Filter breeds khi search query thay đổi
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredBreeds(breeds);
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+    } else {
+      // Filter breeds
+      const filtered = breeds.filter(breed =>
+        breed.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (breed.description && breed.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      setFilteredBreeds(filtered);
+
+      // Generate suggestions
+      if (searchQuery.length >= 1) {
+        generateSuggestions(searchQuery);
+      }
+    }
+  }, [searchQuery, breeds]);
+
+  // ✅ THÊM MỚI: Generate search suggestions
+  const generateSuggestions = (query: string) => {
+    const suggestions = new Set<string>();
+    const queryLower = query.toLowerCase();
+
+    breeds.forEach(breed => {
+      // Suggest breed names that contain the query
+      if (breed.name.toLowerCase().includes(queryLower)) {
+        suggestions.add(breed.name);
+      }
+
+      // Suggest words from descriptions
+      if (breed.description) {
+        const words = breed.description.toLowerCase().split(/\s+/);
+        words.forEach(word => {
+          if (word.length >= 3 && word.includes(queryLower)) {
+            suggestions.add(word);
+          }
+        });
+      }
+    });
+
+    // Convert to array and limit to 6 suggestions
+    const suggestionArray = Array.from(suggestions).slice(0, 6);
+    setSearchSuggestions(suggestionArray);
+    setShowSuggestions(suggestionArray.length > 0 && filteredBreeds.length === 0);
+  };
+
+  // Load breeds theo category từ API - GIỮ NGUYÊN
   const loadBreedsByCategory = async (isRefresh = false) => {
     try {
       if (isRefresh) {
@@ -57,6 +114,7 @@ const BreedsScreen = () => {
       if (response.success) {
         console.log('✅ Breeds loaded:', response.data.length);
         setBreeds(response.data);
+        setFilteredBreeds(response.data); // ✅ THÊM: Cập nhật filteredBreeds
       } else {
         throw new Error(response.message || 'Không thể tải danh sách breeds');
       }
@@ -76,12 +134,36 @@ const BreedsScreen = () => {
     }
   };
 
-  // Handle refresh
+  // Handle refresh - GIỮ NGUYÊN
   const handleRefresh = () => {
     loadBreedsByCategory(true);
   };
 
-  // Xử lý khi click vào breed
+  // ✅ THÊM MỚI: Handle search functions
+  const handleSearchPress = () => {
+    setShowSearchInput(!showSearchInput);
+    if (showSearchInput) {
+      // Đóng search, reset về danh sách gốc
+      setSearchQuery('');
+      setFilteredBreeds(breeds);
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSearchClear = () => {
+    setSearchQuery('');
+    setFilteredBreeds(breeds);
+    setSearchSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const handleSuggestionPress = (suggestion: string) => {
+    setSearchQuery(suggestion);
+    setShowSuggestions(false);
+  };
+
+  // Xử lý khi click vào breed - GIỮ NGUYÊN
   const handleBreedPress = (breed: Breed) => {
     console.log('🐕 Breed selected:', breed.name);
 
@@ -93,7 +175,7 @@ const BreedsScreen = () => {
     });
   };
 
-  // Get breed image - improved to use API images first, then fallbacks
+  // Get breed image - GIỮ NGUYÊN HOÀN TOÀN
   const getBreedImage = (breed: Breed) => {
     // 1. Ưu tiên sử dụng ảnh từ API nếu có
     if (breed.images && breed.images.length > 0) {
@@ -159,7 +241,7 @@ const BreedsScreen = () => {
     return require('../../assets/images/DogBreedsScreen.png');
   };
 
-  // Render breed item
+  // Render breed item - GIỮ NGUYÊN
   const renderBreedItem = ({ item }: { item: Breed }) => (
     <TouchableOpacity
       style={styles.breedCard}
@@ -199,32 +281,84 @@ const BreedsScreen = () => {
     </TouchableOpacity>
   );
 
-  // Render empty state
-  const renderEmptyState = () => (
+  // ✅ THÊM MỚI: Render search suggestions
+  const renderSearchSuggestions = () => {
+    if (!showSuggestions || searchSuggestions.length === 0) {
+      return null;
+    }
+
+    return (
+      <View style={styles.suggestionsContainer}>
+        <Text style={styles.suggestionsTitle}>Gợi ý tìm kiếm</Text>
+        {searchSuggestions.map((suggestion, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.suggestionItem}
+            onPress={() => handleSuggestionPress(suggestion)}
+            activeOpacity={0.7}
+          >
+            <FeatherIcon name="search" size={16} color="#9CA3AF" style={styles.suggestionIcon} />
+            <Text style={styles.suggestionText}>{suggestion}</Text>
+            <FeatherIcon name="arrow-up-left" size={14} color="#D1D5DB" />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+  const renderEmptySearchState = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconWrapper}>
         <FeatherIcon name="search" size={48} color="#D1D5DB" />
       </View>
-      <Text style={styles.emptyTitle}>Chưa có giống nào</Text>
+      <Text style={styles.emptyTitle}>Không tìm thấy kết quả</Text>
       <Text style={styles.emptySubtitle}>
-        Danh mục {categoryName} chưa có giông thú cưng nào
+        Không tìm thấy giống nào với từ khóa "{searchQuery}"
       </Text>
       <TouchableOpacity
         style={styles.emptyButton}
-        onPress={() => navigation.goBack()}
+        onPress={handleSearchClear}
         activeOpacity={0.8}
       >
-        <FeatherIcon name="arrow-left" size={16} color="#FFFFFF" />
-        <Text style={styles.emptyButtonText}>Quay lại</Text>
+        <FeatherIcon name="refresh-cw" size={16} color="#FFFFFF" />
+        <Text style={styles.emptyButtonText}>Xóa tìm kiếm</Text>
       </TouchableOpacity>
     </View>
   );
+
+  // Render empty state - CHỈNH SỬA NHẸ
+  const renderEmptyState = () => {
+    // Nếu đang search và không có kết quả
+    if (searchQuery.trim() && filteredBreeds.length === 0) {
+      return renderEmptySearchState();
+    }
+
+    // Empty state gốc
+    return (
+      <View style={styles.emptyContainer}>
+        <View style={styles.emptyIconWrapper}>
+          <FeatherIcon name="search" size={48} color="#D1D5DB" />
+        </View>
+        <Text style={styles.emptyTitle}>Chưa có giống nào</Text>
+        <Text style={styles.emptySubtitle}>
+          Danh mục {categoryName} chưa có giông thú cưng nào
+        </Text>
+        <TouchableOpacity
+          style={styles.emptyButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
+        >
+          <FeatherIcon name="arrow-left" size={16} color="#FFFFFF" />
+          <Text style={styles.emptyButtonText}>Quay lại</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Header */}
+      {/* Header - CHỈNH SỬA NHẸ */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -237,23 +371,61 @@ const BreedsScreen = () => {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Giống {categoryName}</Text>
           <Text style={styles.headerSubtitle}>
-            Chọn giống yêu thích của bạn
+            {searchQuery.trim() ? `Tìm kiếm: "${searchQuery}"` : 'Chọn giống yêu thích của bạn'}
           </Text>
         </View>
 
         <TouchableOpacity
-          style={styles.searchButton}
+          style={[styles.searchButton, showSearchInput && styles.searchButtonActive]}
+          onPress={handleSearchPress}
           activeOpacity={0.7}
         >
-          <FeatherIcon name="search" size={20} color="#6B7280" />
+          <FeatherIcon
+            name={showSearchInput ? "x" : "search"}
+            size={20}
+            color={showSearchInput ? "#3B82F6" : "#6B7280"}
+          />
         </TouchableOpacity>
       </View>
 
-      {/* Stats Bar */}
+      {/* ✅ THÊM MỚI: Search Input */}
+      {showSearchInput && (
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputContainer}>
+            <FeatherIcon name="search" size={18} color="#9CA3AF" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={`Tìm kiếm giống ${categoryName.toLowerCase()}...`}
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus={true}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={handleSearchClear}
+                style={styles.clearButton}
+                activeOpacity={0.7}
+              >
+                <FeatherIcon name="x-circle" size={18} color="#9CA3AF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* ✅ THÊM MỚI: Search Suggestions */}
+      {renderSearchSuggestions()}
+
+      {/* Stats Bar - CHỈNH SỬA NHẸ */}
       <View style={styles.statsContainer}>
         <View style={styles.statsLeft}>
           <Text style={styles.statsText}>
-            {breeds.length} giống có sẵn
+            {filteredBreeds.length} giống có sẵn
+            {searchQuery.trim() && filteredBreeds.length !== breeds.length && (
+              <Text style={styles.searchResultText}> (từ {breeds.length})</Text>
+            )}
           </Text>
           {loading && !refreshing && (
             <View style={styles.loadingDot}>
@@ -268,30 +440,32 @@ const BreedsScreen = () => {
         </View>
       </View>
 
-      {/* Breeds Grid */}
-      <FlatList
-        data={breeds}
-        renderItem={renderBreedItem}
-        keyExtractor={item => item._id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={['#3B82F6']}
-            tintColor="#3B82F6"
-          />
-        }
-        ListEmptyComponent={
-          !loading ? renderEmptyState : null
-        }
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-      />
+      {/* Breeds Grid - THAY ĐỔI data từ breeds thành filteredBreeds */}
+      {!showSuggestions && (
+        <FlatList
+          data={filteredBreeds}
+          renderItem={renderBreedItem}
+          keyExtractor={item => item._id}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#3B82F6']}
+              tintColor="#3B82F6"
+            />
+          }
+          ListEmptyComponent={
+            !loading ? renderEmptyState : null
+          }
+          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        />
+      )}
 
-      {/* Loading Overlay */}
+      {/* Loading Overlay - GIỮ NGUYÊN */}
       {loading && breeds.length === 0 && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingContent}>
@@ -307,6 +481,7 @@ const BreedsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  // ✅ GIỮ NGUYÊN TẤT CẢ STYLES CŨ
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB'
@@ -363,6 +538,74 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // ✅ THÊM MỚI: Search button active state
+  searchButtonActive: {
+    backgroundColor: '#EBF8FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  // ✅ THÊM MỚI: Search container styles
+  searchContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E5E7EB',
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 42,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  clearButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  // ✅ THÊM MỚI: Suggestions styles
+  suggestionsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E5E7EB',
+    maxHeight: 250,
+  },
+  suggestionsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#F9FAFB',
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F3F4F6',
+  },
+  suggestionIcon: {
+    marginRight: 12,
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  // ✅ GIỮ NGUYÊN các styles khác...
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -381,6 +624,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     fontWeight: '500',
+  },
+  // ✅ THÊM MỚI: Search result text style
+  searchResultText: {
+    color: '#9CA3AF',
+    fontSize: 13,
   },
   loadingDot: {
     marginLeft: 8,
