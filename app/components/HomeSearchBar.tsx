@@ -55,17 +55,38 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
     ]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // NEW: Quick word suggestions based on input
+    // Keyword suggestions based on input
     const [wordSuggestions, setWordSuggestions] = useState<string[]>([]);
 
-    // Common search terms database
+    // Expanded common search terms database for better keyword suggestions
     const commonSearchTerms = [
-        'chó', 'mèo', 'thức ăn', 'đồ chơi', 'phụ kiện', 'vitamin', 'thuốc', 'lồng',
-        'Golden Retriever', 'Poodle', 'Husky', 'Shiba', 'Corgi', 'Bulldog',
-        'Mèo Ba Tư', 'Mèo Anh', 'Mèo Nga', 'British Shorthair', 'Scottish Fold',
-        'thức ăn khô', 'thức ăn ướt', 'snack', 'bánh thưởng', 'sữa',
-        'đồ chơi cao su', 'bóng tennis', 'dây kéo', 'vòng cổ', 'rọ mõm',
-        'shampoo', 'lược', 'kéo cắt móng', 'thuốc tẩy giun', 'vitamin tổng hợp'
+        // Dog breeds
+        'chó', 'chó Golden Retriever', 'chó Poodle', 'chó Husky', 'chó Shiba Inu', 'chó Corgi',
+        'chó Bulldog', 'chó Chihuahua', 'chó Doberman', 'chó German Shepherd', 'chó Labrador',
+        'chó Pomeranian', 'chó Beagle', 'chó Boxer', 'chó Rottweiler', 'chó Alaska',
+
+        // Cat breeds
+        'mèo', 'mèo Ba Tư', 'mèo Anh lông ngắn', 'mèo Nga', 'British Shorthair', 'Scottish Fold',
+        'mèo Xiêm', 'mèo Maine Coon', 'mèo Ragdoll', 'mèo Bengal', 'mèo Munchkin',
+
+        // Pet food
+        'thức ăn', 'thức ăn cho chó', 'thức ăn cho mèo', 'thức ăn khô', 'thức ăn ướt',
+        'snack cho chó', 'snack cho mèo', 'bánh thưởng', 'sữa cho chó con', 'sữa cho mèo con',
+        'thức ăn hạt', 'pate cho mèo', 'xương gặm', 'thức ăn organic',
+
+        // Toys and accessories
+        'đồ chơi', 'đồ chơi cho chó', 'đồ chơi cho mèo', 'đồ chơi cao su', 'bóng tennis',
+        'dây kéo', 'vòng cổ', 'rọ mõm', 'áo quần cho chó', 'giường cho chó', 'nhà cho mèo',
+        'cây cào cho mèo', 'lồng vận chuyển', 'bát ăn', 'bình nước',
+
+        // Health and grooming
+        'phụ kiện', 'vitamin', 'thuốc', 'shampoo', 'lược chải lông', 'kéo cắt móng',
+        'thuốc tẩy giun', 'vitamin tổng hợp', 'canxi', 'dầu tắm', 'xịt khử mùi',
+        'thuốc nhỏ mắt', 'thuốc nhỏ tai', 'băng y tế',
+
+        // General pet care
+        'chăm sóc thú cưng', 'huấn luyện chó', 'tắm cho chó', 'cắt móng', 'chải lông',
+        'khám sức khỏe', 'tiêm phòng', 'triệt sản', 'dinh dưỡng'
     ];
 
     const searchInputRef = useRef<TextInput>(null);
@@ -78,13 +99,24 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
         loadRecentSearches();
     }, []);
 
-    // NEW: Generate word suggestions based on input
+    // Enhanced keyword suggestions - more intelligent matching
     useEffect(() => {
         if (searchQuery.trim()) {
-            const filtered = commonSearchTerms.filter(term =>
-                term.toLowerCase().includes(searchQuery.toLowerCase()) &&
-                term.toLowerCase() !== searchQuery.toLowerCase()
-            ).slice(0, 5);
+            const query = searchQuery.toLowerCase();
+
+            // Exact matches first, then partial matches
+            const exactMatches = commonSearchTerms.filter(term =>
+                term.toLowerCase().startsWith(query) && term.toLowerCase() !== query
+            );
+
+            const partialMatches = commonSearchTerms.filter(term =>
+                term.toLowerCase().includes(query) &&
+                !term.toLowerCase().startsWith(query) &&
+                term.toLowerCase() !== query
+            );
+
+            // Combine and limit results
+            const filtered = [...exactMatches, ...partialMatches].slice(0, 6);
             setWordSuggestions(filtered);
         } else {
             setWordSuggestions([]);
@@ -126,7 +158,6 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
         }
     };
 
-    // NEW: Delete individual recent search
     const deleteRecentSearch = async (searchToDelete: string) => {
         try {
             const updatedRecent = recentSearches.filter(item => item !== searchToDelete);
@@ -148,8 +179,8 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
         try {
             // Search both products and pets concurrently
             const [productsResponse, petsResponse] = await Promise.allSettled([
-                productsService.searchProducts({ keyword: query, limit: 3 }),
-                petsService.searchPets(query, { limit: 3 })
+                productsService.searchProducts({ keyword: query, limit: 4 }),
+                petsService.searchPets(query, { limit: 4 })
             ]);
 
             const suggestions: SearchSuggestion[] = [];
@@ -232,7 +263,7 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
         onSearchBlur?.();
     };
 
-    // UPDATED: Only close modal with back button, not by tapping outside
+    // FIXED: Only close modal with back button - removed tap outside functionality
     const closeModal = () => {
         Animated.parallel([
             Animated.timing(fadeAnim, {
@@ -263,7 +294,7 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
         closeModal();
 
         // Navigate to SearchScreen
-        navigation.navigate('SearchScreen', {
+        navigation.navigate('Search', {
             searchQuery: trimmedQuery,
             searchType: 'all'
         });
@@ -287,7 +318,7 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
         console.log('Open camera for visual search');
     };
 
-    // NEW: Render word suggestions
+    // Enhanced word suggestions with better styling
     const renderWordSuggestions = () => {
         if (wordSuggestions.length === 0) return null;
 
@@ -303,7 +334,9 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
                                 setSearchQuery(word);
                                 performSearch(word);
                             }}
+                            activeOpacity={0.7}
                         >
+                            <Icon name="search" size={12} color="#1D4ED8" style={styles.suggestionIcon} />
                             <Text style={styles.wordSuggestionText}>{word}</Text>
                         </TouchableOpacity>
                     ))}
@@ -316,6 +349,7 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
         <TouchableOpacity
             style={styles.suggestionItem}
             onPress={() => handleSuggestionPress(item)}
+            activeOpacity={0.7}
         >
             <View style={styles.suggestionContent}>
                 {item.imageUri ? (
@@ -356,7 +390,6 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
         </TouchableOpacity>
     );
 
-    // UPDATED: Recent search item with delete option
     const renderRecentSearchItem = ({ item }: { item: string }) => (
         <TouchableOpacity
             style={styles.recentItem}
@@ -364,6 +397,7 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
                 setSearchQuery(item);
                 performSearch(item);
             }}
+            activeOpacity={0.7}
         >
             <MaterialIcons name="history" size={20} color="#9CA3AF" />
             <Text style={styles.recentText}>{item}</Text>
@@ -384,18 +418,6 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
         </TouchableOpacity>
     );
 
-    const renderPopularSearchItem = ({ item }: { item: string }) => (
-        <TouchableOpacity
-            style={styles.popularChip}
-            onPress={() => {
-                setSearchQuery(item);
-                performSearch(item);
-            }}
-        >
-            <Text style={styles.popularChipText}>{item}</Text>
-        </TouchableOpacity>
-    );
-
     return (
         <>
             {/* Search Bar */}
@@ -403,6 +425,7 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
                 <TouchableOpacity
                     style={styles.searchBar}
                     onPress={handleFocus}
+                    activeOpacity={0.7}
                 >
                     <Icon name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
                     <TextInput
@@ -417,6 +440,7 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
                         onSubmitEditing={() => performSearch(searchQuery)}
                         returnKeyType="search"
                         blurOnSubmit={false}
+                        editable={false} // Prevent direct editing, only through modal
                     />
                     <TouchableOpacity
                         style={styles.cameraButton}
@@ -427,14 +451,13 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
                 </TouchableOpacity>
             </View>
 
-            {/* Search Modal */}
+            {/* Search Modal - FIXED: Removed onPress from overlay */}
             <Modal
                 visible={showModal}
                 transparent={true}
                 animationType="none"
                 onRequestClose={closeModal}
             >
-                {/* UPDATED: Remove onPress from overlay to prevent closing */}
                 <View style={styles.modalOverlay}>
                     <Animated.View
                         style={[
@@ -446,11 +469,12 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
                         ]}
                     >
                         <SafeAreaView style={styles.modalSafeArea}>
-                            {/* UPDATED: Modal Header with back icon */}
+                            {/* UPDATED: Modal Header with back arrow icon */}
                             <View style={styles.modalHeader}>
                                 <TouchableOpacity
                                     style={styles.backButton}
                                     onPress={closeModal}
+                                    activeOpacity={0.7}
                                 >
                                     <MaterialIcons name="arrow-back" size={24} color="#374151" />
                                 </TouchableOpacity>
@@ -489,7 +513,7 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
                                     </View>
                                 ) : (
                                     <>
-                                        {/* NEW: Word suggestions when typing */}
+                                        {/* Enhanced keyword suggestions when typing */}
                                         {renderWordSuggestions()}
 
                                         {suggestions.length > 0 ? (
@@ -512,6 +536,7 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
                                                 <TouchableOpacity
                                                     style={styles.searchButton}
                                                     onPress={() => performSearch(searchQuery)}
+                                                    activeOpacity={0.8}
                                                 >
                                                     <Icon name="search" size={20} color="#FFFFFF" />
                                                     <Text style={styles.searchButtonText}>Tìm kiếm</Text>
@@ -551,6 +576,7 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
                                                                     setSearchQuery(item);
                                                                     performSearch(item);
                                                                 }}
+                                                                activeOpacity={0.7}
                                                             >
                                                                 <Text style={styles.popularChipText}>{item}</Text>
                                                             </TouchableOpacity>
@@ -571,41 +597,41 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
 };
 
 const styles = StyleSheet.create({
-    // Main Search Bar
+    // Main Search Bar - UPDATED: More compact design
     searchContainer: {
         paddingHorizontal: 20,
-        marginTop: 10,
+        marginTop: 8, // Reduced from 10
     },
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F8FAFC',
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        borderRadius: 10, // Reduced from 12
+        paddingHorizontal: 10, // Reduced from 12
+        height: 38, // Reduced from 42
         borderWidth: 1,
         borderColor: '#E2E8F0',
-        elevation: 2,
+        elevation: 1, // Reduced shadow
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.03,
+        shadowRadius: 3,
     },
     searchIcon: {
-        marginRight: 12,
+        marginRight: 8, // Reduced from 10
     },
     searchInput: {
         flex: 1,
-        fontSize: 16,
+        fontSize: 14, // Reduced from 15
         color: '#1F2937',
         paddingVertical: 0,
     },
     cameraButton: {
-        marginLeft: 12,
-        padding: 4,
+        marginLeft: 8, // Reduced from 10
+        padding: 1, // Minimal padding
     },
 
-    // Modal Overlay
+    // Modal Overlay - FIXED: No tap handling
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -619,38 +645,39 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 
-    // UPDATED: Modal Header with back button
+    // UPDATED: Modal Header with back arrow - more compact
     modalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: 14, // Reduced from 16
+        paddingVertical: 6, // Reduced from 8
         borderBottomWidth: 1,
         borderBottomColor: '#F1F5F9',
         backgroundColor: '#FFFFFF',
     },
     backButton: {
-        padding: 8,
-        marginRight: 8,
+        padding: 4, // Reduced from 6
+        marginRight: 6, // Reduced from 8
+        borderRadius: 16, // Smaller radius
     },
     modalSearchBar: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F8FAFC',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        borderRadius: 8, // Reduced from 10
+        paddingHorizontal: 8, // Reduced from 10
+        height: 36, // Reduced from 40
     },
     modalSearchInput: {
         flex: 1,
-        fontSize: 16,
+        fontSize: 14, // Reduced from 15
         color: '#1F2937',
         paddingVertical: 0,
-        marginLeft: 8,
+        marginLeft: 4, // Reduced from 6
     },
     clearButton: {
-        padding: 4,
+        padding: 2, // Minimal padding
     },
 
     // Search Content
@@ -679,35 +706,46 @@ const styles = StyleSheet.create({
         color: '#6B7280',
     },
 
-    // NEW: Word suggestions
+    // ENHANCED: Word suggestions with more compact styling
     wordSuggestionsContainer: {
         paddingHorizontal: 20,
-        paddingVertical: 12,
+        paddingVertical: 10, // Reduced from 12
         borderBottomWidth: 1,
         borderBottomColor: '#F1F5F9',
+        backgroundColor: '#FAFBFC',
     },
     wordSuggestionsTitle: {
-        fontSize: 14,
+        fontSize: 13, // Reduced from 14
         fontWeight: '600',
         color: '#6B7280',
-        marginBottom: 8,
+        marginBottom: 6, // Reduced from 8
     },
     wordSuggestionsWrapper: {
         flexDirection: 'row',
         flexWrap: 'wrap',
     },
     wordSuggestionChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: '#EFF6FF',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        marginRight: 8,
-        marginBottom: 4,
+        paddingHorizontal: 10, // Reduced from 12
+        paddingVertical: 6, // Reduced from 8
+        borderRadius: 16, // Reduced from 20
+        marginRight: 6, // Reduced from 8
+        marginBottom: 4, // Reduced from 6
         borderWidth: 1,
         borderColor: '#DBEAFE',
+        elevation: 1,
+        shadowColor: '#1D4ED8',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    suggestionIcon: {
+        marginRight: 4, // Reduced from 6
     },
     wordSuggestionText: {
-        fontSize: 14,
+        fontSize: 13, // Reduced from 14
         color: '#1D4ED8',
         fontWeight: '500',
     },
@@ -715,6 +753,9 @@ const styles = StyleSheet.create({
     // Suggestion Items
     suggestionItem: {
         marginBottom: 12,
+        borderRadius: 8,
+        backgroundColor: '#FAFBFC',
+        padding: 8,
     },
     suggestionContent: {
         flexDirection: 'row',
@@ -770,7 +811,7 @@ const styles = StyleSheet.create({
         color: '#16A34A',
     },
 
-    // UPDATED: Recent Search Items with delete
+    // Recent Search Items
     recentItem: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -809,6 +850,11 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         marginRight: 8,
         marginBottom: 8,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
     },
     popularChipText: {
         fontSize: 14,

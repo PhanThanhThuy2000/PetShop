@@ -371,7 +371,7 @@ const SearchScreen: React.FC = () => {
 
   const handleItemPress = (item: SearchResult) => {
     if (item.type === 'pet') {
-      navigation.navigate('PetDetail', { id: item.data._id });
+      navigation.navigate('ProductDetail', { petId: item.data._id });
     } else {
       navigation.navigate('ProductDetail', { productId: item.data._id });
     }
@@ -441,18 +441,6 @@ const SearchScreen: React.FC = () => {
 
     // Handle price display
     const price = data.price?.toLocaleString('vi-VN') || 'Liên hệ';
-
-    // Handle subtitle - different for pets vs products
-    let subtitle = '';
-    if (isProduct) {
-      subtitle = data.category_id?.name || data.category?.name || 'Sản phẩm';
-    } else {
-      // For pets, show breed and type
-      const breed = data.breed_id?.name || data.breed || '';
-      const type = data.type || '';
-      subtitle = [breed, type].filter(Boolean).join(' • ') || 'Thú cưng';
-    }
-
     return (
       <TouchableOpacity
         style={styles.gridItem}
@@ -469,9 +457,6 @@ const SearchScreen: React.FC = () => {
         <View style={styles.itemInfo}>
           <Text style={styles.itemTitle} numberOfLines={2}>
             {data.name}
-          </Text>
-          <Text style={styles.itemSubtitle} numberOfLines={1}>
-            {subtitle}
           </Text>
           <Text style={styles.itemPrice}>{price} đ</Text>
         </View>
