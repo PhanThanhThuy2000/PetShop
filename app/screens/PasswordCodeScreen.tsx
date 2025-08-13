@@ -1,3 +1,4 @@
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
@@ -9,11 +10,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useAuth } from '../../hooks/redux';
+import { verifyRegistrationOtp } from '../redux/slices/authSlice';
+import api from '../utils/api-client';
 
 const PasswordCodeScreen = () => {
-  const [code, setCode] = useState(['', '', '', '']);
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const { dispatch, isLoading } = useAuth();
+  const { mode = 'register', email = '', next = 'Login', newPassword } = route.params || {};
+
+  const [code, setCode] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  const phoneNumber = '+98*******00';
+  const targetLabel = email || '+** hidden **';
 
   const handleCodeChange = (text: string, index: number) => {
     const newCode = [...code];
@@ -21,20 +30,50 @@ const PasswordCodeScreen = () => {
     setCode(newCode);
 
     // Auto-focus next input
-    if (text && index < 3) {
+    if (text && index < newCode.length - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleKeyPress = (key: string, index: number) => {
-    // Handle backspace to go to previous input
-    if (key === 'Backspace' && !code[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
+    // Handle backspace to go to previous input and clear it
+    if (key === 'Backspace') {
+      if (!code[index] && index > 0) {
+        const newCode = [...code];
+        newCode[index - 1] = '';
+        setCode(newCode);
+        inputRefs.current[index - 1]?.focus();
+      }
     }
   };
 
-  const handleSendAgain = () => {
-    // Implement resend code logic here
+  const handleSendAgain = async () => {
+    try {
+      if (mode === 'register') {
+        // Re-trigger register to resend OTP is not ideal; usually a dedicated resend endpoint.
+        // Here we show a message or implement when backend supports resend.
+        // noop
+      } else if (mode === 'reset' && email) {
+        await api.post('/users/forgot-password', { email });
+      }
+    } catch (_) {}
+  };
+
+  const handleConfirm = async () => {
+    const otp = code.join('');
+    if (!otp || otp.length < 4) {
+      return;
+    }
+    try {
+      if (mode === 'register') {
+        await dispatch(verifyRegistrationOtp({ email, otp })).unwrap();
+        navigation.navigate('app');
+      } else if (mode === 'reset') {
+        // newPassword must be provided from prior screen
+        await api.post('/users/reset-password', { email, otp, newPassword });
+        navigation.navigate(next);
+      }
+    } catch (e) {}
   };
 
   return (
@@ -57,17 +96,17 @@ const PasswordCodeScreen = () => {
         {/* Content below logo */}
         <View style={styles.bottomContent}>
           {/* Title */}
-          <Text style={styles.title}>Password Recovery</Text>
+          <Text style={styles.title}>{mode === 'register' ? 'Verify Your Email' : 'Password Recovery'}</Text>
 
           {/* Instructions */}
           <Text style={styles.description}>
-            Enter 4-digits code we sent you{'\n'}on your phone number
+            Enter the code we sent to{mode === 'register' ? ' your email' : ''}
           </Text>
 
           {/* Phone Number */}
-          <Text style={styles.phoneNumber}>{phoneNumber}</Text>
+          <Text style={styles.phoneNumber}>{targetLabel}</Text>
 
-          {/* Code Input - 4 separate boxes */}
+          {/* Code Input - 6 separate boxes */}
           <View style={styles.codeContainer}>
             {code.map((digit, index) => (
               <TextInput
@@ -80,23 +119,30 @@ const PasswordCodeScreen = () => {
                 maxLength={1}
                 keyboardType="number-pad"
                 textAlign="center"
-                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
               />
             ))}
           </View>
 
-          {/* Send Again Button */}
+          {/* Confirm Button */}
           <TouchableOpacity
-            style={styles.sendAgainButton}
-            onPress={handleSendAgain}
+            style={styles.verifyButton}
+            onPress={handleConfirm}
+            disabled={isLoading}
           >
-            <Text style={styles.sendAgainText}>Send Again</Text>
+            <Text style={styles.verifyText}>Verify</Text>
           </TouchableOpacity>
 
-          {/* Cancel Button */}
-          <TouchableOpacity style={styles.cancelButton}>
-            <Text style={styles.cancelText}>Cancel</Text>
+          {/* Send Again */}
+          <TouchableOpacity
+            style={styles.sendAgainWrapper}
+            onPress={handleSendAgain}
+          >
+            <Text style={styles.sendAgainText}>Send again</Text>
           </TouchableOpacity>
+
+         
         </View>
       </View>
       
@@ -167,17 +213,17 @@ const styles = StyleSheet.create({
   codeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '70%',
+    width: '90%',
     marginBottom: 60,
   },
   codeInput: {
-    width: 50,
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    fontSize: 20,
-    fontWeight: '600',
+    width: 48,
+    height: 56,
+    borderWidth: 1.5,
+    borderColor: '#cfd4dc',
+    borderRadius: 10,
+    fontSize: 22,
+    fontWeight: '700',
     backgroundColor: '#fff',
     elevation: 1,
     shadowColor: '#000',
@@ -188,29 +234,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  sendAgainButton: {
-    marginTop: 200,
+  verifyButton: {
+    marginTop: 24,
     width: '80%',
     height: 50,
-    backgroundColor: '#ff69b4',
+    backgroundColor: '#007AFF',
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
     elevation: 2,
-    shadowColor: '#ff69b4',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+  },
+  verifyText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  sendAgainWrapper: {
+    marginTop: 12,
   },
   sendAgainText: {
-   
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#666',
+    fontSize: 12,
+    fontWeight: '500',
   },
   cancelButton: {
     padding: 12,
