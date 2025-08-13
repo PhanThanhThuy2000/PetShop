@@ -1,20 +1,21 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    RefreshControl,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { NotificationBadge } from '../../components/NotificationBadge';
 import { useAuth } from '../../hooks/useAuth';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
+import LoginRequired from '../components/LoginRequired';
 import { NotificationType } from '../services/NotificationService';
 
 export default function PushNotificationScreen() {
@@ -200,21 +201,16 @@ export default function PushNotificationScreen() {
     if (!token) {
       return (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🔒</Text>
-          <Text style={styles.emptyTitle}>Yêu cầu đăng nhập</Text>
-          <Text style={styles.emptyText}>
-            Bạn cần đăng nhập để xem thông báo
-          </Text>
-          
-          <TouchableOpacity 
-            style={styles.loginButton}
-            onPress={() => navigation.navigate('Login')}
-          >
-            <Icon name="log-in" size={18} color="#fff" />
-            <Text style={styles.loginButtonText}>
-              Đăng nhập
-            </Text>
-          </TouchableOpacity>
+          <LoginRequired
+            title="Yêu cầu đăng nhập"
+            description="Bạn cần đăng nhập để xem thông báo"
+            primaryLabel="Đăng nhập"
+            onPrimaryPress={() => navigation.navigate('Login')}
+            showCreateAccount={false}
+            showGuestLink={true}
+            guestLabel="Tiếp tục xem như khách"
+            onGuestPress={() => navigation.navigate('Home')}
+          />
         </View>
       );
     }

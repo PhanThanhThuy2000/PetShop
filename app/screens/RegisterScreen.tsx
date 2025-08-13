@@ -22,7 +22,6 @@ import { clearError, registerUser } from '../redux/slices/authSlice';
 
 const { width } = Dimensions.get('window');
 
-// Danh sách các quốc gia tĩnh
 const countryList = [
   { cca2: 'AF', callingCode: ['93'], name: 'Afghanistan' },
   { cca2: 'AL', callingCode: ['355'], name: 'Albania' },
