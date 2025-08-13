@@ -1,11 +1,11 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import 'expo-router/entry';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
 
 // Redux store
 import { loadTokenFromStorage } from './redux/slices/authSlice';
@@ -35,7 +35,7 @@ import LoginScreen from './screens/LoginScreen';
 import NewPasswordScreen from './screens/NewPasswordScreen';
 import OrderDetailScreen from './screens/OrderDetailScreen';
 import OrderSuccess from './screens/OrderSuccessScreen';
-import PasswordCodeScreen from './screens/PasswordCodeScreen';
+import { default as OtpVerificationScreen, default as PasswordCodeScreen } from './screens/PasswordCodeScreen';
 import PaymentScreen from './screens/PaymentScreen';
 import PetAllScreen from './screens/PetAllScreen';
 import PetCareBookingScreen from './screens/PetCareBookingScreen';
@@ -90,6 +90,11 @@ const AppNavigator = () => {
       <Stack.Screen
         name="PasswordCode"
         component={PasswordCodeScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="OtpVerification"
+        component={OtpVerificationScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

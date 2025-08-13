@@ -1,9 +1,14 @@
+import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import api from '../utils/api-client';
 
 const RecoveryPasswordScreen = () => {
-  const [selectedMethod, setSelectedMethod] = useState('SMS');
+  const [selectedMethod, setSelectedMethod] = useState('Email');
+  const [email, setEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const navigation = useNavigation<any>();
 
   return (
     <View style={styles.container}>
@@ -62,9 +67,44 @@ const RecoveryPasswordScreen = () => {
         </View>
       </TouchableOpacity>
 
+      {/* Email Input and New Password */}
+      <View style={{ width: '100%', marginTop: 12 }}>
+        <TextInput
+          placeholder="Enter your email"
+          placeholderTextColor="#999"
+          style={styles.textInput}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          placeholder="New password"
+          placeholderTextColor="#999"
+          style={styles.textInput}
+          secureTextEntry
+          value={newPassword}
+          onChangeText={setNewPassword}
+        />
+      </View>
+
       {/* Bottom buttons */}
       <View style={styles.bottomContainer}>
-        <TouchableOpacity style={styles.nextButton}>
+        <TouchableOpacity
+          style={styles.nextButton}
+          onPress={async () => {
+            if (!email) return;
+            try {
+              await api.post('/users/forgot-password', { email });
+            } catch (_) {}
+            navigation.navigate('OtpVerification', {
+              mode: 'reset',
+              email,
+              next: 'Login',
+              newPassword,
+            });
+          }}
+        >
           <Text style={styles.nextButtonText}>Next</Text>
         </TouchableOpacity>
 
@@ -88,6 +128,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 60,
     paddingHorizontal: 24,
+  },
+  textInput: {
+    width: '100%',
+    height: 48,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
   },
   imageContainer: {
     width: 130, // Tăng từ 100 lên 130
