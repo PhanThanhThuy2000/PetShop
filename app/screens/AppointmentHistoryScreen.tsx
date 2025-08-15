@@ -19,6 +19,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../hooks/redux';
 import EditAppointmentModal from '../components/Appointment/EditAppointmentModal'; // Import modal sửa lịch
+import LoginRequired from '../components/LoginRequired';
 import { cancelAppointment, getUserAppointments } from '../redux/slices/appointmentSlice';
 import { AppDispatch, RootState } from '../redux/store';
 import { Appointment } from '../types';
@@ -559,18 +560,17 @@ const AppointmentHistoryScreen: React.FC = () => {
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Lịch sử đặt lịch</Text>
                 </View>
-                <View style={styles.loginRequiredContainer}>
-                    <Ionicons name="lock-closed-outline" size={64} color="#9CA3AF" />
-                    <Text style={styles.loginRequiredTitle}>Cần đăng nhập</Text>
-                    <Text style={styles.loginRequiredSubtitle}>
-                        Vui lòng đăng nhập để xem lịch sử đặt lịch hẹn
-                    </Text>
-                    <TouchableOpacity
-                        style={styles.loginButton}
-                        onPress={() => navigation.navigate('Login')}
-                    >
-                        <Text style={styles.loginButtonText}>Đăng nhập</Text>
-                    </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                    <LoginRequired
+                        title="Cần đăng nhập"
+                        description="Vui lòng đăng nhập để xem lịch sử đặt lịch hẹn"
+                        primaryLabel="Đăng nhập"
+                        onPrimaryPress={() => navigation.navigate('Login')}
+                        showCreateAccount={false}
+                        showGuestLink={true}
+                        guestLabel="Tiếp tục xem như khách"
+                        onGuestPress={() => navigation.navigate('Home')}
+                    />
                 </View>
             </SafeAreaView>
         );
