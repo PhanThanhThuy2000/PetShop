@@ -17,24 +17,25 @@ const BottomTabNavigator: React.FC = () => {
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
+                
                 tabBarIcon: ({ focused, color, size }: { focused: boolean; color: string; size: number }) => {
                     let iconName: keyof typeof Ionicons.glyphMap;
 
                     // Always use outline icons
                     switch (route.name) {
-                        case "Home":
+                        case "Trang chủ":
                             iconName = "home-outline";
                             break;
-                        case "Favourite":
+                        case "Yêu thích":
                             iconName = "heart-outline";
                             break;
-                        case "AppointmentHistory":
+                        case "Lịch hẹn":
                             iconName = "calendar";
                             break;
-                        case "Cart":
+                        case "Giỏ hàng":
                             iconName = "cart-outline";
                             break;
-                        case "Account":
+                        case "Tài khoản":
                             iconName = "person-outline";
                             break;
                         default:
@@ -61,12 +62,12 @@ const BottomTabNavigator: React.FC = () => {
                 },
             })}
         >
-            <Tab.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-            <Tab.Screen name="Favourite" component={GuardedFavouriteScreen} options={{ headerShown: false }} />
+            <Tab.Screen name="Trang chủ" component={HomeScreen} options={{ headerShown: false  }} />
+            <Tab.Screen name="Yêu thích" component={GuardedFavouriteScreen} options={{ headerShown: false }} />
             {/* <Tab.Screen name="Notification" component={GuardedNotificationScreen} options={{ headerShown: false }} /> */}
-            <Tab.Screen name="AppointmentHistory" component={AppointmentHistory} options={{ headerShown: false }} />
-            <Tab.Screen name="Cart" component={GuardedCartScreen} options={{ headerShown: false }} />
-            <Tab.Screen name="Account" component={GuardedAccountScreen} options={{ headerShown: false }} />
+            <Tab.Screen name="Lịch hẹn" component={AppointmentHistory} options={{ headerShown: false }} />
+            <Tab.Screen name="Giỏ hàng" component={GuardedCartScreen} options={{ headerShown: false }} />
+            <Tab.Screen name="Tài khoản" component={GuardedAccountScreen} options={{ headerShown: false }} />
         </Tab.Navigator>
     );
 };

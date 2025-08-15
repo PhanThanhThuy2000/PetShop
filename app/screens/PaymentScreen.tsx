@@ -679,7 +679,7 @@ const PaymentScreen = () => {
                 style={styles.goToVoucherBtn}
                 onPress={() => {
                   setShowVoucherModal(false);
-                  navigation.navigate('VoucherScreen');
+                  navigation.navigate('Voucher');
                 }}
               >
                 <Text style={styles.goToVoucherBtnText}>Xem và lưu voucher</Text>
