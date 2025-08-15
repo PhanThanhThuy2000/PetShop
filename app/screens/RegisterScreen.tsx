@@ -333,6 +333,11 @@ const RegisterScreen: React.FC = () => {
 
     try {
       await dispatch(registerUser(registerData)).unwrap();
+      // Navigate to OTP screen for registration verification
+      navigation.navigate('OtpVerification', {
+        mode: 'register',
+        email: registerData.email,
+      } as never);
     } catch (error) {
       console.error('Registration failed:', error);
     }

@@ -32,13 +32,33 @@ export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async (userData: RegisterRequest, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiResponse<{ token: string }>>('/users/register', userData);
+      // Server sends OTP to email and returns no token here
+      await api.post<ApiResponse<null>>('/users/register', userData);
+      return true;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Registration failed';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Verify registration OTP → returns token
+export const verifyRegistrationOtp = createAsyncThunk(
+  'auth/verifyRegistrationOtp',
+  async (
+    payload: { email: string; otp: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await api.post<ApiResponse<{ token: string }>>(
+        '/users/verify-register',
+        { email: payload.email, otp: payload.otp }
+      );
       const { token } = response.data.data;
-      
       await AsyncStorage.setItem('token', token);
       return { token };
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Registration failed';
+      const message = error.response?.data?.message || 'OTP verification failed';
       return rejectWithValue(message);
     }
   }
@@ -201,12 +221,27 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(registerUser.fulfilled, (state, action) => {
+      .addCase(registerUser.fulfilled, (state) => {
+        state.isLoading = false;
+        // No token yet; OTP step required
+        state.error = null;
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+
+      // Verify registration OTP
+      .addCase(verifyRegistrationOtp.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(verifyRegistrationOtp.fulfilled, (state, action) => {
         state.isLoading = false;
         state.token = action.payload.token;
         state.error = null;
       })
-      .addCase(registerUser.rejected, (state, action) => {
+      .addCase(verifyRegistrationOtp.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })
