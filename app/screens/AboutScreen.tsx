@@ -1,16 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 
 const AboutScreen = () => {
   const navigation = useNavigation<any>();
@@ -18,39 +18,39 @@ const AboutScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
-      
+
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>About</Text>
+        <Text style={styles.headerTitle}>Giới thiệu</Text>
         <View style={styles.headerRightIcons} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.iconContainer}>
-          <Image 
+          <Image
             source={require('../../assets/images/iconabout.png')} // Đảm bảo đường dẫn này đúng
             style={styles.iconImage}
             resizeMode="contain"
           />
         </View>
 
-        <Text style={styles.title}>About PeShops</Text>
+        <Text style={styles.title}>Về PeShops</Text>
 
         <Text style={styles.description}>
-          Shoppe - Shopping UI kit" is likely a user interface (UI) kit designed to facilitate the development of e-commerce or shopping-related applications. UI kits are collections of pre-designed elements, components, and templates that developers and designers can use to create consistent and visually appealing user interfaces.
+          PeShops - Ứng dụng mua sắm trực tuyến hiện đại và tiện lợi. Chúng tôi cung cấp giao diện người dùng thân thiện và trải nghiệm mua sắm tuyệt vời cho khách hàng. Với hàng ngàn sản phẩm chất lượng cao từ các thương hiệu uy tín, PeShops cam kết mang đến cho bạn những sản phẩm tốt nhất với giá cả hợp lý.
         </Text>
 
         <Text style={styles.contactText}>
-          If you need help or you have any questions, feel free to contact me by email.
+          Nếu bạn cần hỗ trợ hoặc có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi qua email.
         </Text>
 
         <Text style={styles.emailText}>
-          hello@mydomain.com
+          hello@peshops.com
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderColor: '#f0f0f0',
-    marginTop:25
+    marginTop: 25
   },
   backButton: {
     padding: 5,
@@ -83,10 +83,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     textAlign: 'center',
-    zIndex: -1, 
+    zIndex: -1,
   },
   headerRightIcons: {
-    width: 24 + 10, 
+    width: 24 + 10,
   },
   content: {
     flex: 1,

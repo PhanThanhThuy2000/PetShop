@@ -598,11 +598,11 @@ const HistoryScreen = () => {
     const getStatusText = (status: string) => {
         switch (status) {
             case 'pending':
-                return 'đang chờ xử lý';
+                return 'Đang chờ xử lý';
             case 'processing':
-                return 'đang xử lý';
+                return 'Đang xử lý';
             case 'completed':
-                return 'đã hoàn thành';
+                return 'Đã hoàn thành';
             case 'cancelled':
                 return 'Đã hủy';
             default:
@@ -682,9 +682,9 @@ const HistoryScreen = () => {
     const renderStatusFilter = () => {
         const statuses = [
             { key: 'all', label: 'Tất cả', color: '#6B7280' },
-            { key: 'pending', label: 'đang chờ xử lý', color: '#F59E0B' },
-            { key: 'processing', label: 'đang xử lý', color: '#3B82F6' },
-            { key: 'completed', label: 'đã hoàn thành', color: '#10B981' },
+            { key: 'pending', label: 'Đang chờ xử lý', color: '#F59E0B' },
+            { key: 'processing', label: 'Đang xử lý', color: '#3B82F6' },
+            { key: 'completed', label: 'Đã hoàn thành', color: '#10B981' },
             { key: 'cancelled', label: 'Đã hủy', color: '#EF4444' },
         ];
 

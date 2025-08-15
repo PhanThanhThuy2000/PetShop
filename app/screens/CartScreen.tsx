@@ -460,8 +460,8 @@ export default function CartScreen() {
         {cartItems.length === 0 ? (
           <View style={styles.emptyCart}>
             <Ionicons name="cart-outline" size={60} color="#C0C0C0" />
-            <Text style={styles.emptyTitle}>Your cart is empty</Text>
-            <Text style={styles.emptySubtext}>Add some items to get started!</Text>
+            <Text style={styles.emptyTitle}>Giỏ hàng trống</Text>
+            <Text style={styles.emptySubtext}>Vui lòng thêm sản phẩm vào giỏ hàng</Text>
           </View>
         ) : (
           cartItems.map(item => renderCard(item, true))
