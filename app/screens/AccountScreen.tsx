@@ -35,7 +35,7 @@ const AccountScreen: React.FC = () => {
   const getUserAvatar = () => {
     return user?.avatar_url
       ? { uri: user.avatar_url }
-      : { uri: 'https://randomuser.me/api/portraits/women/1.jpg' };
+      : { uri: 'https://www.creativefabrica.com/wp-content/uploads/2023/05/18/Pet-Shop-logo-design-vector-Graphics-69959847-1.png' };
   };
 
   return (

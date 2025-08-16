@@ -261,7 +261,7 @@ const EditInfomationScreen = () => {
     if (user?.avatar_url) {
       return { uri: user.avatar_url };
     }
-    return { uri: 'https://randomuser.me/api/portraits/men/32.jpg' };
+    return { uri: 'https://www.creativefabrica.com/wp-content/uploads/2023/05/18/Pet-Shop-logo-design-vector-Graphics-69959847-1.png' };
   };
 
   if (!user && isLoading) {
