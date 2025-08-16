@@ -1,7 +1,8 @@
-// ChangePassword.tsx (Đã sửa)
+// ChangePassword.tsx (Đã sửa lỗi input)
 
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { userService } from '../services/userService';
 
 interface PasswordInputProps {
@@ -23,10 +23,50 @@ interface PasswordInputProps {
   onChangeText: (text: string) => void;
   showPassword: boolean;
   onTogglePassword: () => void;
+  isLoading?: boolean;
 }
 
+// ✅ Di chuyển PasswordInput ra ngoài component để tránh re-create
+const PasswordInput = React.memo(({
+  placeholder,
+  value,
+  onChangeText,
+  showPassword,
+  onTogglePassword,
+  isLoading = false,
+}: PasswordInputProps) => (
+  <View style={styles.inputContainer}>
+    <TextInput
+      style={styles.textInput}
+      placeholder={placeholder}
+      placeholderTextColor="#A0A0A0"
+      value={value}
+      onChangeText={onChangeText}
+      secureTextEntry={!showPassword}
+      editable={!isLoading}
+      autoCapitalize="none"
+      autoCorrect={false}
+      textContentType="password"
+      // ✅ Thêm các props quan trọng
+      blurOnSubmit={false}
+      returnKeyType="next"
+    />
+    <TouchableOpacity
+      style={styles.eyeIcon}
+      onPress={onTogglePassword}
+      disabled={isLoading}
+      activeOpacity={0.7}
+    >
+      <Ionicons
+        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+        size={20}
+        color="#A0A0A0"
+      />
+    </TouchableOpacity>
+  </View>
+));
+
 const ChangePasswordScreen = () => {
-  // 2. Lấy navigation từ hook
   const navigation = useNavigation<any>();
 
   const [oldPassword, setOldPassword] = useState('');
@@ -37,31 +77,56 @@ const ChangePasswordScreen = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // ✅ Sử dụng useCallback để tránh re-create functions
+  const handleOldPasswordChange = useCallback((text: string) => {
+    setOldPassword(text);
+  }, []);
+
+  const handleNewPasswordChange = useCallback((text: string) => {
+    setNewPassword(text);
+  }, []);
+
+  const handleConfirmPasswordChange = useCallback((text: string) => {
+    setConfirmPassword(text);
+  }, []);
+
+  const toggleOldPassword = useCallback(() => {
+    setShowOldPassword(prev => !prev);
+  }, []);
+
+  const toggleNewPassword = useCallback(() => {
+    setShowNewPassword(prev => !prev);
+  }, []);
+
+  const toggleConfirmPassword = useCallback(() => {
+    setShowConfirmPassword(prev => !prev);
+  }, []);
+
   const handleUpdatePassword = async () => {
     try {
       // Validation
       if (!oldPassword.trim()) {
-        Alert.alert('Error', 'Please enter your current password');
+        Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu hiện tại');
         return;
       }
 
       if (!newPassword.trim()) {
-        Alert.alert('Error', 'Please enter your new password');
+        Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu mới');
         return;
       }
 
       if (newPassword.length < 6) {
-        Alert.alert('Error', 'New password must be at least 6 characters long');
+        Alert.alert('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự');
         return;
       }
 
       if (newPassword !== confirmPassword) {
-        Alert.alert('Error', 'New password and confirm password do not match');
+        Alert.alert('Lỗi', 'Mật khẩu mới và mật khẩu xác nhận không khớp');
         return;
       }
 
       if (oldPassword === newPassword) {
-        Alert.alert('Error', 'New password must be different from current password');
+        Alert.alert('Lỗi', 'Mật khẩu mới phải khác mật khẩu hiện tại');
         return;
       }
 
@@ -72,8 +137,8 @@ const ChangePasswordScreen = () => {
 
       if (response.success) {
         Alert.alert(
-          'Success', 
-          'Password changed successfully',
+          'Thành công',
+          'Đổi mật khẩu thành công',
           [
             {
               text: 'OK',
@@ -81,56 +146,25 @@ const ChangePasswordScreen = () => {
             }
           ]
         );
-        
+
         // Clear form
         setOldPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        Alert.alert('Error', response.message || 'Failed to change password');
+        Alert.alert('Lỗi', response.message || 'Không thể đổi mật khẩu');
       }
 
     } catch (error: any) {
       console.error('Change password error:', error);
       Alert.alert(
-        'Error', 
-        error.response?.data?.message || 'An error occurred while changing password'
+        'Lỗi',
+        error.response?.data?.message || 'Đã xảy ra lỗi khi đổi mật khẩu'
       );
     } finally {
       setIsLoading(false);
     }
   };
-
-  const PasswordInput = ({
-    placeholder,
-    value,
-    onChangeText,
-    showPassword,
-    onTogglePassword,
-  }: PasswordInputProps) => (
-    <View style={styles.inputContainer}>
-      <TextInput
-        style={styles.textInput}
-        placeholder={placeholder}
-        placeholderTextColor="#A0A0A0"
-        value={value}
-        onChangeText={onChangeText}
-        secureTextEntry={!showPassword}
-        editable={!isLoading}
-      />
-      <TouchableOpacity 
-        style={styles.eyeIcon} 
-        onPress={onTogglePassword}
-        disabled={isLoading}
-      >
-        <Ionicons
-          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-          size={20}
-          color="#A0A0A0"
-        />
-      </TouchableOpacity>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -138,11 +172,14 @@ const ChangePasswordScreen = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        {/* 3. Thêm onPress và sửa lại icon cho đồng bộ */}
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Change Password</Text>
+        <Text style={styles.headerTitle}>Thay đổi mật khẩu</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -150,29 +187,33 @@ const ChangePasswordScreen = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <PasswordInput
-          placeholder="Enter your old password"
+          placeholder="Nhập mật khẩu cũ"
           value={oldPassword}
-          onChangeText={setOldPassword}
+          onChangeText={handleOldPasswordChange}
           showPassword={showOldPassword}
-          onTogglePassword={() => setShowOldPassword(!showOldPassword)}
+          onTogglePassword={toggleOldPassword}
+          isLoading={isLoading}
         />
 
         <PasswordInput
-          placeholder="Enter your new password"
+          placeholder="Nhập mật khẩu mới"
           value={newPassword}
-          onChangeText={setNewPassword}
+          onChangeText={handleNewPasswordChange}
           showPassword={showNewPassword}
-          onTogglePassword={() => setShowNewPassword(!showNewPassword)}
+          onTogglePassword={toggleNewPassword}
+          isLoading={isLoading}
         />
 
         <PasswordInput
-          placeholder="Confirm your new password"
+          placeholder="Xác nhận mật khẩu mới"
           value={confirmPassword}
-          onChangeText={setConfirmPassword}
+          onChangeText={handleConfirmPasswordChange}
           showPassword={showConfirmPassword}
-          onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+          onTogglePassword={toggleConfirmPassword}
+          isLoading={isLoading}
         />
       </KeyboardAvoidingView>
 
@@ -182,9 +223,10 @@ const ChangePasswordScreen = () => {
           style={[styles.updateButton, isLoading && styles.disabledButton]}
           onPress={handleUpdatePassword}
           disabled={isLoading}
+          activeOpacity={0.8}
         >
           <Text style={styles.updateButtonText}>
-            {isLoading ? 'Updating...' : 'Update Password'}
+            {isLoading ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -192,12 +234,11 @@ const ChangePasswordScreen = () => {
   );
 };
 
-// ... styles không đổi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    paddingTop:50
+    paddingTop: 50
   },
   header: {
     flexDirection: 'row',
@@ -217,12 +258,12 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   placeholder: {
-    width: 34, // Bằng kích thước nút back để title ở giữa
+    width: 34,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 40, 
+    paddingTop: 40,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -234,29 +275,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     height: 56,
     backgroundColor: '#FFFFFF',
+    // ✅ Thêm shadow cho đẹp hơn
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   textInput: {
     flex: 1,
     fontSize: 16,
     color: '#000000',
+    paddingVertical: 0, // ✅ Đảm bảo text align properly
   },
   eyeIcon: {
     padding: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   buttonContainer: {
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
   updateButton: {
-    backgroundColor: '#2563EB', // Đổi màu cho nổi bật hơn
+    backgroundColor: '#2563EB',
     borderRadius: 12,
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
+    // ✅ Thêm shadow cho button
+    shadowColor: '#2563EB',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   disabledButton: {
     backgroundColor: '#A0A0A0',
     opacity: 0.6,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   updateButtonText: {
     color: '#FFFFFF',
@@ -264,6 +328,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
 
 export default ChangePasswordScreen;

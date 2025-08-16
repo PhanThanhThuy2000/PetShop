@@ -39,19 +39,34 @@ const AboutScreen = () => {
           />
         </View>
 
-        <Text style={styles.title}>Về PeShops</Text>
+        <Text style={styles.title}>Về PetShop</Text>
 
         <Text style={styles.description}>
-          PeShops - Ứng dụng mua sắm trực tuyến hiện đại và tiện lợi. Chúng tôi cung cấp giao diện người dùng thân thiện và trải nghiệm mua sắm tuyệt vời cho khách hàng. Với hàng ngàn sản phẩm chất lượng cao từ các thương hiệu uy tín, PeShops cam kết mang đến cho bạn những sản phẩm tốt nhất với giá cả hợp lý.
+          PetShop - Ứng dụng chăm sóc thú cưng toàn diện và hiện đại nhất Việt Nam. Chúng tôi cung cấp dịch vụ khám chữa bệnh chuyên nghiệp, sản phẩm chăm sóc thú cưng chất lượng cao và trải nghiệm người dùng tuyệt vời. Với đội ngũ bác sĩ thú y giàu kinh nghiệm và hệ thống cửa hàng trên toàn quốc, PetShop cam kết mang đến sức khỏe tốt nhất cho những người bạn bốn chân của bạn.
         </Text>
+
+        <Text style={styles.featuresTitle}>Dịch vụ của chúng tôi:</Text>
+
+        <View style={styles.featuresList}>
+          <Text style={styles.featureItem}>🏥 Khám chữa bệnh cho thú cưng</Text>
+          <Text style={styles.featureItem}>📅 Đặt lịch hẹn trực tuyến</Text>
+          <Text style={styles.featureItem}>🛒 Mua sắm sản phẩm thú cưng</Text>
+          <Text style={styles.featureItem}>💊 Tư vấn sức khỏe 24/7</Text>
+          <Text style={styles.featureItem}>🚀 Giao hàng tận nhà</Text>
+        </View>
 
         <Text style={styles.contactText}>
-          Nếu bạn cần hỗ trợ hoặc có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi qua email.
+          Nếu bạn cần hỗ trợ hoặc có bất kỳ câu hỏi nào về sức khỏe thú cưng, vui lòng liên hệ với chúng tôi.
         </Text>
 
-        <Text style={styles.emailText}>
-          hello@peshops.com
-        </Text>
+        <View style={styles.contactInfo}>
+          <Text style={styles.contactLabel}>Email:</Text>
+          <Text style={styles.emailText}>support@petshop.vn</Text>
+
+          <Text style={styles.contactLabel}>Hotline:</Text>
+          <Text style={styles.phoneText}>1900 123 456</Text>
+
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -116,18 +131,55 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     textAlign: 'left',
   },
+  featuresTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 16,
+  },
+  featuresList: {
+    marginBottom: 28,
+  },
+  featureItem: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: '#666',
+    marginBottom: 8,
+  },
   contactText: {
     fontSize: 15,
     lineHeight: 22,
     color: '#666',
-    marginBottom: 16,
+    marginBottom: 24,
     textAlign: 'left',
+  },
+  contactInfo: {
+    marginBottom: 60,
+  },
+  contactLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#888',
+    marginTop: 16,
+    marginBottom: 4,
   },
   emailText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#000',
-    marginBottom: 60,
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  phoneText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  addressText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+    lineHeight: 20,
   },
 });
 
