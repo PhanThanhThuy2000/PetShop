@@ -502,12 +502,6 @@ const AppointmentHistoryScreen: React.FC = () => {
                             <Ionicons name="pricetag-outline" size={16} color="#6B7280" />
                             <Text style={styles.price}>{formatPrice(item.total_amount)}</Text>
                         </View>
-                        {item.notes && (
-                            <View style={styles.notesContainer}>
-                                <Ionicons name="document-text-outline" size={16} color="#6B7280" />
-                                <Text style={styles.notes} numberOfLines={2}>{item.notes}</Text>
-                            </View>
-                        )}
 
                         {/* ✅ THÊM: Hiển thị lý do no-show nếu có */}
                         {item.status === 'no-show' && (
