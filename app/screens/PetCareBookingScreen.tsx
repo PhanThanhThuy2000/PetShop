@@ -250,9 +250,9 @@ const getServiceIcon = (category: string): string => {
         bathing: '🛁',
         health: '🩺',
         grooming: '✂️',
-        spa: '💆'
+        spa: '🐕'
     };
-    return icons[category] || '💆';
+    return icons[category] || '🐕';
 };
 
 // ================================
