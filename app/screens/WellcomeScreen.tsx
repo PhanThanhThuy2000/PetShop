@@ -32,31 +32,30 @@ const WelcomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC"/>
-      
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+
       <View style={styles.contentContainer}>
         <Image
-          source={require('../../assets/images/LogoWellcome.png')}
+          source={require('../../assets/images/LogoApp.png')}
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.title}>Pet Shops</Text>
-        <Text style={styles.subtitle}>Lovely pets of every family</Text>
+        <Text style={styles.subtitle}>Chào mừng bạn đến với cửa hàng thú </Text>
       </View>
 
       <View style={styles.footerContainer}>
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('app')} 
+          onPress={() => navigation.navigate('app')}
         >
-          <Text style={styles.primaryButtonText}>Let's get started</Text>
+          <Text style={styles.primaryButtonText}>Hãy bắt đầu thôi</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.secondaryButton}
-          onPress={() => navigation.navigate('SignUp')} 
+          onPress={() => navigation.navigate('SignUp')}
         >
-          <Text style={styles.secondaryButtonText}>Create new account</Text>
+          <Text style={styles.secondaryButtonText}>Tạo tài khoản mới</Text>
           <View style={styles.arrowIconContainer}>
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </View>
@@ -74,12 +73,12 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center', 
+    justifyContent: 'center',
     paddingHorizontal: 24,
   },
   footerContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 40, 
+    paddingBottom: 40,
   },
   logo: {
     width: 180,

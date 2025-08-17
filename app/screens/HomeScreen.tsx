@@ -239,9 +239,16 @@ const HomeScreen = () => {
         }
       >
 
-        {/* Header */}
+        {/* Header with Logo */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Pet Store</Text>
+            <Image
+            source={require('../../assets/images/pet_shop_logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+              onError={() => {
+                console.log('Logo failed to load');
+              }}
+            />
 
           <View style={styles.headerActions}>
             <TouchableOpacity
@@ -366,7 +373,7 @@ const HomeScreen = () => {
   );
 };
 
-// Styles - Cleaned up and optimized
+// Styles - Updated with logo styles
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -379,15 +386,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 10
+   paddingHorizontal: 20,
+    paddingTop: 25,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2D3748'
+  logoImage: {
+    width: 100, // Kích thước như trong code gốc
+    height: 40,
   },
+  // Remove headerTitle since we're using logo now
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
