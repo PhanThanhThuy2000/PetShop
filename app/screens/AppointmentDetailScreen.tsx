@@ -148,7 +148,6 @@ const AppointmentDetailScreen: React.FC = () => {
             const primaryImage = images.find(img => img.is_primary) || images[0];
             return primaryImage.url;
         }
-        return 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop&crop=face';
     };
 
     if (isLoading && !currentAppointment) {

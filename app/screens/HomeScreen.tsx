@@ -137,8 +137,8 @@ const HomeScreen = () => {
     try {
       setProductsLoading(true);
       const response = await productsService.getProducts({ page: 1, limit: 10 });
-      if (response.success && response.data && response.data.length > 0) {
-        setProducts(response.data);
+      if (response.success && response.data?.products?.length > 0) {
+        setProducts(response.data.products); // Trích xuất mảng products
       } else {
         setProducts(fallbackProducts as Product[]);
       }
@@ -241,14 +241,14 @@ const HomeScreen = () => {
 
         {/* Header with Logo */}
         <View style={styles.header}>
-            <Image
+          <Image
             source={require('../../assets/images/pet_shop_logo.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-              onError={() => {
-                console.log('Logo failed to load');
-              }}
-            />
+            style={styles.logoImage}
+            resizeMode="contain"
+            onError={() => {
+              console.log('Logo failed to load');
+            }}
+          />
 
           <View style={styles.headerActions}>
             <TouchableOpacity
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-   paddingHorizontal: 20,
+    paddingHorizontal: 20,
     paddingTop: 25,
   },
   logoImage: {

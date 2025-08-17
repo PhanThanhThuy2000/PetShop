@@ -240,10 +240,10 @@ const countryList = [
 
 const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  
+
   // Redux state
   const { isLoading, error, token, dispatch } = useAuth();
-  
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -251,7 +251,7 @@ const RegisterScreen: React.FC = () => {
     password: '',
     phone: '',
   });
-  
+
   // UI state
   const [showPassword, setShowPassword] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState({
@@ -268,7 +268,7 @@ const RegisterScreen: React.FC = () => {
 
   useEffect(() => {
     if (error) {
-      Alert.alert('Registration Error', error, [
+      Alert.alert('Lỗi đăng ký', error, [
         { text: 'OK', onPress: () => dispatch(clearError()) }
       ]);
     }
@@ -283,33 +283,33 @@ const RegisterScreen: React.FC = () => {
 
   const validateForm = () => {
     const { name, email, password, phone } = formData;
-    
+
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Please enter your name');
+      Alert.alert('Lỗi xác thực', 'Vui lòng nhập tên của bạn');
       return false;
     }
-    
+
     if (!email.trim()) {
-      Alert.alert('Validation Error', 'Please enter your email');
+      Alert.alert('Lỗi xác thực', 'Vui lòng nhập email của bạn');
       return false;
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Validation Error', 'Please enter a valid email address');
+      Alert.alert('Lỗi xác thực', 'Vui lòng nhập địa chỉ email hợp lệ');
       return false;
     }
-    
+
     if (!password) {
-      Alert.alert('Validation Error', 'Please enter your password');
+      Alert.alert('Lỗi xác thực', 'Vui lòng nhập mật khẩu của bạn');
       return false;
     }
-    
+
     if (password.length < 6) {
-      Alert.alert('Validation Error', 'Password must be at least 6 characters long');
+      Alert.alert('Lỗi xác thực', 'Mật khẩu phải có ít nhất 6 ký tự');
       return false;
     }
-    
+
     return true;
   };
 
@@ -319,9 +319,9 @@ const RegisterScreen: React.FC = () => {
     }
 
     const { name, email, password, phone } = formData;
-    
+
     const fullPhone = phone.trim() ? `+${selectedCountry.callingCode[0]}${phone}` : undefined;
-    
+
     const registerData = {
       username: name.trim(),
       email: email.trim(),
@@ -354,7 +354,7 @@ const RegisterScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.headerContainer}>
-          <Text style={styles.title}>SignUp</Text>
+          <Text style={styles.title}>Đăng Ký</Text>
           <Image
             source={require('@/assets/images/signup.png')}
             style={styles.illustration}
@@ -364,7 +364,7 @@ const RegisterScreen: React.FC = () => {
         <View style={styles.formContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Name"
+            placeholder="Họ và tên"
             placeholderTextColor="#C0C0C0"
             value={formData.name}
             onChangeText={(value) => updateFormData('name', value)}
@@ -385,21 +385,21 @@ const RegisterScreen: React.FC = () => {
           <View style={styles.passwordWrapper}>
             <TextInput
               style={styles.passwordInput}
-              placeholder="Password"
+              placeholder="Mật khẩu"
               placeholderTextColor="#C0C0C0"
               secureTextEntry={!showPassword}
               value={formData.password}
               onChangeText={(value) => updateFormData('password', value)}
               editable={!isLoading}
             />
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowPassword(!showPassword)}
               disabled={isLoading}
             >
-              <Icon 
-                name={showPassword ? "eye" : "eye-off"} 
-                size={20} 
-                color="#C0C0C0" 
+              <Icon
+                name={showPassword ? "eye" : "eye-off"}
+                size={20}
+                color="#C0C0C0"
               />
             </TouchableOpacity>
           </View>
@@ -423,7 +423,7 @@ const RegisterScreen: React.FC = () => {
             </View>
             <TextInput
               style={styles.phoneInput}
-              placeholder="Your number"
+              placeholder="Số điện thoại"
               placeholderTextColor="#C0C0C0"
               keyboardType="phone-pad"
               value={formData.phone}
@@ -432,7 +432,7 @@ const RegisterScreen: React.FC = () => {
             />
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.buttonPrimary, isLoading && styles.buttonDisabled]}
             onPress={handleRegister}
             disabled={isLoading}
@@ -440,17 +440,17 @@ const RegisterScreen: React.FC = () => {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.buttonPrimaryText}>Next</Text>
+              <Text style={styles.buttonPrimaryText}>Tiếp tục</Text>
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.cancelContainer} 
+          <TouchableOpacity
+            style={styles.cancelContainer}
             onPress={() => navigation.navigate('Login')}
             disabled={isLoading}
           >
             <Text style={[styles.cancelText, isLoading && styles.disabledText]}>
-              I have an account
+              Tôi đã có tài khoản
             </Text>
           </TouchableOpacity>
         </View>
@@ -478,14 +478,14 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   title: {
-    fontSize: 40,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#000000',
   },
   illustration: {
-    width: 250,
-    height: 250,
-    resizeMode: 'contain',
+    width: 180,
+    height: 180,
+    marginRight: -10, // Đẩy ảnh sát lề phải
   },
 
   formContainer: {
@@ -497,9 +497,9 @@ const styles = StyleSheet.create({
   input: {
     height: 48,
     backgroundColor: '#F2F2F2',
-    borderRadius: 24,
+    borderRadius: 12,
     paddingHorizontal: 20,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500',
     color: '#000000',
     marginTop: 16,
@@ -508,24 +508,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F2F2F2',
-    borderRadius: 24,
+    borderRadius: 12,
     height: 48,
     paddingHorizontal: 20,
     marginTop: 16,
   },
   passwordInput: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 16,
     color: '#000000',
   },
   phoneWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F2F2F2',
-    borderRadius: 24,
+    borderRadius: 12,
     height: 48,
     paddingHorizontal: 16,
     marginTop: 16,
+
   },
   countryButton: {
     flexDirection: 'row',
@@ -538,7 +539,7 @@ const styles = StyleSheet.create({
   },
   phoneInput: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 16,
     color: '#000000',
     marginLeft: 10,
     fontWeight: '500'
@@ -566,7 +567,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelText: {
-    fontSize: 18,
+    fontSize: 15,
     color: '#000000',
     fontWeight: '600'
   },
