@@ -1,9 +1,9 @@
-// app/services/appointmentService.ts - CẬP NHẬT XỬ LÝ LỖI HỦY LỊCH HẸN
-import { ApiResponse, Appointment, AvailableSlotsResponse, CreateAppointmentRequest, UpdateAppointmentRequest, UpdateAppointmentStatusRequest } from '../types';
+// app/services/appointmentService.ts - CẬP NHẬT XỬ LÝ LỖI HỦY LỊCH HẸN VÀ THÊM NO-SHOW
+import { ApiResponse, Appointment, AvailableSlotsResponse, CreateAppointmentRequest, UpdateAppointmentRequest } from '../types';
 import api from '../utils/api-client';
 
 export interface AppointmentSearchParams {
-    status?: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+    status?: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no-show';
     page?: number;
     limit?: number;
 }
@@ -160,7 +160,20 @@ export const appointmentService = {
         }
     },
 
-    // ✅ THÊM: Kiểm tra xem có thể hủy lịch hẹn không (client-side validation)
+    // ✅ THÊM: Đánh dấu khách không đến (ADMIN)
+    async markAsNoShow(id: string): Promise<ApiResponse<Appointment>> {
+        try {
+            console.log('👤 Marking appointment as no-show:', id);
+            const response = await api.patch<ApiResponse<Appointment>>(`/appointments/admin/${id}/no-show`);
+            console.log('✅ Appointment marked as no-show:', response.data);
+            return response.data;
+        } catch (error: any) {
+            console.error('❌ Mark as no-show error:', error.response?.data || error.message);
+            throw error;
+        }
+    },
+
+    // ✅ CẬP NHẬT: Kiểm tra xem có thể hủy lịch hẹn không (client-side validation)
     canCancelAppointment(appointment: Appointment): { allowed: boolean; message: string; isLateCancel?: boolean } {
         // Chỉ cho phép hủy khi status là 'pending'
         if (appointment.status !== 'pending') {
@@ -177,6 +190,9 @@ export const appointmentService = {
                     break;
                 case 'cancelled':
                     message = 'Lịch hẹn đã được hủy trước đó.';
+                    break;
+                case 'no-show':
+                    message = 'Lịch hẹn đã được đánh dấu là khách không đến.';
                     break;
                 default:
                     message = 'Không thể hủy lịch hẹn ở trạng thái hiện tại.';
@@ -206,7 +222,7 @@ export const appointmentService = {
         };
     },
 
-    // ✅ THÊM: Format status text cho hiển thị
+    // ✅ CẬP NHẬT: Format status text cho hiển thị - THÊM NO-SHOW
     getStatusText(status: string): string {
         switch (status) {
             case 'pending':
@@ -219,59 +235,84 @@ export const appointmentService = {
                 return 'Hoàn thành';
             case 'cancelled':
                 return 'Đã hủy';
+            case 'no-show':
+                return 'Khách không đến';
             default:
                 return status;
         }
     },
 
-    // ✅ THÊM: Get status color cho UI
+    // ✅ CẬP NHẬT: Get status color cho UI - THÊM NO-SHOW
     getStatusColor(status: string): string {
         switch (status) {
             case 'pending':
-                return '#F59E0B';
+                return '#F59E0B'; // Amber
             case 'confirmed':
-                return '#3B82F6';
+                return '#3B82F6'; // Blue
             case 'in_progress':
-                return '#8B5CF6';
+                return '#8B5CF6'; // Purple
             case 'completed':
-                return '#10B981';
+                return '#10B981'; // Green
             case 'cancelled':
-                return '#EF4444';
+                return '#EF4444'; // Red
+            case 'no-show':
+                return '#6B7280'; // Gray
             default:
                 return '#6B7280';
         }
     },
 
-    // ADMIN: Lấy tất cả lịch hẹn
-    async getAllAppointments(params: AppointmentSearchParams & { date?: string } = {}): Promise<ApiResponse<AppointmentListResponse>> {
-        try {
-            const queryParams = new URLSearchParams();
-            Object.entries(params).forEach(([key, value]) => {
-                if (value !== undefined && value !== null) {
-                    queryParams.append(key, value.toString());
-                }
-            });
-
-            const response = await api.get<ApiResponse<AppointmentListResponse>>(
-                `/appointments/admin/all?${queryParams.toString()}`
-            );
-            return response.data;
-        } catch (error: any) {
-            console.error('❌ Get all appointments error:', error.response?.data || error.message);
-            throw error;
-        }
+    // ✅ THÊM: Get status badge style cho UI
+    getStatusBadgeStyle(status: string): { backgroundColor: string; color: string } {
+        const color = this.getStatusColor(status);
+        return {
+            backgroundColor: `${color}20`, // 20% opacity
+            color: color
+        };
     },
 
-    // ADMIN: Cập nhật trạng thái lịch hẹn
-    async updateAppointmentStatus(id: string, data: UpdateAppointmentStatusRequest): Promise<ApiResponse<Appointment>> {
-        try {
-            console.log('🔄 Updating appointment status:', id, data);
-            const response = await api.patch<ApiResponse<Appointment>>(`/appointments/admin/${id}/status`, data);
-            console.log('✅ Appointment status updated:', response.data);
-            return response.data;
-        } catch (error: any) {
-            console.error('❌ Update appointment status error:', error.response?.data || error.message);
-            throw error;
+    // ✅ THÊM: Kiểm tra xem có thể đánh dấu no-show không
+    canMarkAsNoShow(appointment: Appointment): { allowed: boolean; message: string } {
+        // Chỉ có thể đánh dấu no-show khi status là confirmed và đã qua giờ hẹn
+        if (appointment.status !== 'confirmed') {
+            let message = '';
+            switch (appointment.status) {
+                case 'pending':
+                    message = 'Không thể đánh dấu khách không đến cho lịch hẹn chưa xác nhận.';
+                    break;
+                case 'in_progress':
+                    message = 'Lịch hẹn đang được thực hiện.';
+                    break;
+                case 'completed':
+                    message = 'Lịch hẹn đã hoàn thành.';
+                    break;
+                case 'cancelled':
+                    message = 'Lịch hẹn đã được hủy.';
+                    break;
+                case 'no-show':
+                    message = 'Lịch hẹn đã được đánh dấu là khách không đến.';
+                    break;
+                default:
+                    message = 'Không thể đánh dấu khách không đến ở trạng thái hiện tại.';
+            }
+            return { allowed: false, message };
         }
-    }
+
+        // Kiểm tra thời gian - chỉ đánh dấu no-show sau giờ hẹn
+        const appointmentDateTime = new Date(`${appointment.appointment_date}T${appointment.appointment_time}`);
+        const now = new Date();
+
+        if (appointmentDateTime > now) {
+            return {
+                allowed: false,
+                message: 'Chỉ có thể đánh dấu khách không đến sau thời gian hẹn.'
+            };
+        }
+
+        return {
+            allowed: true,
+            message: ''
+        };
+    },
+
 };

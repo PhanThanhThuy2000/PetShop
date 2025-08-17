@@ -1,4 +1,4 @@
-// app/screens/AppointmentHistoryScreen.tsx - TÍCH HỢP ĐẦY ĐỦ CHỨC NĂNG SỬA VÀ HỦY LỊCH HẸN
+// app/screens/AppointmentHistoryScreen.tsx - TÍCH HỢP ĐẦY ĐỦ CHỨC NĂNG SỬA, HỦY VÀ NO-SHOW
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { addHours, format, isAfter, parseISO, setHours, setMinutes } from 'date-fns';
@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../hooks/redux';
-import EditAppointmentModal from '../components/Appointment/EditAppointmentModal'; // Import modal sửa lịch
+import EditAppointmentModal from '../components/Appointment/EditAppointmentModal';
 import LoginRequired from '../components/LoginRequired';
 import { cancelAppointment, getUserAppointments } from '../redux/slices/appointmentSlice';
 import { AppDispatch, RootState } from '../redux/store';
@@ -37,7 +37,7 @@ const AppointmentHistoryScreen: React.FC = () => {
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
     const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-    // ✅ THÊM: State cho modal sửa lịch hẹn
+    // State cho modal sửa lịch hẹn
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
@@ -65,9 +65,8 @@ const AppointmentHistoryScreen: React.FC = () => {
         setRefreshing(false);
     };
 
-    // ✅ THÊM: Chức năng sửa lịch hẹn
+    // Chức năng sửa lịch hẹn
     const handleEditAppointment = (appointment: Appointment) => {
-        // Kiểm tra có thể sửa không
         const canEdit = canEditAppointment(appointment);
 
         if (!canEdit.allowed) {
@@ -83,7 +82,7 @@ const AppointmentHistoryScreen: React.FC = () => {
         setIsEditModalVisible(true);
     };
 
-    // ✅ THÊM: Logic kiểm tra có thể sửa lịch hẹn
+    // Logic kiểm tra có thể sửa lịch hẹn
     const canEditAppointment = (appointment: Appointment) => {
         console.log('Checking canEdit:', {
             id: appointment._id,
@@ -108,6 +107,9 @@ const AppointmentHistoryScreen: React.FC = () => {
                 case 'cancelled':
                     message = 'Lịch hẹn đã được hủy và không thể sửa.';
                     break;
+                case 'no-show':
+                    message = 'Lịch hẹn đã được đánh dấu là khách không đến và không thể sửa.';
+                    break;
                 default:
                     message = 'Không thể sửa lịch hẹn ở trạng thái hiện tại.';
             }
@@ -115,12 +117,9 @@ const AppointmentHistoryScreen: React.FC = () => {
         }
 
         try {
-            // Parse appointment_date và thêm appointment_time using date-fns
             const appointmentDate = parseISO(appointment.appointment_date);
             const [hours, minutes] = appointment.appointment_time.split(':').map(Number);
             const appointmentDateTime = setMinutes(setHours(appointmentDate, hours), minutes);
-
-            // Chuyển về múi giờ +07
             const appointmentDateTimeLocal = addHours(appointmentDateTime, 7);
             const now = new Date();
 
@@ -141,9 +140,8 @@ const AppointmentHistoryScreen: React.FC = () => {
         }
     };
 
-    // ✅ CHỨC NĂNG HỦY LỊCH - GIỮ NGUYÊN CODE CŨ
+    // Chức năng hủy lịch
     const handleCancelAppointment = (appointment: Appointment) => {
-        // Kiểm tra xem có thể hủy không
         const canCancel = canCancelAppointment(appointment);
 
         if (!canCancel.allowed) {
@@ -167,7 +165,6 @@ const AppointmentHistoryScreen: React.FC = () => {
             return;
         }
 
-        // Hiển thị confirmation dialog
         Alert.alert(
             'Xác nhận hủy lịch hẹn',
             `Bạn có chắc chắn muốn hủy lịch hẹn dịch vụ "${appointment.service_id.name}" cho ${appointment.pet_id.name}?\n\n` +
@@ -184,7 +181,6 @@ const AppointmentHistoryScreen: React.FC = () => {
         );
     };
 
-    // Thực hiện hủy lịch hẹn
     const performCancelAppointment = async (appointment: Appointment) => {
         setCancellingId(appointment._id);
 
@@ -197,7 +193,6 @@ const AppointmentHistoryScreen: React.FC = () => {
                 [{ text: 'OK', style: 'default' }]
             );
 
-            // Refresh danh sách
             loadAppointments();
 
         } catch (error: any) {
@@ -224,7 +219,7 @@ const AppointmentHistoryScreen: React.FC = () => {
         }
     };
 
-    // ✅ LOGIC KIỂM TRA CÓ THỂ HỦY LỊCH
+    // Logic kiểm tra có thể hủy lịch
     const canCancelAppointment = (appointment: Appointment) => {
         console.log('Checking canCancel:', {
             id: appointment._id,
@@ -249,6 +244,9 @@ const AppointmentHistoryScreen: React.FC = () => {
                 case 'cancelled':
                     message = 'Lịch hẹn đã được hủy trước đó.';
                     break;
+                case 'no-show':
+                    message = 'Lịch hẹn đã được đánh dấu là khách không đến.';
+                    break;
                 default:
                     message = 'Không thể hủy lịch hẹn ở trạng thái hiện tại.';
             }
@@ -257,12 +255,9 @@ const AppointmentHistoryScreen: React.FC = () => {
         }
 
         try {
-            // Parse appointment_date và thêm appointment_time
             const appointmentDate = parseISO(appointment.appointment_date);
             const [hours, minutes] = appointment.appointment_time.split(':').map(Number);
             const appointmentDateTime = setMinutes(setHours(appointmentDate, hours), minutes);
-
-            // Chuyển về múi giờ +07
             const appointmentDateTimeLocal = addHours(appointmentDateTime, 7);
             const now = new Date();
 
@@ -276,7 +271,6 @@ const AppointmentHistoryScreen: React.FC = () => {
                 };
             }
 
-            // Kiểm tra thời gian hủy muộn (trong vòng 2 giờ)
             const twoHoursFromNow = addHours(now, 2);
             const isLateCancel = !isAfter(appointmentDateTimeLocal, twoHoursFromNow);
 
@@ -295,23 +289,27 @@ const AppointmentHistoryScreen: React.FC = () => {
         }
     };
 
+    // ✅ CẬP NHẬT: Thêm màu cho no-show
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'pending':
-                return '#F59E0B';
+                return '#F59E0B'; // Amber
             case 'confirmed':
-                return '#3B82F6';
+                return '#3B82F6'; // Blue
             case 'in_progress':
-                return '#8B5CF6';
+                return '#8B5CF6'; // Purple
             case 'completed':
-                return '#10B981';
+                return '#10B981'; // Green
             case 'cancelled':
-                return '#EF4444';
+                return '#EF4444'; // Red
+            case 'no-show':
+                return '#6B7280'; // Gray
             default:
                 return '#6B7280';
         }
     };
 
+    // ✅ CẬP NHẬT: Thêm text cho no-show
     const getStatusText = (status: string) => {
         switch (status) {
             case 'pending':
@@ -324,8 +322,30 @@ const AppointmentHistoryScreen: React.FC = () => {
                 return 'Hoàn thành';
             case 'cancelled':
                 return 'Đã hủy';
+            case 'no-show':
+                return 'Khách không đến';
             default:
                 return status;
+        }
+    };
+
+    // ✅ THÊM: Hàm lấy icon cho status
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'pending':
+                return 'time-outline';
+            case 'confirmed':
+                return 'checkmark-circle-outline';
+            case 'in_progress':
+                return 'play-circle-outline';
+            case 'completed':
+                return 'checkmark-done-outline';
+            case 'cancelled':
+                return 'close-circle-outline';
+            case 'no-show':
+                return 'person-remove-outline';
+            default:
+                return 'ellipse-outline';
         }
     };
 
@@ -341,7 +361,6 @@ const AppointmentHistoryScreen: React.FC = () => {
             const date = parseISO(dateString);
             return format(date, 'EEEE, dd/MM/yyyy', { locale: vi });
         } catch (error) {
-            // Fallback to original format if date-fns fails
             const date = new Date(dateString);
             return date.toLocaleDateString('vi-VN', {
                 weekday: 'long',
@@ -361,14 +380,16 @@ const AppointmentHistoryScreen: React.FC = () => {
         return 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop&crop=face';
     };
 
+    // ✅ CẬP NHẬT: Thêm filter cho no-show
     const renderStatusFilter = () => {
         const statuses = [
-            { key: 'all', label: 'Tất cả', color: '#6B7280' },
-            { key: 'pending', label: 'Chờ xác nhận', color: '#F59E0B' },
-            { key: 'confirmed', label: 'Đã xác nhận', color: '#3B82F6' },
-            { key: 'in_progress', label: 'Đang thực hiện', color: '#8B5CF6' },
-            { key: 'completed', label: 'Hoàn thành', color: '#10B981' },
-            { key: 'cancelled', label: 'Đã hủy', color: '#EF4444' },
+            { key: 'all', label: 'Tất cả', color: '#6B7280', icon: 'grid-outline' },
+            { key: 'pending', label: 'Chờ xác nhận', color: '#F59E0B', icon: 'time-outline' },
+            { key: 'confirmed', label: 'Đã xác nhận', color: '#3B82F6', icon: 'checkmark-circle-outline' },
+            { key: 'in_progress', label: 'Đang thực hiện', color: '#8B5CF6', icon: 'play-circle-outline' },
+            { key: 'completed', label: 'Hoàn thành', color: '#10B981', icon: 'checkmark-done-outline' },
+            { key: 'cancelled', label: 'Đã hủy', color: '#EF4444', icon: 'close-circle-outline' },
+            { key: 'no-show', label: 'Không đến', color: '#6B7280', icon: 'person-remove-outline' },
         ];
 
         return (
@@ -386,14 +407,21 @@ const AppointmentHistoryScreen: React.FC = () => {
                             ]}
                             onPress={() => setSelectedStatus(item.key)}
                         >
-                            <Text
-                                style={[
-                                    styles.filterText,
-                                    selectedStatus === item.key && styles.filterTextActive
-                                ]}
-                            >
-                                {item.label}
-                            </Text>
+                            <View style={styles.filterContent}>
+                                <Ionicons
+                                    name={item.icon as any}
+                                    size={16}
+                                    color={selectedStatus === item.key ? '#FFFFFF' : '#6B7280'}
+                                />
+                                <Text
+                                    style={[
+                                        styles.filterText,
+                                        selectedStatus === item.key && styles.filterTextActive
+                                    ]}
+                                >
+                                    {item.label}
+                                </Text>
+                            </View>
                         </TouchableOpacity>
                     )}
                 />
@@ -403,16 +431,13 @@ const AppointmentHistoryScreen: React.FC = () => {
 
     const renderAppointmentItem = ({ item }: { item: Appointment }) => {
         const canCancel = canCancelAppointment(item);
-        const canEdit = canEditAppointment(item); // ✅ THÊM: Check có thể sửa
+        const canEdit = canEditAppointment(item);
         let isUpcoming = false;
 
         try {
-            // Parse appointment_date (ISO format) và thêm appointment_time
             const appointmentDate = parseISO(item.appointment_date);
             const [hours, minutes] = item.appointment_time.split(':').map(Number);
             const appointmentDateTime = setMinutes(setHours(appointmentDate, hours), minutes);
-
-            // Chuyển về múi giờ +07
             const appointmentDateTimeLocal = addHours(appointmentDateTime, 7);
 
             isUpcoming = isAfter(appointmentDateTimeLocal, new Date());
@@ -439,8 +464,21 @@ const AppointmentHistoryScreen: React.FC = () => {
                 <View style={styles.appointmentHeader}>
                     <View style={styles.appointmentIdContainer}>
                         <Text style={styles.appointmentId}>#{item._id.slice(-6)}</Text>
-                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                            <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                        <View style={[
+                            styles.statusBadge,
+                            { backgroundColor: `${getStatusColor(item.status)}20` }
+                        ]}>
+                            <Ionicons
+                                name={getStatusIcon(item.status) as any}
+                                size={14}
+                                color={getStatusColor(item.status)}
+                            />
+                            <Text style={[
+                                styles.statusText,
+                                { color: getStatusColor(item.status) }
+                            ]}>
+                                {getStatusText(item.status)}
+                            </Text>
                         </View>
                     </View>
                     <Text style={styles.appointmentDate}>
@@ -470,6 +508,16 @@ const AppointmentHistoryScreen: React.FC = () => {
                                 <Text style={styles.notes} numberOfLines={2}>{item.notes}</Text>
                             </View>
                         )}
+
+                        {/* ✅ THÊM: Hiển thị lý do no-show nếu có */}
+                        {item.status === 'no-show' && (
+                            <View style={styles.noShowInfoContainer}>
+                                <Ionicons name="alert-circle-outline" size={16} color="#DC2626" />
+                                <Text style={styles.noShowInfo}>
+                                    Khách hàng không đến trong giờ hẹn
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </View>
 
@@ -482,7 +530,7 @@ const AppointmentHistoryScreen: React.FC = () => {
                         <Text style={styles.detailButtonText}>Chi tiết</Text>
                     </TouchableOpacity>
 
-                    {/* ✅ THÊM: Nút sửa lịch hẹn - chỉ hiện khi pending và có thể sửa */}
+                    {/* Nút sửa lịch hẹn - chỉ hiện khi pending và có thể sửa */}
                     {item.status === 'pending' && canEdit.allowed && (
                         <TouchableOpacity
                             style={styles.editButton}
@@ -493,6 +541,7 @@ const AppointmentHistoryScreen: React.FC = () => {
                         </TouchableOpacity>
                     )}
 
+                    {/* Nút hủy lịch */}
                     {item.status === 'pending' && isUpcoming && (
                         <TouchableOpacity
                             style={[
@@ -503,13 +552,17 @@ const AppointmentHistoryScreen: React.FC = () => {
                             disabled={isCancelling}
                         >
                             {isCancelling ? (
-                                <ActivityIndicator size="small" color="#FFFFFF" />
+                                <ActivityIndicator size="small" color="#DC2626" />
                             ) : (
-                                <Text style={styles.cancelButtonText}>Hủy lịch</Text>
+                                <>
+                                    <Ionicons name="close-outline" size={16} color="#DC2626" />
+                                    <Text style={styles.cancelButtonText}>Hủy lịch</Text>
+                                </>
                             )}
                         </TouchableOpacity>
                     )}
 
+                    {/* Nút liên hệ hỗ trợ cho lịch confirmed */}
                     {item.status === 'confirmed' && (
                         <TouchableOpacity
                             style={styles.contactSupportButton}
@@ -521,7 +574,24 @@ const AppointmentHistoryScreen: React.FC = () => {
                                 );
                             }}
                         >
+                            <Ionicons name="call-outline" size={16} color="#D97706" />
                             <Text style={styles.contactSupportButtonText}>Liên hệ hủy</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* ✅ THÊM: Nút đặt lại cho lịch no-show */}
+                    {item.status === 'no-show' && (
+                        <TouchableOpacity
+                            style={styles.rebookButton}
+                            onPress={() => navigation.navigate('PetCareBooking', {
+                                rebookData: {
+                                    serviceId: item.service_id._id,
+                                    petId: item.pet_id._id
+                                }
+                            })}
+                        >
+                            <Ionicons name="refresh-outline" size={16} color="#10B981" />
+                            <Text style={styles.rebookButtonText}>Đặt lại</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -638,7 +708,7 @@ const AppointmentHistoryScreen: React.FC = () => {
                 </View>
             )}
 
-            {/* ✅ THÊM: Modal sửa lịch hẹn */}
+            {/* Modal sửa lịch hẹn */}
             <EditAppointmentModal
                 visible={isEditModalVisible}
                 onClose={() => {
@@ -647,7 +717,7 @@ const AppointmentHistoryScreen: React.FC = () => {
                 }}
                 appointment={selectedAppointment}
                 onSuccess={() => {
-                    loadAppointments(); // Refresh danh sách
+                    loadAppointments();
                 }}
             />
         </SafeAreaView>
@@ -698,10 +768,15 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         backgroundColor: '#F3F4F6',
     },
+    filterContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     filterText: {
         fontSize: 14,
         color: '#6B7280',
         fontWeight: '500',
+        marginLeft: 6,
     },
     filterTextActive: {
         color: '#FFFFFF',
@@ -755,14 +830,16 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     statusBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
         borderRadius: 12,
     },
     statusText: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#FFFFFF',
+        marginLeft: 4,
     },
     appointmentDate: {
         fontSize: 12,
@@ -824,9 +901,28 @@ const styles = StyleSheet.create({
         marginLeft: 6,
         flex: 1,
     },
+
+    // ✅ THÊM: Styles cho no-show info
+    noShowInfoContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+    },
+    noShowInfo: {
+        fontSize: 12,
+        color: '#DC2626',
+        marginLeft: 6,
+        fontStyle: 'italic',
+    },
+
+    // Action buttons
     appointmentActions: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        flexWrap: 'wrap',
     },
     detailButton: {
         flex: 1,
@@ -834,6 +930,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderRadius: 8,
         marginRight: 8,
+        marginBottom: 8,
         alignItems: 'center',
     },
     detailButtonText: {
@@ -842,7 +939,7 @@ const styles = StyleSheet.create({
         color: '#374151',
     },
 
-    // ✅ THÊM: Styles cho nút sửa lịch hẹn
+    // Edit button
     editButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -851,6 +948,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         borderRadius: 8,
         marginRight: 8,
+        marginBottom: 8,
         borderWidth: 1,
         borderColor: '#DBEAFE',
     },
@@ -861,38 +959,61 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
 
-    // ✅ STYLES CHO NÚT HỦY LỊCH
+    // Cancel button
     cancelButton: {
-        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: '#FEE2E2',
         paddingVertical: 10,
+        paddingHorizontal: 12,
         borderRadius: 8,
-        marginLeft: 8,
-        alignItems: 'center',
+        marginBottom: 8,
     },
     cancelButtonText: {
         fontSize: 14,
         fontWeight: '600',
         color: '#DC2626',
+        marginLeft: 4,
     },
     cancelButtonDisabled: {
         backgroundColor: '#F3F4F6',
         opacity: 0.6,
     },
 
-    // ✅ STYLES CHO NÚT LIÊN HỆ HỖ TRỢ
+    // Contact support button
     contactSupportButton: {
-        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: '#FEF3C7',
         paddingVertical: 10,
+        paddingHorizontal: 12,
         borderRadius: 8,
-        marginLeft: 8,
-        alignItems: 'center',
+        marginBottom: 8,
     },
     contactSupportButtonText: {
         fontSize: 14,
         fontWeight: '600',
         color: '#D97706',
+        marginLeft: 4,
+    },
+
+    // ✅ THÊM: Rebook button cho no-show
+    rebookButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#D1FAE5',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#A7F3D0',
+    },
+    rebookButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#10B981',
+        marginLeft: 4,
     },
 
     // Empty state styles
@@ -923,39 +1044,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     bookNowButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#FFFFFF',
-    },
-
-    // Login required styles
-    loginRequiredContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 32,
-    },
-    loginRequiredTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#374151',
-        marginTop: 16,
-        marginBottom: 8,
-    },
-    loginRequiredSubtitle: {
-        fontSize: 16,
-        color: '#6B7280',
-        textAlign: 'center',
-        lineHeight: 24,
-        marginBottom: 24,
-    },
-    loginButton: {
-        backgroundColor: '#3B82F6',
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 8,
-    },
-    loginButtonText: {
         fontSize: 16,
         fontWeight: '600',
         color: '#FFFFFF',

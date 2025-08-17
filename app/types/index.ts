@@ -394,7 +394,7 @@ export interface Appointment {
   service_id: string | CareService;
   appointment_date: string;
   appointment_time: string;
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no-show';
   notes?: string;
   staff_id?: string | User;
   total_amount: number;
@@ -421,7 +421,7 @@ export interface UpdateAppointmentRequest {
 }
 
 export interface UpdateAppointmentStatusRequest {
-  status?: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+  status?: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no-show';
   staff_id?: string;
 }
 
