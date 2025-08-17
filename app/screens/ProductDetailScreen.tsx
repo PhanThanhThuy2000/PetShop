@@ -309,6 +309,7 @@ const RelatedItems: FC<{
 
   const renderRelatedItem = ({ item, index }: { item: RelatedItem, index: number }) => (
     <TouchableOpacity
+      key={`related-${item._id}-${item.itemType}-${index}`} // Thêm key duy nhất
       style={styles.relatedItem}
       onPress={() => handleItemPress(item)}
       activeOpacity={0.7}
