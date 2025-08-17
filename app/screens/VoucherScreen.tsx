@@ -1,5 +1,3 @@
-
-
 import { useNavigation } from "@react-navigation/native"
 import { jwtDecode } from "jwt-decode"
 import React, { useEffect, useState } from 'react'
@@ -20,25 +18,25 @@ const getVoucherDisplayProps = (voucher: Voucher) => {
   if (voucher.discount_type === "percentage") {
     title = `Giảm ${voucher.discount_value}%`
   } else if (voucher.discount_type === "fixed") {
-    title = `Giảm ${voucher.discount_value} VND` // Giả sử đơn vị tiền tệ là VND
+    title = `Giảm ${voucher.discount_value} VND`
   }
 
   // Đặt màu sắc và kiểu đường viền dựa trên trạng thái
   switch (voucher.status) {
     case "active":
-      textColor = "#28a745" // Xanh lá cây
-      color = "#d4edda" // Nền xanh lá cây nhạt
+      textColor = "#007aff" // Xanh dương
+      color = "#e8f4ff" // Nền xanh dương nhạt
       isDashed = false
       break
     case "expired":
       textColor = "#dc3545" // Đỏ
       color = "#f8d7da" // Nền đỏ nhạt
-      isDashed = true // Hết hạn thì dùng đường viền đứt nét
+      isDashed = true
       break
     case "inactive":
       textColor = "#6c757d" // Xám
       color = "#e2e3e5" // Nền xám nhạt
-      isDashed = true // Không hoạt động thì dùng đường viền đứt nét
+      isDashed = true
       break
     case "pending":
       textColor = "#ffc107" // Vàng cam
@@ -46,7 +44,6 @@ const getVoucherDisplayProps = (voucher: Voucher) => {
       isDashed = false
       break
     default:
-      // Giữ màu mặc định
       break
   }
 
@@ -71,38 +68,39 @@ const VoucherScreen = () => {
     try {
       const decoded: any = jwtDecode(token)
       setRole(decoded.role || null)
-      console.log("Decoded role:", decoded.role) // Debug role
+      console.log("Decoded role:", decoded.role)
     } catch (error) {
       console.error("Error decoding token:", error)
       setRole(null)
     }
   }, [token, navigation])
 
-  // Gọi API lấy danh sách voucher
-  useEffect(() => {
+  // Hàm gọi API lấy danh sách voucher
+  const fetchVouchers = async () => {
     if (!token || token === "null") {
       setLoading(false)
       return
     }
 
-    const fetchVouchers = async () => {
-      setLoading(true)
-      try {
-        const response = await vouchersService.getVouchers({}, role === "Admin")
-        console.log("Voucher API Response:", response) // Debug API response
-        setVouchers(
-          Array.isArray(response.data)
-            ? response.data.filter((voucher) => role === "Admin" || voucher.status === "active")
-            : [],
-        )
-      } catch (error: any) {
-        console.error("Voucher API Error:", error.response?.data || error.message)
-        Alert.alert("Lỗi", error?.response?.data?.message || "Không thể tải danh sách voucher.")
-      } finally {
-        setLoading(false)
-      }
+    setLoading(true)
+    try {
+      const response = await vouchersService.getVouchers({}, role === "Admin")
+      console.log("Voucher API Response:", response)
+      setVouchers(
+        Array.isArray(response.data)
+          ? response.data.filter((voucher) => role === "Admin" || voucher.status === "active")
+          : [],
+      )
+    } catch (error: any) {
+      console.error("Voucher API Error:", error.response?.data || error.message)
+      Alert.alert("Lỗi", error?.response?.data?.message || "Không thể tải danh sách voucher.")
+    } finally {
+      setLoading(false)
     }
+  }
 
+  // Gọi API lấy danh sách voucher
+  useEffect(() => {
     fetchVouchers()
   }, [token, role])
 
@@ -116,14 +114,16 @@ const VoucherScreen = () => {
     }
   }
 
-  // Xử lý lưu voucher
+  // Xử lý lưu voucher và load lại danh sách
   const handleSaveVoucher = async (voucherId: string) => {
     if (!token) return
 
     try {
       const response = await vouchersService.saveVoucher(voucherId)
-      console.log("Save Response:", response) // Debug save response
+      console.log("Save Response:", response)
       Alert.alert("Thành công", response.message)
+      // Load lại danh sách voucher sau khi lưu thành công
+      await fetchVouchers()
     } catch (error: any) {
       console.error("Save Error:", error.response?.data || error.message)
       Alert.alert("Lỗi", error?.response?.data?.message || "Không thể lưu voucher.")
@@ -154,14 +154,13 @@ const VoucherScreen = () => {
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>Mã khuyễn mãi</Text>
+          <Text style={styles.title}>Mã khuyến mãi</Text>
         </View>
         <View style={styles.headerIcons}>
           <TouchableOpacity style={styles.iconCircle}>
             <View style={styles.notificationDot} />
             <Icon name="ellipsis-horizontal" size={16} color="#007aff" />
           </TouchableOpacity>
-          
         </View>
       </View>
 
@@ -176,7 +175,6 @@ const VoucherScreen = () => {
             const userId = token ? getUserIdFromToken(token) : null
             const isCollected = userId ? voucher.saved_by_users?.includes(userId) : false
 
-            // Lấy các thuộc tính hiển thị từ hàm trợ giúp
             const { title, textColor, color, isDashed } = getVoucherDisplayProps(voucher)
 
             return (
@@ -185,9 +183,9 @@ const VoucherScreen = () => {
                 style={[
                   styles.voucherCard,
                   {
-                    borderColor: textColor, // Sử dụng textColor đã tính toán
-                    backgroundColor: color, // Sử dụng color đã tính toán
-                    borderStyle: isDashed ? "dashed" : "solid", // Sử dụng isDashed đã tính toán
+                    borderColor: textColor,
+                    backgroundColor: color,
+                    borderStyle: isDashed ? "dashed" : "solid",
                   },
                 ]}
               >
@@ -254,7 +252,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "700",
     color: "#000",
   },
@@ -263,7 +261,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconCircle: {
-    backgroundColor: "#e8f4ff",
+    backgroundColor: "#e8f4ff", // Xanh dương nhạt cho icon circle
     width: 38,
     height: 38,
     borderRadius: 19,
@@ -277,7 +275,7 @@ const styles = StyleSheet.create({
     right: 8,
     width: 8,
     height: 8,
-    backgroundColor: "#007aff",
+    backgroundColor: "#007aff", // Xanh dương cho notification dot
     borderRadius: 4,
     zIndex: 1,
   },
