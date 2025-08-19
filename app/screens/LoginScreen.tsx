@@ -59,7 +59,7 @@ const LoginScreen = () => {
     };
 
     const handleForgotPassword = () => {
-        navigation.navigate('NewPassword');
+        navigation.navigate('RecoveryPassword');
     }
 
     return (

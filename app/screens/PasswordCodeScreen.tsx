@@ -18,7 +18,7 @@ const PasswordCodeScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { dispatch, isLoading } = useAuth();
-  const { mode = 'register', email = '', next = 'Login', newPassword } = route.params || {};
+  const { mode = 'register', email = '', next = 'Login' } = route.params || {};
 
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -61,7 +61,7 @@ const PasswordCodeScreen = () => {
 
   const handleConfirm = async () => {
     const otp = code.join('');
-    if (!otp || otp.length < 4) {
+    if (!otp || otp.length < 6) {
       return;
     }
     try {
@@ -69,9 +69,8 @@ const PasswordCodeScreen = () => {
         await dispatch(verifyRegistrationOtp({ email, otp })).unwrap();
         navigation.navigate('app');
       } else if (mode === 'reset') {
-        // newPassword must be provided from prior screen
-        await api.post('/users/reset-password', { email, otp, newPassword });
-        navigation.navigate(next);
+        // Chuyển sang màn hình đặt mật khẩu mới, truyền kèm email và otp
+        navigation.navigate('NewPassword' as never, { email, otp, next } as never);
       }
     } catch (e) {}
   };
@@ -96,11 +95,13 @@ const PasswordCodeScreen = () => {
         {/* Content below logo */}
         <View style={styles.bottomContent}>
           {/* Title */}
-          <Text style={styles.title}>{mode === 'register' ? 'Verify Your Email' : 'Password Recovery'}</Text>
+          <Text style={styles.title}>{mode === 'register' ? 'Xác thực email' : 'Khôi phục mật khẩu'}</Text>
 
           {/* Instructions */}
           <Text style={styles.description}>
-            Enter the code we sent to{mode === 'register' ? ' your email' : ''}
+            {mode === 'register'
+              ? 'Nhập mã chúng tôi đã gửi tới email của bạn'
+              : 'Nhập mã OTP đã được gửi tới email của bạn'}
           </Text>
 
           {/* Phone Number */}
@@ -131,7 +132,7 @@ const PasswordCodeScreen = () => {
             onPress={handleConfirm}
             disabled={isLoading}
           >
-            <Text style={styles.verifyText}>Verify</Text>
+            <Text style={styles.verifyText}>{mode === 'register' ? 'Xác nhận' : 'Tiếp tục'}</Text>
           </TouchableOpacity>
 
           {/* Send Again */}
@@ -139,7 +140,7 @@ const PasswordCodeScreen = () => {
             style={styles.sendAgainWrapper}
             onPress={handleSendAgain}
           >
-            <Text style={styles.sendAgainText}>Send again</Text>
+            <Text style={styles.sendAgainText}>Gửi lại mã</Text>
           </TouchableOpacity>
 
          
