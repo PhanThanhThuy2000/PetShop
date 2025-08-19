@@ -1,4 +1,3 @@
-// app/screens/SearchScreen.tsx
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -15,11 +14,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-
-// Import services and types
+import PetList from '../components/Pet/PetList'; // Import PetList component
 import { petsService, productsService } from '../services/api-services';
 import { Pet, Product } from '../types';
 
@@ -125,38 +123,39 @@ const SearchScreen: React.FC = () => {
             petsResponse = await petsService.searchPets({
               keyword: query,
               page,
-              limit: 20
+              limit: 20,
             });
           } catch (newApiError) {
             // Fallback to old format
             petsResponse = await petsService.searchPets(query, {
               page,
-              limit: 20
+              limit: 20,
             });
           }
 
           if (petsResponse && petsResponse.success) {
-            const petsData = petsResponse.data?.pets ||
-              petsResponse.data ||
-              petsResponse.pets ||
-              [];
+            const petsData = petsResponse.data?.pets || petsResponse.data || petsResponse.pets || [];
 
             // Apply client-side filtering for better results
-            const filteredPets = Array.isArray(petsData) ? petsData.filter((pet: Pet) => {
-              const searchTerm = query.toLowerCase().trim();
-              const petName = pet.name?.toLowerCase() || '';
-              const petBreed = pet.breed_id?.name?.toLowerCase() || '';
-              const petType = pet.type?.toLowerCase() || '';
-              const petDescription = pet.description?.toLowerCase() || '';
+            const filteredPets = Array.isArray(petsData)
+              ? petsData.filter((pet: Pet) => {
+                const searchTerm = query.toLowerCase().trim();
+                const petName = pet.name?.toLowerCase() || '';
+                const petBreed = pet.breed_id?.name?.toLowerCase() || '';
+                const petType = pet.type?.toLowerCase() || '';
+                const petDescription = pet.description?.toLowerCase() || '';
 
-              return petName.includes(searchTerm) ||
-                petBreed.includes(searchTerm) ||
-                petType.includes(searchTerm) ||
-                petDescription.includes(searchTerm) ||
-                (searchTerm === 'chó' && (petType.includes('dog') || petName.includes('dog'))) ||
-                (searchTerm === 'mèo' && (petType.includes('cat') || petName.includes('cat'))) ||
-                (searchTerm === 'cún' && (petType.includes('dog') || petName.includes('dog')));
-            }) : [];
+                return (
+                  petName.includes(searchTerm) ||
+                  petBreed.includes(searchTerm) ||
+                  petType.includes(searchTerm) ||
+                  petDescription.includes(searchTerm) ||
+                  (searchTerm === 'chó' && (petType.includes('dog') || petName.includes('dog'))) ||
+                  (searchTerm === 'mèo' && (petType.includes('cat') || petName.includes('cat'))) ||
+                  (searchTerm === 'cún' && (petType.includes('dog') || petName.includes('dog')))
+                );
+              })
+              : [];
 
             newPets = filteredPets;
 
@@ -183,11 +182,13 @@ const SearchScreen: React.FC = () => {
                 const petBreed = pet.breed_id?.name?.toLowerCase() || '';
                 const petType = pet.type?.toLowerCase() || '';
 
-                return petName.includes(searchTerm) ||
+                return (
+                  petName.includes(searchTerm) ||
                   petBreed.includes(searchTerm) ||
                   petType.includes(searchTerm) ||
                   (searchTerm === 'chó' && petType.includes('dog')) ||
-                  (searchTerm === 'mèo' && petType.includes('cat'));
+                  (searchTerm === 'mèo' && petType.includes('cat'))
+                );
               });
 
               newPets = filteredPets;
@@ -201,7 +202,7 @@ const SearchScreen: React.FC = () => {
         }
       }
 
-      // PRODUCTS SEARCH  
+      // PRODUCTS SEARCH
       if (tab === 'all' || tab === 'products') {
         try {
           let productsResponse;
@@ -211,36 +212,40 @@ const SearchScreen: React.FC = () => {
             productsResponse = await productsService.searchProducts({
               keyword: query,
               page,
-              limit: 20
+              limit: 20,
             });
           } catch (newApiError) {
             // Fallback to old format
             productsResponse = await productsService.searchProducts(query, {
               page,
-              limit: 20
+              limit: 20,
             });
           }
 
           if (productsResponse && productsResponse.success) {
-            const productsData = productsResponse.data?.products ||
-              productsResponse.data ||
-              productsResponse.products ||
-              [];
+            const productsData =
+              productsResponse.data?.products || productsResponse.data || productsResponse.products || [];
 
             // Apply client-side filtering for better results
-            const filteredProducts = Array.isArray(productsData) ? productsData.filter((product: Product) => {
-              const searchTerm = query.toLowerCase().trim();
-              const productName = product.name?.toLowerCase() || '';
-              const productCategory = product.category_id?.name?.toLowerCase() ||
-                product.category?.name?.toLowerCase() || '';
-              const productDescription = product.description?.toLowerCase() || '';
+            const filteredProducts = Array.isArray(productsData)
+              ? productsData.filter((product: Product) => {
+                const searchTerm = query.toLowerCase().trim();
+                const productName = product.name?.toLowerCase() || '';
+                const productCategory =
+                  product.category_id?.name?.toLowerCase() || product.category?.name?.toLowerCase() || '';
+                const productDescription = product.description?.toLowerCase() || '';
 
-              return productName.includes(searchTerm) ||
-                productCategory.includes(searchTerm) ||
-                productDescription.includes(searchTerm) ||
-                (searchTerm.includes('thức ăn') && (productName.includes('food') || productCategory.includes('food'))) ||
-                (searchTerm.includes('đồ chơi') && (productName.includes('toy') || productCategory.includes('toy')));
-            }) : [];
+                return (
+                  productName.includes(searchTerm) ||
+                  productCategory.includes(searchTerm) ||
+                  productDescription.includes(searchTerm) ||
+                  (searchTerm.includes('thức ăn') &&
+                    (productName.includes('food') || productCategory.includes('food'))) ||
+                  (searchTerm.includes('đồ chơi') &&
+                    (productName.includes('toy') || productCategory.includes('toy')))
+                );
+              })
+              : [];
 
             newProducts = filteredProducts;
 
@@ -266,8 +271,7 @@ const SearchScreen: React.FC = () => {
                 const productName = product.name?.toLowerCase() || '';
                 const productCategory = product.category_id?.name?.toLowerCase() || '';
 
-                return productName.includes(searchTerm) ||
-                  productCategory.includes(searchTerm);
+                return productName.includes(searchTerm) || productCategory.includes(searchTerm);
               });
 
               newProducts = filteredProducts;
@@ -285,7 +289,7 @@ const SearchScreen: React.FC = () => {
       if (tab === 'all') {
         const combinedResults: SearchResult[] = [
           ...newPets.map(pet => ({ type: 'pet' as const, data: pet })),
-          ...newProducts.map(product => ({ type: 'product' as const, data: product }))
+          ...newProducts.map(product => ({ type: 'product' as const, data: product })),
         ];
 
         if (page === 1) {
@@ -300,13 +304,8 @@ const SearchScreen: React.FC = () => {
         setPetsPage(1);
         setProductsPage(1);
       }
-
     } catch (error) {
-      Alert.alert(
-        'Lỗi tìm kiếm',
-        'Có lỗi xảy ra khi tìm kiếm. Vui lòng thử lại.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Lỗi tìm kiếm', 'Có lỗi xảy ra khi tìm kiếm. Vui lòng thử lại.', [{ text: 'OK' }]);
     } finally {
       setLoading(false);
     }
@@ -383,15 +382,10 @@ const SearchScreen: React.FC = () => {
     return (
       <View style={styles.suggestionsContainer}>
         <FlatList
-          data={recentSearches.filter(item =>
-            item.toLowerCase().includes(searchQuery.toLowerCase())
-          )}
+          data={recentSearches.filter(item => item.toLowerCase().includes(searchQuery.toLowerCase()))}
           keyExtractor={(item, index) => `suggestion-${index}`}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.suggestionItem}
-              onPress={() => handleRecentSearchPress(item)}
-            >
+            <TouchableOpacity style={styles.suggestionItem} onPress={() => handleRecentSearchPress(item)}>
               <MaterialIcons name="history" size={20} color="#9CA3AF" />
               <Text style={styles.suggestionText}>{item}</Text>
               <MaterialIcons name="arrow-upward" size={16} color="#6B7280" />
@@ -432,33 +426,25 @@ const SearchScreen: React.FC = () => {
     </View>
   );
 
-  const renderGridItem = ({ item }: { item: SearchResult }) => {
-    const isProduct = item.type === 'product';
-    const data = item.data as any;
-
-    // Handle image URL for both pets and products
+  const renderProductItem = ({ item }: { item: SearchResult }) => {
+    if (item.type !== 'product') return null;
+    const data = item.data as Product;
     const imageUri = data.images?.[0]?.url || 'https://via.placeholder.com/150';
+    const price = data.price ? data.price.toLocaleString('vi-VN') + '₫' : 'Liên hệ';
 
-    // Handle price display
-    const price = data.price?.toLocaleString('vi-VN') || 'Liên hệ';
     return (
-      <TouchableOpacity
-        style={styles.gridItem}
-        onPress={() => handleItemPress(item)}
-      >
+      <TouchableOpacity style={styles.gridItem} onPress={() => handleItemPress(item)}>
         <View style={styles.imageContainer}>
           <Image source={{ uri: imageUri }} style={styles.itemImage} />
-          <View style={[styles.typeTag, isProduct ? styles.productTag : styles.petTag]}>
-            <Text style={styles.typeTagText}>
-              {isProduct ? 'SP' : 'TC'}
-            </Text>
+          <View style={[styles.typeTag, styles.productTag]}>
+            <Text style={styles.typeTagText}>SP</Text>
           </View>
         </View>
         <View style={styles.itemInfo}>
           <Text style={styles.itemTitle} numberOfLines={2}>
             {data.name}
           </Text>
-          <Text style={styles.itemPrice}>{price} đ</Text>
+          <Text style={styles.itemPrice}>{price}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -473,47 +459,90 @@ const SearchScreen: React.FC = () => {
       <Text style={styles.emptySubtitle}>
         {searchQuery
           ? 'Thử tìm kiếm với từ khóa khác hoặc kiểm tra chính tả'
-          : 'Tìm kiếm thú cưng và sản phẩm yêu thích của bạn'
-        }
+          : 'Tìm kiếm thú cưng và sản phẩm yêu thích của bạn'}
       </Text>
     </View>
   );
 
-  const getDisplayData = () => {
-    switch (activeTab) {
-      case 'pets':
-        return pets.map(pet => ({ type: 'pet' as const, data: pet }));
-      case 'products':
-        return products.map(product => ({ type: 'product' as const, data: product }));
-      default:
-        return searchResults;
-    }
-  };
-
   const renderGridContent = () => {
-    const displayData = getDisplayData();
-
-    return (
-      <FlatList
-        data={displayData}
-        renderItem={renderGridItem}
-        keyExtractor={(item, index) => `${item.type}-${item.data._id}-${index}`}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        showsVerticalScrollIndicator={false}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.1}
-        contentContainerStyle={styles.gridContainer}
-        ListFooterComponent={
-          loading && displayData.length > 0 ? (
+    if (activeTab === 'pets') {
+      return (
+        <PetList
+          pets={pets}
+          loading={loading}
+          numColumns={2}
+          onPetPress={pet => navigation.navigate('ProductDetail', { petId: pet._id })}
+          contentContainerStyle={styles.gridContainer}
+          ListEmptyComponent={renderEmptyState}
+          scrollEnabled={true}
+        />
+      );
+    } else if (activeTab === 'products') {
+      return (
+        <FlatList
+          data={products.map(product => ({ type: 'product' as const, data: product }))}
+          renderItem={renderProductItem}
+          keyExtractor={(item, index) => `product-${item.data._id}-${index}`}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.1}
+          contentContainerStyle={styles.gridContainer}
+          ListEmptyComponent={renderEmptyState}
+          ListFooterComponent={
+            loading && products.length > 0 ? (
+              <View style={styles.loadMoreContainer}>
+                <ActivityIndicator size="small" color="#3B82F6" />
+                <Text style={styles.loadMoreText}>Đang tải thêm...</Text>
+              </View>
+            ) : null
+          }
+        />
+      );
+    } else {
+      // Tab 'all': Display both PetList and FlatList for products
+      return (
+        <View style={styles.allTabContainer}>
+          {pets.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>Thú cưng</Text>
+              <PetList
+                pets={pets}
+                loading={loading}
+                numColumns={2}
+                onPetPress={pet => navigation.navigate('ProductDetail', { petId: pet._id })}
+                contentContainerStyle={styles.gridContainer}
+                scrollEnabled={false}
+              />
+            </>
+          )}
+          {products.length > 0 && (
+            <>
+              <FlatList
+                data={products.map(product => ({ type: 'product' as const, data: product }))}
+                renderItem={renderProductItem}
+                keyExtractor={(item, index) => `product-${item.data._id}-${index}`}
+                numColumns={2}
+                columnWrapperStyle={styles.row}
+                showsVerticalScrollIndicator={false}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.1}
+                contentContainerStyle={styles.gridContainer}
+                scrollEnabled={false}
+              />
+            </>
+          )}
+          {loading && (pets.length > 0 || products.length > 0) && (
             <View style={styles.loadMoreContainer}>
               <ActivityIndicator size="small" color="#3B82F6" />
               <Text style={styles.loadMoreText}>Đang tải thêm...</Text>
             </View>
-          ) : null
-        }
-      />
-    );
+          )}
+          {pets.length === 0 && products.length === 0 && renderEmptyState()}
+        </View>
+      );
+    }
   };
 
   return (
@@ -522,10 +551,7 @@ const SearchScreen: React.FC = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
 
@@ -565,18 +591,7 @@ const SearchScreen: React.FC = () => {
       {(searchQuery && (pets.length > 0 || products.length > 0)) && renderTabs()}
 
       {/* Content */}
-      <View style={styles.content}>
-        {loading && getDisplayData().length === 0 ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#3B82F6" />
-            <Text style={styles.loadingText}>Đang tìm kiếm...</Text>
-          </View>
-        ) : getDisplayData().length > 0 ? (
-          renderGridContent()
-        ) : (
-          renderEmptyState()
-        )}
-      </View>
+      <View style={styles.content}>{renderGridContent()}</View>
     </SafeAreaView>
   );
 };
@@ -620,8 +635,6 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 8,
   },
-
-  // Suggestions
   suggestionsContainer: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
@@ -645,8 +658,6 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginLeft: 12,
   },
-
-  // Tabs
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -672,26 +683,23 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
     fontWeight: '600',
   },
-
-  // Content
   content: {
     flex: 1,
   },
-
-  // Grid Layout Styles
   gridContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 8, // Reduced padding to allow more space for margins
+    paddingTop: 8,
     paddingBottom: 20,
   },
   row: {
     justifyContent: 'space-between',
+    marginBottom: 16, // Vertical space between rows
   },
   gridItem: {
-    width: (screenWidth - 48) / 2, // 16px padding on each side + 16px gap
+    width: (screenWidth - 32) / 2 - 8, // Adjusted width with margin consideration (32px total horizontal padding, 8px margin)
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    marginBottom: 16,
+    margin: 4, // Added margin to separate items (2px on each side)
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -718,18 +726,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     lineHeight: 18,
   },
-  itemSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 6,
-  },
   itemPrice: {
     fontSize: 14,
     fontWeight: '700',
     color: '#DC2626',
   },
-
-  // Type Tags (updated for grid)
   typeTag: {
     position: 'absolute',
     top: 8,
@@ -751,8 +752,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-
-  // Loading & Empty States
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -795,6 +794,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 24,
+  },
+  allTabContainer: {
+    flex: 1,
+    paddingHorizontal: 8, // Adjusted to match gridContainer
+    paddingTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
   },
 });
 

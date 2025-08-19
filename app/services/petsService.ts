@@ -1,5 +1,5 @@
 // app/services/petsService.ts
-import { ApiResponse, Pet, Product } from '../types';
+import { ApiResponse, Breed, Pet, Product } from '../types';
 import api from '../utils/api-client';
 
 export interface SearchPetsParams {
@@ -53,7 +53,19 @@ export interface SimilarPetsResponse {
 export interface CompatibleProductsResponse {
   products: Product[];
 }
-
+// 🆕 BREED RELATED INTERFACES
+export interface PetsByBreedResponse {
+  breed: Breed;
+  pets: Pet[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+}
 export const petsService = {
   // Tìm kiếm pets - liên kết với API /pets/search
   async searchPets(params: SearchPetsParams = {}): Promise<ApiResponse<PetsSearchResponse>> {
@@ -77,7 +89,35 @@ export const petsService = {
       throw error;
     }
   },
+  // 🆕 Lấy pets theo breed - API /pets/breed/:breedId
+  async getPetsByBreed(
+    breedId: string,
+    params: {
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      page?: number;
+      limit?: number;
+      status?: string;
+      minPrice?: number;
+      maxPrice?: number;
+    } = {}
+  ): Promise<ApiResponse<PetsByBreedResponse>> {
+    try {
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value.toString());
+        }
+      });
 
+      const response = await api.get<ApiResponse<PetsByBreedResponse>>(
+        `/pets/breed/${breedId}?${queryParams.toString()}`
+      );
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
   // Lấy tất cả pets
   async getPets(params: { page?: number; limit?: number; type?: string } = {}) {
     const { page = 1, limit = 10, type } = params;

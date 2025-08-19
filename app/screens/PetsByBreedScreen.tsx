@@ -1,12 +1,9 @@
-// app/screens/PetsByBreedScreen.tsx - GIAO DIỆN ĐÃ TỐI ƯU
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
-  Image,
   RefreshControl,
   SafeAreaView,
   StatusBar,
@@ -16,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
+import PetList from '../components/Pet/PetList'; // ✅ Import PetList component
 import { petsService } from '../services/petsService';
 import { Pet } from '../types';
 
@@ -39,28 +37,30 @@ const PetsByBreedScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  // Load pets khi component mount
+  // Load pets khi component mount hoặc page thay đổi
   useEffect(() => {
     loadPetsByBreed(true);
   }, [breedId]);
 
   // Load pets theo breed từ API
   const loadPetsByBreed = async (reset: boolean = false) => {
-    if (loading && !refreshing) return;
+    if ((loading || loadingMore) && !refreshing) return;
 
     try {
       if (reset) {
         setLoading(true);
         setPage(1);
+      } else {
+        setLoadingMore(true);
       }
 
       const currentPage = reset ? 1 : page;
 
       console.log('🔍 Loading pets for breed:', breedName, 'Page:', currentPage);
 
-      const response = await petsService.searchPets({
-        breed_id: breedId,
+      const response = await petsService.getPetsByBreed(breedId, {
         status: 'available',
         page: currentPage,
         limit: 10,
@@ -76,7 +76,7 @@ const PetsByBreedScreen = () => {
           breed: breedName,
           count: newPets.length,
           total: pagination.totalCount,
-          page: currentPage
+          page: currentPage,
         });
 
         if (reset) {
@@ -87,7 +87,9 @@ const PetsByBreedScreen = () => {
 
         setTotalCount(pagination.totalCount);
         setHasMore(pagination.hasNextPage);
-        setPage(pagination.currentPage);
+        if (pagination.hasNextPage) {
+          setPage(currentPage + 1);
+        }
       } else {
         throw new Error(response.message || 'Không thể tải thú cưng');
       }
@@ -101,6 +103,7 @@ const PetsByBreedScreen = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
@@ -112,8 +115,7 @@ const PetsByBreedScreen = () => {
 
   // Handle load more
   const handleLoadMore = () => {
-    if (hasMore && !loading) {
-      setPage(prevPage => prevPage + 1);
+    if (hasMore && !loading && !loadingMore) {
       loadPetsByBreed(false);
     }
   };
@@ -122,52 +124,12 @@ const PetsByBreedScreen = () => {
   const navigateToPetDetail = (pet: Pet) => {
     navigation.navigate('ProductDetail', {
       pet: pet,
-      petId: pet._id
+      petId: pet._id,
     });
   };
 
-  // Render pet item
-  const renderPetItem = ({ item }: { item: Pet }) => (
-    <TouchableOpacity
-      style={styles.petCard}
-      onPress={() => navigateToPetDetail(item)}
-      activeOpacity={0.8}
-    >
-      <View style={styles.imageContainer}>
-        <Image
-          source={{
-            uri: item.images?.[0]?.url || 'https://via.placeholder.com/200x150'
-          }}
-          style={styles.petImage}
-          resizeMode="cover"
-        />
-        <View style={styles.statusOverlay}>
-          <View style={[
-            styles.statusBadge,
-            { backgroundColor: item.status === 'available' ? '#10B981' : '#EF4444' }
-          ]}>
-            <Text style={styles.statusText}>
-              {item.status === 'available' ? 'Có sẵn' : 'Đã bán'}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.petInfo}>
-        <Text style={styles.petName} numberOfLines={2}>
-          {item.name}
-        </Text>
-
-        <Text style={styles.petPrice}>
-          {item.price?.toLocaleString('vi-VN')}đ
-        </Text>
-
-      </View>
-    </TouchableOpacity>
-  );
-
-  // Render empty state
-  const renderEmptyState = () => (
+  // ✨ Custom Empty Component với style giống original
+  const CustomEmptyComponent = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconWrapper}>
         <FeatherIcon name="search" size={48} color="#D1D5DB" />
@@ -187,7 +149,7 @@ const PetsByBreedScreen = () => {
     </View>
   );
 
-  // Render footer loading
+  // ✨ Custom Footer Component
   const renderFooter = () => {
     if (!hasMore && pets.length > 0) {
       return (
@@ -199,7 +161,7 @@ const PetsByBreedScreen = () => {
       );
     }
 
-    if (!loading || pets.length === 0) return null;
+    if (!loadingMore || pets.length === 0) return null;
 
     return (
       <View style={styles.footerLoading}>
@@ -213,7 +175,7 @@ const PetsByBreedScreen = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Header */}
+      {/* Header - Giữ nguyên style original */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -225,27 +187,20 @@ const PetsByBreedScreen = () => {
 
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            Thú cưng
+            {breedName}
           </Text>
-         
         </View>
 
-        <TouchableOpacity
-          style={styles.filterButton}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.filterButton} activeOpacity={0.7}>
           <FeatherIcon name="filter" size={20} color="#6B7280" />
         </TouchableOpacity>
       </View>
 
-      {/* Results Summary */}
+      {/* Results Summary - Giữ nguyên style original */}
       <View style={styles.summaryContainer}>
         <View style={styles.summaryLeft}>
           <Text style={styles.summaryText}>
-            {totalCount > 0
-              ? `${totalCount} kết quả`
-              : 'Đang tìm kiếm...'
-            }
+            {totalCount > 0 ? `${totalCount} kết quả` : 'Đang tìm kiếm...'}
           </Text>
           {loading && pets.length === 0 && (
             <View style={styles.loadingDot}>
@@ -260,33 +215,34 @@ const PetsByBreedScreen = () => {
         </View>
       </View>
 
-      {/* Pets List */}
-      <FlatList
-        data={pets}
-        keyExtractor={(item) => item._id}
-        renderItem={renderPetItem}
-        numColumns={2}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={['#3B82F6']}
-            tintColor="#3B82F6"
-          />
-        }
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.3}
-        ListEmptyComponent={
-          !loading && pets.length === 0 ? renderEmptyState : null
-        }
-        ListFooterComponent={renderFooter}
-        ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
-        columnWrapperStyle={styles.row}
-      />
+      {/* ✨ Sử dụng PetList component thay vì custom FlatList */}
+      <View style={styles.petListContainer}>
+        <PetList
+          pets={pets}
+          loading={loading && pets.length === 0}
+          numColumns={2}
+          horizontal={false}
+          onPetPress={navigateToPetDetail}
+          itemStyle="grid"
+          scrollEnabled={true}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={!loading && pets.length === 0 ? CustomEmptyComponent : null}
+          // ✨ Thêm RefreshControl và LoadMore functionality
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#3B82F6']}
+              tintColor="#3B82F6"
+            />
+          }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={renderFooter}
+        />
+      </View>
 
-      {/* Loading Overlay */}
+      {/* Loading Overlay - Giữ nguyên style original */}
       {loading && pets.length === 0 && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingContent}>
@@ -301,6 +257,7 @@ const PetsByBreedScreen = () => {
   );
 };
 
+// ✨ Styles được giữ nguyên như original, chỉ thêm petListContainer
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -344,12 +301,6 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     letterSpacing: -0.2,
   },
-  headerSubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 2,
-    fontWeight: '500',
-  },
   filterButton: {
     width: 40,
     height: 40,
@@ -390,95 +341,15 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontWeight: '500',
   },
+  // ✨ NEW: Container cho PetList
+  petListContainer: {
+    flex: 1,
+  },
   listContainer: {
     padding: 16,
     paddingBottom: 24,
   },
-  row: {
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-  },
-  petCard: {
-    flex: 0.48,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  imageContainer: {
-    position: 'relative',
-    height: 160,
-  },
-  petImage: {
-    width: '100%',
-    height: '100%',
-  },
-  statusOverlay: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  statusText: {
-    fontSize: 11,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  petInfo: {
-    padding: 12,
-  },
-  petName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 6,
-    lineHeight: 20,
-  },
-  petPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#EF4444',
-    marginBottom: 8,
-  },
-  petDetailsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  detailText: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginLeft: 4,
-    fontWeight: '500',
-  },
+  // Empty state styles - giữ nguyên như original
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -532,6 +403,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
   },
+  // Footer loading styles - giữ nguyên như original
   footerLoading: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -553,6 +425,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontStyle: 'italic',
   },
+  // Loading overlay styles - giữ nguyên như original
   loadingOverlay: {
     position: 'absolute',
     top: 0,

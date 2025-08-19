@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { Pet } from '../../types';
+import PetVariantHelpers from '../../utils/petVariantHelpers'; // Import PetVariantHelpers
 
 interface PetListProps {
     pets: Pet[];
@@ -50,7 +51,6 @@ const PetList: React.FC<PetListProps> = ({
     scrollEnabled = true,
     ListEmptyComponent,
 }) => {
-
     // Helper function để lấy hình ảnh đầu tiên
     const getImageUrl = (images: any[] = []) => {
         if (images && images.length > 0) {
@@ -61,9 +61,9 @@ const PetList: React.FC<PetListProps> = ({
     };
 
     // Helper function để format giá
-    const formatPrice = (price: number) => {
-        if (!price) return '0₫';
-        return price.toLocaleString('vi-VN') + '₫';
+    const formatPrice = (pet: Pet) => {
+        const { price, showFrom } = PetVariantHelpers.formatPetPrice(pet); // Sử dụng formatPetPrice
+        return `${price.toLocaleString('vi-VN')}₫`;
     };
 
     // Helper function để format status
@@ -101,7 +101,7 @@ const PetList: React.FC<PetListProps> = ({
                             {item.name}
                         </Text>
                         <Text style={styles.horizontalItemPrice}>
-                            {formatPrice(item.price)}
+                            {formatPrice(item)} {/* Sử dụng formatPrice với PetVariantHelpers */}
                         </Text>
                         <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '15' }]}>
                             <Text style={[styles.statusText, { color: statusInfo.color }]}>
@@ -139,7 +139,7 @@ const PetList: React.FC<PetListProps> = ({
                         {item.name}
                     </Text>
                     <Text style={styles.gridItemPrice}>
-                        {formatPrice(item.price)}
+                        {formatPrice(item)} {/* Sử dụng formatPrice với PetVariantHelpers */}
                     </Text>
                 </View>
             </TouchableOpacity>

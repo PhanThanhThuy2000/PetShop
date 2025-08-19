@@ -1,4 +1,4 @@
-// app/components/PetVariantSelector.tsx
+// components/PetVariantSelector.tsx - UPDATED VERSION
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
@@ -13,12 +13,39 @@ import {
 } from 'react-native';
 import { Pet, PetVariant } from '../app/types/index';
 
+// 🆕 PetVariant Helpers - Local definition
+const PetVariantHelpers = {
+    getFinalPrice: (variant: PetVariant): number => {
+        if (variant.selling_price && variant.selling_price > 0) {
+            return variant.selling_price;
+        }
+        if (variant.final_price && variant.final_price > 0) {
+            return variant.final_price;
+        }
+        if (variant.import_price && variant.import_price > 0) {
+            return variant.import_price;
+        }
+        return Math.abs(variant.price_adjustment || 0);
+    },
+
+    getDisplayName: (variant: PetVariant): string => {
+        if (variant.variant_name) return variant.variant_name;
+        if (variant.display_name) return variant.display_name;
+        return `${variant.color} - ${variant.weight}kg - ${variant.gender} - ${variant.age} years`;
+    },
+
+    isVariantAvailable: (variant: PetVariant): boolean => {
+        return variant.is_available && (variant.stock_quantity || 0) > 0;
+    }
+};
+
 interface PetVariantSelectorProps {
     visible: boolean;
     onClose: () => void;
     pet: Pet;
     onSelectVariant: (variant: PetVariant) => void;
     selectedVariant?: PetVariant | null;
+    title?: string;
 }
 
 interface SelectedFilters {
@@ -33,7 +60,8 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
     onClose,
     pet,
     onSelectVariant,
-    selectedVariant
+    selectedVariant,
+    title = "Chọn biến thể"
 }) => {
     const [selectedFilters, setSelectedFilters] = useState<SelectedFilters>({});
     const [filteredVariants, setFilteredVariants] = useState<PetVariant[]>([]);
@@ -43,9 +71,17 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
     // Reset khi modal mở
     useEffect(() => {
         if (visible) {
-            setSelectedFilters({});
-            setCurrentVariant(selectedVariant || null);
-            setFilteredVariants(pet.variants || []);
+            console.log('🔧 Pet variants:', pet.variants);
+            const availableVariants = (pet.variants || []).filter(variant => {
+                console.log('🔧 Checking variant:', variant._id, {
+                    is_available: variant.is_available,
+                    stock_quantity: variant.stock_quantity,
+                    available: PetVariantHelpers.isVariantAvailable(variant)
+                });
+                return PetVariantHelpers.isVariantAvailable(variant);
+            });
+            console.log('🔧 Available variants:', availableVariants.length);
+            setFilteredVariants(availableVariants);
         }
     }, [visible, pet.variants, selectedVariant]);
 
@@ -53,7 +89,8 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
     useEffect(() => {
         if (!pet.variants) return;
 
-        let filtered = pet.variants.filter(variant => variant.is_available && variant.stock_quantity > 0);
+        // 🔧 Bắt đầu với variants available
+        let filtered = pet.variants.filter(variant => PetVariantHelpers.isVariantAvailable(variant));
 
         if (selectedFilters.color) {
             filtered = filtered.filter(v => v.color === selectedFilters.color);
@@ -84,17 +121,33 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
     };
 
     const handleVariantSelect = (variant: PetVariant) => {
+        if (!PetVariantHelpers.isVariantAvailable(variant)) {
+            Alert.alert('Hết hàng', 'Biến thể này hiện tại đã hết hàng');
+            return;
+        }
         setCurrentVariant(variant);
     };
 
     const handleConfirm = () => {
         if (!currentVariant) {
-            Alert.alert('Chọn thú cưng', 'Vui lòng chọn một thú cưng trước khi tiếp tục');
+            Alert.alert('Chọn biến thể', 'Vui lòng chọn một biến thể trước khi tiếp tục');
             return;
         }
 
         onSelectVariant(currentVariant);
         onClose();
+    };
+
+    // 🆕 Lấy unique options từ available variants
+    const getFilterOptions = () => {
+        const availableVariants = (pet.variants || []).filter(v => PetVariantHelpers.isVariantAvailable(v));
+        
+        return {
+            colors: [...new Set(availableVariants.map(v => v.color))],
+            genders: [...new Set(availableVariants.map(v => v.gender))],
+            ages: [...new Set(availableVariants.map(v => v.age))].sort((a, b) => a - b),
+            weights: [...new Set(availableVariants.map(v => v.weight))].sort((a, b) => a - b)
+        };
     };
 
     const renderFilterSection = (
@@ -131,7 +184,7 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
 
     const renderVariantCard = (variant: PetVariant) => {
         const isSelected = currentVariant?._id === variant._id;
-        const finalPrice = variant.final_price || (pet.price + variant.price_adjustment);
+        const finalPrice = PetVariantHelpers.getFinalPrice(variant); // 🔧 Sử dụng helper
 
         return (
             <TouchableOpacity
@@ -140,17 +193,28 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
                 onPress={() => handleVariantSelect(variant)}
             >
                 <View style={styles.variantInfo}>
-                    <Text style={styles.variantName}>{variant.display_name}</Text>
+                    <Text style={styles.variantName}>
+                        {PetVariantHelpers.getDisplayName(variant)} {/* 🔧 Sử dụng helper */}
+                    </Text>
                     <Text style={styles.variantDetails}>
                         Màu: {variant.color} • Cân nặng: {variant.weight}kg
                     </Text>
                     <Text style={styles.variantDetails}>
-                        Giới tính: {variant.gender} • Tuổi: {variant.age} năm
+                        Giới tính: {variant.gender === 'Male' ? 'Đực' : 'Cái'} • Tuổi: {variant.age} năm
                     </Text>
                     <Text style={styles.variantPrice}>{finalPrice.toLocaleString('vi-VN')}₫</Text>
-                    {variant.stock_quantity <= 5 && (
-                        <Text style={styles.stockWarning}>Chỉ còn {variant.stock_quantity} con</Text>
-                    )}
+                    
+                    {/* 🆕 Hiển thị thông tin stock và SKU */}
+                    <View style={styles.variantMeta}>
+                        {variant.sku && (
+                            <Text style={styles.variantSku}>SKU: {variant.sku}</Text>
+                        )}
+                        {variant.stock_quantity <= 5 && (
+                            <Text style={styles.stockWarning}>
+                                Chỉ còn {variant.stock_quantity} con
+                            </Text>
+                        )}
+                    </View>
                 </View>
                 {isSelected && (
                     <View style={styles.selectedIcon}>
@@ -167,13 +231,13 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
                         <View style={styles.header}>
-                            <Text style={styles.title}>Không có thú cưng</Text>
+                            <Text style={styles.title}>Không có biến thể</Text>
                             <TouchableOpacity onPress={onClose}>
                                 <Ionicons name="close" size={24} color="#6B7280" />
                             </TouchableOpacity>
                         </View>
                         <Text style={styles.noVariantsText}>
-                            Sản phẩm này hiện không có thú cưng nào khả dụng
+                            Thú cưng này hiện không có biến thể nào khả dụng
                         </Text>
                         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                             <Text style={styles.closeButtonText}>Đóng</Text>
@@ -184,31 +248,99 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
         );
     }
 
+    const filterOptions = getFilterOptions();
+
     return (
         <Modal visible={visible} transparent animationType="slide">
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContainer}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.title}>Chọn thú cưng</Text>
+                        <Text style={styles.title}>{title}</Text>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color="#6B7280" />
                         </TouchableOpacity>
                     </View>
 
                     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                     
+                        {/* Pet Info */}
+                        <View style={styles.petInfo}>
+                            <Text style={styles.petName}>{pet.name}</Text>
+                            <Text style={styles.petType}>{pet.type}</Text>
+                            {currentVariant && (
+                                <View style={styles.selectedVariantInfo}>
+                                    <Text style={styles.selectedVariantLabel}>Đã chọn:</Text>
+                                    <Text style={styles.selectedVariantText}>
+                                        {PetVariantHelpers.getDisplayName(currentVariant)}
+                                    </Text>
+                                    <Text style={styles.selectedVariantPrice}>
+                                        {PetVariantHelpers.getFinalPrice(currentVariant).toLocaleString('vi-VN')}₫
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* 🆕 Quick Filters */}
+                        {(filterOptions.colors.length > 1 || filterOptions.genders.length > 1) && (
+                            <View style={styles.filtersContainer}>
+                                <Text style={styles.sectionTitle}>Bộ lọc nhanh</Text>
+                                
+                                {filterOptions.colors.length > 1 && renderFilterSection(
+                                    'Màu sắc',
+                                    filterOptions.colors,
+                                    selectedFilters.color,
+                                    (value) => handleFilterSelect('color', value)
+                                )}
+                                
+                                {filterOptions.genders.length > 1 && renderFilterSection(
+                                    'Giới tính',
+                                    filterOptions.genders,
+                                    selectedFilters.gender,
+                                    (value) => handleFilterSelect('gender', value),
+                                    (item) => item,
+                                    (item) => item === 'Male' ? 'Đực' : 'Cái'
+                                )}
+                                
+                                {filterOptions.ages.length > 1 && renderFilterSection(
+                                    'Tuổi',
+                                    filterOptions.ages,
+                                    selectedFilters.age,
+                                    (value) => handleFilterSelect('age', value),
+                                    (item) => item.toString(),
+                                    (item) => `${item} năm`
+                                )}
+                                
+                                {filterOptions.weights.length > 1 && renderFilterSection(
+                                    'Cân nặng',
+                                    filterOptions.weights,
+                                    selectedFilters.weight,
+                                    (value) => handleFilterSelect('weight', value),
+                                    (item) => item.toString(),
+                                    (item) => `${item}kg`
+                                )}
+                            </View>
+                        )}
+
                         {/* Variants List */}
                         <View style={styles.variantsContainer}>
                             <Text style={styles.sectionTitle}>
-                                Vui lòng chọn thú cưng ({filteredVariants.length})
+                                Chọn biến thể ({filteredVariants.length} có sẵn)
                             </Text>
                             {filteredVariants.length > 0 ? (
                                 filteredVariants.map(renderVariantCard)
                             ) : (
-                                <Text style={styles.noResultsText}>
-                                    Không có thú cưng
-                                </Text>
+                                <View style={styles.noResultsContainer}>
+                                    <Ionicons name="search-outline" size={48} color="#9CA3AF" />
+                                    <Text style={styles.noResultsText}>
+                                        Không tìm thấy biến thể phù hợp
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.clearFiltersBtn}
+                                        onPress={() => setSelectedFilters({})}
+                                    >
+                                        <Text style={styles.clearFiltersText}>Xóa bộ lọc</Text>
+                                    </TouchableOpacity>
+                                </View>
                             )}
                         </View>
                     </ScrollView>
@@ -231,28 +363,32 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
                                 <ActivityIndicator size="small" color="#FFFFFF" />
                             ) : (
                                 <Text style={styles.confirmButtonText}>
-                                    Xác nhận {currentVariant ? `- ${currentVariant.final_price?.toLocaleString('vi-VN')}₫` : ''}
+                                    {currentVariant 
+                                        ? `Xác nhận - ${PetVariantHelpers.getFinalPrice(currentVariant).toLocaleString('vi-VN')}₫`
+                                        : 'Chọn biến thể'
+                                    }
                                 </Text>
                             )}
                         </TouchableOpacity>
                     </View>
                 </View>
             </View>
-    </Modal >
-  );
+        </Modal>
+    );
 };
 
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'flex-end',
     },
     modalContainer: {
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        maxHeight: '70%',
-        minHeight: '70%',
+        maxHeight: '80%',
+        minHeight: '60%',
     },
     header: {
         flexDirection: 'row',
@@ -276,6 +412,8 @@ const styles = StyleSheet.create({
         padding: 15,
         backgroundColor: '#F9FAFB',
         borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
     petName: {
         fontSize: 16,
@@ -283,9 +421,33 @@ const styles = StyleSheet.create({
         color: '#111827',
         marginBottom: 5,
     },
-    petPrice: {
+    petType: {
         fontSize: 14,
         color: '#6B7280',
+        marginBottom: 10,
+    },
+    selectedVariantInfo: {
+        backgroundColor: '#EBF4FF',
+        padding: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#BFDBFE',
+    },
+    selectedVariantLabel: {
+        fontSize: 12,
+        color: '#1E40AF',
+        fontWeight: '500',
+    },
+    selectedVariantText: {
+        fontSize: 13,
+        color: '#1F2937',
+        marginTop: 2,
+    },
+    selectedVariantPrice: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#EF4444',
+        marginTop: 4,
     },
     filtersContainer: {
         marginBottom: 20,
@@ -365,23 +527,48 @@ const styles = StyleSheet.create({
         color: '#DC2626',
         marginTop: 5,
     },
+    variantMeta: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 5,
+    },
+    variantSku: {
+        fontSize: 11,
+        color: '#9CA3AF',
+        fontFamily: 'monospace',
+    },
     stockWarning: {
         fontSize: 12,
         color: '#F59E0B',
-        marginTop: 3,
         fontStyle: 'italic',
+        fontWeight: '500',
     },
     selectedIcon: {
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 10,
     },
+    noResultsContainer: {
+        alignItems: 'center',
+        paddingVertical: 40,
+    },
     noResultsText: {
         textAlign: 'center',
         color: '#6B7280',
         fontSize: 14,
-        padding: 20,
-        fontStyle: 'italic',
+        marginTop: 12,
+        marginBottom: 16,
+    },
+    clearFiltersBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: '#3B82F6',
+        borderRadius: 6,
+    },
+    clearFiltersText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '500',
     },
     noVariantsText: {
         textAlign: 'center',
@@ -432,6 +619,8 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: 'center',
         marginTop: 10,
+        marginHorizontal: 20,
+        marginBottom: 20,
     },
     closeButtonText: {
         color: '#FFFFFF',
@@ -441,3 +630,5 @@ const styles = StyleSheet.create({
 });
 
 export default PetVariantSelector;
+
+
