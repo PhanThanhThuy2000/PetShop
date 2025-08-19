@@ -68,7 +68,7 @@ const RecoveryPasswordScreen = () => {
           <Text style={styles.nextButtonText}>Tiếp theo</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.cancelButton}>
+        <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
           <Text style={styles.cancelText}>Hủy</Text>
         </TouchableOpacity>
 
