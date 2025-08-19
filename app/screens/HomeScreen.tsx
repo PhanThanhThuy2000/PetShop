@@ -20,12 +20,15 @@ import Icon from 'react-native-vector-icons/Feather';
 import { NotificationBadge } from '../../components/NotificationBadge';
 import { useAuth } from '../../hooks/redux';
 import ChatSupportButton from '../components/ChatSupportButton';
-import HomeSearchBar from '../components/HomeSearchBar'; // Import the new component
+import HomeSearchBar from '../components/HomeSearchBar';
 import PetList from '../components/Pet/PetList';
 import ProductList from '../components/ProductList';
 import { petsService, productsService } from '../services/api-services';
 import { categoriesService, Category } from '../services/categoriesService';
-import { Pet, Product } from '../types';
+import { Pet, PetVariant, Product } from '../types';
+import PetVariantHelpers from '../utils/petVariantHelpers'; // 🆕 Import shared utility
+
+// 🔧 REMOVED: Local PetVariant Helpers - sử dụng shared utility thay thế
 
 // Safe navigation helper
 const safeNavigate = (navigation: any, routeName: string, params?: any) => {
@@ -59,13 +62,31 @@ const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fallback data if API doesn't work
+  // 🔧 UPDATED Fallback data - Pet không có price
   const fallbackCategories = [
     { _id: '1', name: 'Cats', images: [{ url: 'https://file.hstatic.net/200000108863/file/3_33cbf6a0308e40ca8962af5e0460397c_grande.png' }] },
   ];
 
   const fallbackPets = [
-    { _id: '1', name: 'British Longhair Cat', images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSgjs2sCO0xh0Ve1Sf8mDtBt2UhO9GRZImDw&s' }], price: 1000000, breed_id: { name: 'British' } },
+    {
+      _id: '1',
+      name: 'British Longhair Cat',
+      images: [{ url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSgjs2sCO0xh0Ve1Sf8mDtBt2UhO9GRZImDw&s' }],
+      breed_id: { name: 'British' },
+      variants: [
+        {
+          _id: 'v1',
+          color: 'Golden',
+          weight: 3,
+          gender: 'Male',
+          age: 1,
+          selling_price: 5000000,
+          import_price: 4500000,
+          is_available: true,
+          stock_quantity: 2
+        }
+      ]
+    },
   ];
 
   const fallbackProducts = [
@@ -111,6 +132,7 @@ const HomeScreen = () => {
         setCategories(fallbackCategories as Category[]);
       }
     } catch (error: any) {
+      console.log('Categories loading failed, using fallback');
       setCategories(fallbackCategories as Category[]);
     } finally {
       setCategoriesLoading(false);
@@ -122,11 +144,49 @@ const HomeScreen = () => {
       setPetsLoading(true);
       const response = await petsService.getPets({ page: 1, limit: 6 });
       if (response.success && response.data && response.data.length > 0) {
+        console.log('🐾 Loaded pets:', response.data.length);
+
+        // 🔧 ENHANCED logging với shared helpers
+        response.data.forEach((pet: Pet, index: number) => {
+          console.log(`\n=== Pet ${index + 1}: ${pet.name} ===`);
+          console.log('Full pet object keys:', Object.keys(pet));
+          console.log(`Pet type: ${pet.type}`);
+          console.log(`Has variants: ${pet.variants ? 'Yes' : 'No'}`);
+
+          if (pet.variants && pet.variants.length > 0) {
+            // 🔧 Sử dụng shared helpers để log
+            const summary = PetVariantHelpers.getVariantSummary(pet);
+            const minPrice = PetVariantHelpers.getPetPrice(pet);
+            const maxPrice = PetVariantHelpers.getPetMaxPrice(pet);
+            const shouldShowFrom = PetVariantHelpers.shouldShowPricePrefix(pet);
+
+            console.log(`📊 Variant summary:`, summary);
+            console.log(`💰 Price: ${minPrice} - ${maxPrice} (show "Từ": ${shouldShowFrom})`);
+
+            pet.variants.forEach((variant: PetVariant, vIndex: number) => {
+              const finalPrice = PetVariantHelpers.getFinalPrice(variant);
+              const isAvailable = PetVariantHelpers.isVariantAvailable(variant);
+
+              console.log(`  Variant ${vIndex + 1}:`, {
+                color: variant.color,
+                final_price: finalPrice,
+                is_available: isAvailable,
+                stock: variant.stock_quantity
+              });
+            });
+          } else {
+            console.log('❌ No variants - will use fallback pricing');
+            console.log(`Pet price field: ${(pet as any).price}`);
+          }
+        });
+
         setPets(response.data);
       } else {
+        console.log('No pets from API, using fallback');
         setPets(fallbackPets as Pet[]);
       }
     } catch (error: any) {
+      console.log('Pets loading failed, using fallback:', error);
       setPets(fallbackPets as Pet[]);
     } finally {
       setPetsLoading(false);
@@ -138,11 +198,12 @@ const HomeScreen = () => {
       setProductsLoading(true);
       const response = await productsService.getProducts({ page: 1, limit: 10 });
       if (response.success && response.data?.products?.length > 0) {
-        setProducts(response.data.products); // Trích xuất mảng products
+        setProducts(response.data.products);
       } else {
         setProducts(fallbackProducts as Product[]);
       }
     } catch (error: any) {
+      console.log('Products loading failed, using fallback');
       setProducts(fallbackProducts as Product[]);
     } finally {
       setProductsLoading(false);
@@ -155,8 +216,30 @@ const HomeScreen = () => {
     setRefreshing(false);
   };
 
+  // 🔧 UPDATED handlePetPress sử dụng shared helpers
   const handlePetPress = (pet: Pet) => {
-    safeNavigate(navigation, 'ProductDetail', { pet: pet });
+    console.log(`\n🎯 Pet pressed: ${pet.name}`);
+
+    // 🔧 Sử dụng shared helpers cho logging
+    const summary = PetVariantHelpers.getVariantSummary(pet);
+    const hasAvailable = PetVariantHelpers.hasAvailableVariants(pet);
+
+    console.log(`📊 Variant summary:`, summary);
+    console.log(`✅ Has available variants: ${hasAvailable}`);
+
+    if (summary.total > 0) {
+      const minPrice = PetVariantHelpers.getPetPrice(pet);
+      const maxPrice = PetVariantHelpers.getPetMaxPrice(pet);
+      console.log(`💰 Price range: ${minPrice} - ${maxPrice}`);
+    } else {
+      console.log('❌ No variants - using fallback pricing');
+    }
+
+    // Navigate với cả pet object và petId để đảm bảo compatibility
+    safeNavigate(navigation, 'ProductDetail', {
+      pet: pet,
+      petId: pet._id
+    });
   };
 
   const handleProductPress = (product: Product) => {
@@ -169,6 +252,91 @@ const HomeScreen = () => {
       return primaryImage?.url || images[0]?.url;
     }
     return 'https://via.placeholder.com/150?text=No+Image';
+  };
+
+  // 🔧 UPDATED function để lấy giá hiển thị cho pet
+  const getPetDisplayPrice = (pet: Pet): { minPrice: number; maxPrice: number; hasRange: boolean } => {
+    if (!pet.variants || pet.variants.length === 0) {
+      return { minPrice: 0, maxPrice: 0, hasRange: false };
+    }
+
+    const minPrice = PetVariantHelpers.getMinPrice(pet);
+    const maxPrice = PetVariantHelpers.getMaxPrice(pet);
+    const hasRange = PetVariantHelpers.shouldShowPriceRange(pet);
+
+    return { minPrice, maxPrice, hasRange };
+  };
+
+  // 🔧 UPDATED: Sử dụng shared PetVariantHelpers với fallback logic
+  const formatPetPrice = (pet: Pet): string => {
+    console.log(`\n🔍 Formatting price for: ${pet.name}`);
+
+    // 🔧 METHOD 1: Sử dụng shared helper để lấy giá từ variants
+    if (pet.variants && pet.variants.length > 0) {
+      console.log(`📊 Found ${pet.variants.length} variants`);
+
+      const minPrice = PetVariantHelpers.getPetPrice(pet);
+      const maxPrice = PetVariantHelpers.getPetMaxPrice(pet);
+      const showFrom = PetVariantHelpers.shouldShowPricePrefix(pet);
+      const hasAvailable = PetVariantHelpers.hasAvailableVariants(pet);
+
+      console.log(`💰 Variant pricing:`, {
+        minPrice,
+        maxPrice,
+        showFrom,
+        hasAvailable
+      });
+
+      if (minPrice > 0) {
+        if (showFrom && minPrice !== maxPrice) {
+          return `${minPrice.toLocaleString('vi-VN')} - ${maxPrice.toLocaleString('vi-VN')}₫`;
+        } else {
+          return `${minPrice.toLocaleString('vi-VN')}₫`;
+        }
+      }
+    }
+
+    // 🔧 METHOD 2: Fallback - Kiểm tra pet.price hoặc các field giá khác
+    console.log('🔄 No variant price, checking pet price fields...');
+
+    const petPrice = (pet as any).price ||
+      (pet as any).selling_price ||
+      (pet as any).import_price ||
+      (pet as any).base_price;
+
+    console.log(`🔍 Pet price fields:`, {
+      price: (pet as any).price,
+      selling_price: (pet as any).selling_price,
+      import_price: (pet as any).import_price,
+      base_price: (pet as any).base_price,
+      final: petPrice
+    });
+
+    if (petPrice && petPrice > 0) {
+      console.log(`💰 Using pet direct price: ${petPrice}₫`);
+      return `${petPrice.toLocaleString('vi-VN')}₫`;
+    }
+
+    // 🔧 METHOD 3: Default fallback theo type
+    console.log('⚡ Using default price by pet type');
+    const defaultPrices: { [key: string]: number } = {
+      'Chó': 3000000,
+      'Dog': 3000000,
+      'Mèo': 2000000,
+      'Cat': 2000000,
+      'Chim': 500000,
+      'Bird': 500000,
+      'Cá': 200000,
+      'Fish': 200000,
+      'Hamster': 150000,
+      'Thỏ': 800000,
+      'Rabbit': 800000
+    };
+
+    const defaultPrice = defaultPrices[pet.type] || defaultPrices['Chó'] || 1000000;
+    console.log(`💰 Default price for ${pet.type}: ${defaultPrice}₫`);
+
+    return `Từ ${defaultPrice.toLocaleString('vi-VN')}₫`;
   };
 
   // Category item renderer
@@ -190,7 +358,7 @@ const HomeScreen = () => {
             source={{ uri: imageUrl }}
             style={styles.categoryImage}
             onError={(error) => {
-              // Handle image error silently
+              console.log('Category image failed to load:', imageUrl);
             }}
           />
         </View>
@@ -202,24 +370,22 @@ const HomeScreen = () => {
   // Empty components
   const PetEmptyComponent = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No pets available</Text>
+      <Text style={styles.emptyText}>Không có thú cưng nào</Text>
     </View>
   );
 
   const ProductEmptyComponent = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No products available</Text>
+      <Text style={styles.emptyText}>Không có sản phẩm nào</Text>
     </View>
   );
 
   // Search handlers for HomeSearchBar
   const handleSearchFocus = () => {
-    // Optional: Add any additional logic when search is focused
     console.log('Search focused');
   };
 
   const handleSearchBlur = () => {
-    // Optional: Add any additional logic when search is blurred
     console.log('Search blurred');
   };
 
@@ -264,7 +430,7 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* NEW: HomeSearchBar Component - Replacing the old search */}
+        {/* Search Section */}
         <View style={styles.searchSection}>
           <HomeSearchBar
             placeholder="Tìm kiếm thú cưng, sản phẩm..."
@@ -289,7 +455,7 @@ const HomeScreen = () => {
           {categoriesLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color="#2563EB" />
-              <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
+              <Text style={styles.loadingText}>Đang tải danh mục...</Text>
             </View>
           ) : (
             <FlatList
@@ -312,17 +478,83 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <PetList
-            pets={pets}
-            loading={petsLoading}
-            numColumns={2}
-            horizontal={false}
-            scrollEnabled={false}
-            onPetPress={handlePetPress}
-            itemStyle="grid"
-            contentContainerStyle={styles.petListContent}
-            ListEmptyComponent={PetEmptyComponent}
-          />
+          {petsLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#2563EB" />
+              <Text style={styles.loadingText}>Đang tải thú cưng...</Text>
+            </View>
+          ) : (
+            <PetList
+              pets={pets}
+              loading={false}
+              numColumns={2}
+              horizontal={false}
+              scrollEnabled={false}
+              onPetPress={handlePetPress}
+              itemStyle="grid"
+              contentContainerStyle={styles.petListContent}
+              ListEmptyComponent={PetEmptyComponent}
+              // 🔧 UPDATED: Custom price renderer sử dụng shared helpers
+              customPriceRenderer={(pet: Pet) => {
+                console.log(`\n🎨 Rendering price for: ${pet.name}`);
+
+                const priceString = formatPetPrice(pet);
+                const summary = PetVariantHelpers.getVariantSummary(pet);
+                const hasAvailable = PetVariantHelpers.hasAvailableVariants(pet);
+
+                console.log(`📝 Final display: "${priceString}"`);
+                console.log(`📊 Summary:`, summary);
+
+                // Kiểm tra xem có phải là fallback price không
+                const isFallbackPrice = priceString.includes('Từ') && summary.total === 0;
+                const isDefaultPrice = summary.total === 0 && !(pet as any).price;
+
+                return (
+                  <View style={styles.priceContainer}>
+                    <Text style={[
+                      styles.priceText,
+                      isFallbackPrice && styles.fallbackPriceText
+                    ]}>
+                      {priceString}
+                    </Text>
+
+                    {/* Hiển thị thông tin variants */}
+                    {summary.total > 0 && (
+                      <View style={styles.variantInfoRow}>
+                        <Text style={styles.variantCountText}>
+                          {summary.total} biến thể
+                        </Text>
+                        {summary.available !== summary.total && (
+                          <Text style={styles.availableCountText}>
+                            ({summary.available} có sẵn)
+                          </Text>
+                        )}
+                        {summary.colors.length > 1 && (
+                          <Text style={styles.colorCountText}>
+                            • {summary.colors.length} màu
+                          </Text>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Label cho giá ước tính */}
+                    {summary.total === 0 && isDefaultPrice && (
+                      <Text style={styles.estimatedPriceText}>
+                        Giá ước tính
+                      </Text>
+                    )}
+
+                    {/* Hiển thị available status */}
+                    {summary.total > 0 && !hasAvailable && (
+                      <Text style={styles.unavailableText}>
+                        Tạm hết hàng
+                      </Text>
+                    )}
+                  </View>
+                );
+              }}
+            />
+          )}
         </View>
 
         {/* Products Section */}
@@ -334,18 +566,25 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <ProductList
-            products={products}
-            loading={productsLoading}
-            numColumns={1}
-            horizontal={true}
-            scrollEnabled={true}
-            onProductPress={handleProductPress}
-            itemStyle="horizontal"
-            contentContainerStyle={styles.productListContent}
-            showsHorizontalScrollIndicator={false}
-            ListEmptyComponent={ProductEmptyComponent}
-          />
+          {productsLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#2563EB" />
+              <Text style={styles.loadingText}>Đang tải sản phẩm...</Text>
+            </View>
+          ) : (
+            <ProductList
+              products={products}
+              loading={false}
+              numColumns={1}
+              horizontal={true}
+              scrollEnabled={true}
+              onProductPress={handleProductPress}
+              itemStyle="horizontal"
+              contentContainerStyle={styles.productListContent}
+              showsHorizontalScrollIndicator={false}
+              ListEmptyComponent={ProductEmptyComponent}
+            />
+          )}
         </View>
 
         {/* Error handling */}
@@ -357,7 +596,7 @@ const HomeScreen = () => {
               style={styles.retryButton}
               onPress={loadInitialData}
             >
-              <Text style={styles.retryText}>Retry</Text>
+              <Text style={styles.retryText}>Thử lại</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -373,7 +612,7 @@ const HomeScreen = () => {
   );
 };
 
-// Styles - Updated with logo styles
+// 🔧 UPDATED Styles - cải thiện pricing display
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -390,10 +629,9 @@ const styles = StyleSheet.create({
     paddingTop: 25,
   },
   logoImage: {
-    width: 100, // Kích thước như trong code gốc
+    width: 100,
     height: 40,
   },
-  // Remove headerTitle since we're using logo now
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -416,9 +654,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // NEW: Search section wrapper
+  // Search section
   searchSection: {
-    paddingTop: 5, // Small top padding
+    paddingTop: 5,
   },
 
   // Banner
@@ -496,6 +734,55 @@ const styles = StyleSheet.create({
   },
   productListContent: {
     paddingHorizontal: 20,
+  },
+
+  // 🔧 ENHANCED pricing styles with additional states
+  priceContainer: {
+    alignItems: 'flex-start',
+    marginTop: 8,
+  },
+  priceText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#DC2626', // Đỏ đậm cho giá thật
+  },
+  fallbackPriceText: {
+    color: '#059669', // Xanh cho giá ước tính
+    fontStyle: 'italic',
+  },
+  variantInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+    flexWrap: 'wrap',
+  },
+  variantCountText: {
+    fontSize: 12,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  availableCountText: {
+    fontSize: 11,
+    color: '#F59E0B',
+    marginLeft: 4,
+    fontStyle: 'italic',
+  },
+  colorCountText: {
+    fontSize: 11,
+    color: '#8B5CF6',
+    marginLeft: 4,
+  },
+  estimatedPriceText: {
+    fontSize: 11,
+    color: '#059669',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  unavailableText: {
+    fontSize: 11,
+    color: '#DC2626',
+    marginTop: 2,
+    fontWeight: '500',
   },
 
   // Loading states

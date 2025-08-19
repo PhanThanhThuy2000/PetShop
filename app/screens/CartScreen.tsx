@@ -28,7 +28,7 @@ type Item = {
   description?: string;
   price: number;
   quantity?: number;
-  _apiId: string; // 🆕 Đảm bảo _apiId luôn có
+  _apiId: string;
   petId?: string | null;
   productId?: string | null;
   variantId?: string | null;
@@ -61,12 +61,14 @@ export default function CartScreen() {
   }, [token, dispatch]);
 
   const getDisplayItems = () => {
-    console.log('🛒 Redux items:', JSON.stringify(items, null, 2)); // 🆕 Log dữ liệu từ Redux
+    console.log('🛒 Redux items:', JSON.stringify(items, null, 2));
+
     return items.map(apiItem => {
       const itemInfo = apiItem.item_info;
       const itemType = apiItem.item_type || 'unknown';
       const unitPrice = apiItem.unit_price || 0;
-      const apiId = apiItem._id || `temp-${Math.floor(Math.random() * 1000000)}`; // 🆕 Đảm bảo _apiId luôn có
+      const totalPrice = apiItem.total_price;
+      const apiId = apiItem._id || `temp-${Math.floor(Math.random() * 1000000)}`;
 
       if (!itemInfo) {
         console.warn('⚠️ No item_info found for item:', apiItem._id || 'no-id');
@@ -92,31 +94,54 @@ export default function CartScreen() {
       let productId = null;
       let variantId = null;
 
+      // 🔧 FIXED: Xử lý variant items theo structure mới từ CartController
       if (itemType === 'variant' && itemInfo.variant) {
+        console.log('🧬 Processing variant item:', itemInfo.variant);
+
+        const variant = itemInfo.variant;
         variantInfo = {
-          color: itemInfo.variant.color,
-          weight: itemInfo.variant.weight,
-          gender: itemInfo.variant.gender,
-          age: itemInfo.variant.age,
-          display_name: itemInfo.variant.display_name
+          color: variant.color,
+          weight: variant.weight,
+          gender: variant.gender,
+          age: variant.age,
+          display_name: variant.display_name,
+          selling_price: variant.selling_price,
+          stock_quantity: variant.stock_quantity,
+          sku: variant.sku
         };
-        description = itemInfo.variant.display_name ||
-          `${itemInfo.variant.color} - ${itemInfo.variant.weight}kg - ${itemInfo.variant.gender} - ${itemInfo.variant.age}Y`;
-        variantId = itemInfo.variant._id;
-        petId = itemInfo._id;
+
+        description = variant.display_name ||
+          `${variant.color} - ${variant.weight}kg - ${variant.gender} - ${variant.age} tuổi`;
+
+        variantId = variant._id;
+        petId = itemInfo._id; // Pet info từ itemInfo
       }
+      // 🔧 FIXED: Xử lý pet items
       else if (itemType === 'pet') {
+        console.log('🐕 Processing pet item:', itemInfo);
+
         const breedName = typeof itemInfo.breed_id === 'object'
           ? itemInfo.breed_id?.name
           : 'Unknown Breed';
-        description = `${breedName} - ${itemInfo.gender || 'Unknown'} - ${itemInfo.age || 0}y`;
+
+        description = `${breedName} - ${itemInfo.type || 'Unknown'}`;
+
+        // 🔧 ADDED: Thêm thông tin hasVariants nếu có
+        if (itemInfo.hasVariants) {
+          description += ' (Có variants)';
+        }
+
         petId = itemInfo._id;
       }
+      // 🔧 IMPROVED: Xử lý product items
       else if (itemType === 'product') {
-        description = 'Pet product';
+        console.log('📦 Processing product item:', itemInfo);
+
+        description = itemInfo.description || 'Pet product';
         productId = itemInfo._id;
       }
 
+      // 🔧 IMPROVED: Xử lý hình ảnh
       let primaryImage = require('../../assets/images/dog.png');
       if (itemInfo.images && Array.isArray(itemInfo.images) && itemInfo.images.length > 0) {
         const foundImage = itemInfo.images.find((img: any) => img.is_primary) || itemInfo.images[0];
@@ -130,7 +155,7 @@ export default function CartScreen() {
         image: primaryImage,
         title: itemInfo.name || 'Unknown Item',
         description,
-        price: unitPrice,
+        price: unitPrice || 0, // 🔧 SỬ DỤNG unit_price từ API (backend đã tính sẵn)
         quantity: apiItem.quantity || 1,
         _apiId: apiId,
         petId,
@@ -140,7 +165,7 @@ export default function CartScreen() {
         itemType
       };
 
-      console.log('Processed item:', JSON.stringify(processedItem, null, 2)); // 🆕 Log mục đã xử lý
+      console.log('✅ Processed item:', JSON.stringify(processedItem, null, 2));
       return processedItem;
     });
   };
@@ -183,7 +208,10 @@ export default function CartScreen() {
   const getSelectedTotal = () => {
     return cartItems
       .filter(item => selectedItems.has(item._apiId))
-      .reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+      .reduce((sum, item) => {
+        const itemTotal = (item.price || 0) * (item.quantity || 1);
+        return sum + itemTotal;
+      }, 0);
   };
 
   const getSelectedItems = () => {
@@ -204,7 +232,8 @@ export default function CartScreen() {
 
       dispatch(getCart());
     } catch (error) {
-      Alert.alert('Hết hàng','Sản phẩm hết hàng vui lòng chọn sản khác');
+      console.error('❌ Update quantity error:', error);
+      Alert.alert('Lỗi', 'Không thể cập nhật số lượng. Vui lòng thử lại.');
     }
   };
 
@@ -214,7 +243,7 @@ export default function CartScreen() {
 
     Alert.alert(
       'Xóa sản phẩm',
-      `Bạn có muốn xóa ${item.title} khỏi giỏ hàng không?`,
+      `Bạn có muốn xóa "${item.title}" khỏi giỏ hàng không?`,
       [
         { text: 'Hủy', style: 'cancel' },
         {
@@ -228,7 +257,8 @@ export default function CartScreen() {
               setSelectedItems(newSelectedItems);
               dispatch(getCart());
             } catch (error) {
-              Alert.alert('Error', 'Failed to remove item');
+              console.error('❌ Remove item error:', error);
+              Alert.alert('Lỗi', 'Không thể xóa sản phẩm. Vui lòng thử lại.');
             }
           },
         },
@@ -238,8 +268,8 @@ export default function CartScreen() {
 
   const handleClearCart = () => {
     Alert.alert(
-      'Xóa',
-      'Xóa toàn bộ sản phẩm khỏi giỏ hàng?',
+      'Xóa toàn bộ giỏ hàng',
+      'Bạn có chắc chắn muốn xóa toàn bộ sản phẩm khỏi giỏ hàng?',
       [
         { text: 'Hủy', style: 'cancel' },
         {
@@ -252,7 +282,8 @@ export default function CartScreen() {
               setSelectAll(false);
               dispatch(getCart());
             } catch (error) {
-              Alert.alert('Error', 'Failed to clear cart');
+              console.error('❌ Clear cart error:', error);
+              Alert.alert('Lỗi', 'Không thể xóa giỏ hàng. Vui lòng thử lại.');
             }
           },
         },
@@ -262,44 +293,50 @@ export default function CartScreen() {
 
   const handleCheckout = async () => {
     try {
-      // Đồng bộ giỏ hàng
+      // Đồng bộ giỏ hàng trước khi checkout
       await dispatch(getCart()).unwrap();
       const selectedCartItems = getSelectedItems();
 
       if (selectedCartItems.length === 0) {
-        Alert.alert('No Items Selected', 'Please select items to checkout');
+        Alert.alert('Chưa chọn sản phẩm', 'Vui lòng chọn ít nhất một sản phẩm để thanh toán');
         return;
       }
 
+      // 🔧 IMPROVED: Format cart items cho Payment screen
       const formattedCartItems = selectedCartItems.map(item => {
         const formattedItem = {
           id: item._apiId,
           title: item.title,
-          price: item.price,
+          price: item.price || 0,
           quantity: item.quantity || 1,
           image: item.image,
-          type: item.itemType || (item.petId ? 'pet' : 'product'),
-          petId: item.petId || null,
-          productId: item.productId || null,
-          variantId: item.variantId || null,
-          variantInfo: item.variantInfo || null,
+          type: item.itemType || (item.petId ? 'pet' : item.productId ? 'product' : 'variant'),
+          petId: item.petId || undefined,
+          productId: item.productId || undefined,
+          variantId: item.variantId || undefined,
+          variantInfo: item.variantInfo || undefined,
           _apiId: item._apiId
         };
-        console.log('Formatted cart item:', JSON.stringify(formattedItem, null, 2)); // 🆕 Log mục được truyền
+
+        console.log('💳 Formatted cart item for payment:', JSON.stringify(formattedItem, null, 2));
         return formattedItem;
       });
 
       const selectedTotal = getSelectedTotal();
 
-      console.log('Navigating to Payment with cartItems:', JSON.stringify(formattedCartItems, null, 2));
+      console.log('🚀 Navigating to Payment with:', {
+        totalItems: formattedCartItems.length,
+        total: selectedTotal,
+        cartItems: formattedCartItems
+      });
 
       navigation.navigate('Payment', {
         cartItems: formattedCartItems,
         total: selectedTotal
       });
     } catch (error) {
-      console.error('Error syncing cart before checkout:', error);
-      Alert.alert('Error', 'Failed to sync cart before checkout');
+      console.error('❌ Checkout error:', error);
+      Alert.alert('Lỗi', 'Không thể tiến hành thanh toán. Vui lòng thử lại.');
     }
   };
 
@@ -346,15 +383,21 @@ export default function CartScreen() {
 
         {isCart && (
           <>
+            {/* 🔧 FIXED: Hiển thị thông tin variant theo structure mới */}
             {item.itemType === 'variant' && item.variantInfo ? (
               <View style={styles.variantInfoContainer}>
-                <Text style={styles.variantDetails} numberOfLines={1}>
-                  {item.variantInfo.display_name ||
-                    `${item.variantInfo.color} - ${item.variantInfo.weight}kg`}
+                <Text style={styles.variantDetails} numberOfLines={2}>
+                  🐾 {item.variantInfo.display_name ||
+                    `${item.variantInfo.color} - ${item.variantInfo.weight}kg - ${item.variantInfo.gender} - ${item.variantInfo.age} tuổi`}
                 </Text>
+                {item.variantInfo.stock_quantity && item.variantInfo.stock_quantity <= 5 && (
+                  <Text style={styles.stockWarning}>
+                    Chỉ còn {item.variantInfo.stock_quantity} con
+                  </Text>
+                )}
               </View>
             ) : (
-              <Text numberOfLines={1} style={styles.cardDesc}>
+              <Text numberOfLines={2} style={styles.cardDesc}>
                 {item.description}
               </Text>
             )}
@@ -362,12 +405,21 @@ export default function CartScreen() {
         )}
 
         <View style={styles.priceContainer}>
-          <Text style={styles.cardPrice}>
-            {(item.price * (item.quantity || 1)).toLocaleString('vi-VN')}₫
-          </Text>
-          {item.quantity && item.quantity > 1 && (
-            <Text style={styles.unitPrice}>
-              {item.price.toLocaleString('vi-VN')}₫
+          {/* 🔧 FIXED: Hiển thị giá - Sử dụng unit_price từ backend */}
+          {item.price > 0 ? (
+            <>
+              <Text style={styles.cardPrice}>
+                {(item.price * (item.quantity || 1)).toLocaleString('vi-VN')}₫
+              </Text>
+              {item.quantity && item.quantity > 1 && (
+                <Text style={styles.unitPrice}>
+                  {item.price.toLocaleString('vi-VN')}₫ x {item.quantity}
+                </Text>
+              )}
+            </>
+          ) : (
+            <Text style={styles.priceUnavailable}>
+              Liên hệ để biết giá
             </Text>
           )}
         </View>
@@ -378,9 +430,9 @@ export default function CartScreen() {
           <TouchableOpacity
             onPress={() => updateQuantity(item.id, -1)}
             style={styles.qtyBtn}
-            disabled={isLoading}
+            disabled={isLoading || (item.quantity || 1) <= 1}
           >
-            <Text style={styles.qtyText}>–</Text>
+            <Text style={[styles.qtyText, (item.quantity || 1) <= 1 && styles.qtyTextDisabled]}>–</Text>
           </TouchableOpacity>
           <Text style={styles.qtyCount}>{item.quantity}</Text>
           <TouchableOpacity
@@ -400,7 +452,7 @@ export default function CartScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading cart...</Text>
+          <Text style={styles.loadingText}>Đang tải giỏ hàng...</Text>
         </View>
       </SafeAreaView>
     );
@@ -411,7 +463,8 @@ export default function CartScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyContainer}>
           <Ionicons name="person-circle-outline" size={80} color="#C0C0C0" />
-          <Text style={styles.emptyTitle}>Làm ơn login trước</Text>
+          <Text style={styles.emptyTitle}>Vui lòng đăng nhập</Text>
+          <Text style={styles.emptySubtext}>Để xem giỏ hàng của bạn</Text>
         </View>
       </SafeAreaView>
     );
@@ -461,7 +514,13 @@ export default function CartScreen() {
           <View style={styles.emptyCart}>
             <Ionicons name="cart-outline" size={60} color="#C0C0C0" />
             <Text style={styles.emptyTitle}>Giỏ hàng trống</Text>
-            <Text style={styles.emptySubtext}>Vui lòng thêm sản phẩm vào giỏ hàng</Text>
+            <Text style={styles.emptySubtext}>Thêm sản phẩm yêu thích vào giỏ hàng để mua sắm</Text>
+            <TouchableOpacity
+              style={styles.shopNowBtn}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Text style={styles.shopNowText}>Mua sắm ngay</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           cartItems.map(item => renderCard(item, true))
@@ -491,7 +550,7 @@ export default function CartScreen() {
             disabled={isLoading || selectedItems.size === 0}
           >
             <Text style={styles.checkoutText}>
-              Đặt hàng ({selectedItems.size})
+              {selectedItems.size === 0 ? 'Chọn sản phẩm' : `Thanh toán (${selectedItems.size})`}
             </Text>
           </TouchableOpacity>
         </View>
@@ -533,19 +592,6 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center'
-  },
-  badge: {
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 11
   },
   clearButton: {
     marginLeft: 10,
@@ -645,27 +691,43 @@ const styles = StyleSheet.create({
   },
   priceContainer: {
     flexDirection: 'column',
-    alignItems: 'baseline',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
   cardPrice: {
     fontWeight: '700',
     fontSize: 14,
     color: '#007AFF',
-    flex: 1,
   },
   unitPrice: {
     fontSize: 10,
     color: '#999',
-    marginLeft: 8,
+    marginTop: 2,
+  },
+  priceUnavailable: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
   },
   variantInfoContainer: {
     marginBottom: 4,
+    backgroundColor: '#f0f8ff',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   variantDetails: {
     fontSize: 11,
-    color: '#666',
+    color: '#0066cc',
     lineHeight: 14,
+    fontWeight: '500',
+  },
+  stockWarning: {
+    fontSize: 10,
+    color: '#F59E0B',
+    fontStyle: 'italic',
+    fontWeight: '500',
+    marginTop: 2,
   },
   qtyControl: {
     flexDirection: 'row',
@@ -686,6 +748,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+  },
+  qtyTextDisabled: {
+    color: '#ccc',
   },
   qtyCount: {
     minWidth: 24,
@@ -726,7 +791,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#007AFF',
   },
-  footerLoader: { marginLeft: 8 },
+  footerLoader: {
+    marginLeft: 8
+  },
   checkoutBtn: {
     backgroundColor: '#007AFF',
     paddingVertical: 12,
@@ -775,5 +842,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 18,
+  },
+  shopNowBtn: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  shopNowText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

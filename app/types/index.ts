@@ -1,4 +1,4 @@
-// index.ts
+// app/types/index.ts - UPDATED VERSION
 export interface PaginatedResponse<T> {
   items: T[];
   pagination: {
@@ -10,6 +10,7 @@ export interface PaginatedResponse<T> {
     limit: number;
   };
 }
+
 export interface User {
   id: string;
   username: string;
@@ -46,19 +47,75 @@ export interface ProductImage {
   product_id: string;
 }
 
+// 🔧 CẬP NHẬT PetVariant interface với import_price và selling_price
+export interface PetVariant {
+  _id: string;
+  pet_id: string | Pet;
+  color: string;
+  weight: number;
+  gender: 'Male' | 'Female';
+  age: number;
+
+  // 🆕 THÊM MỚI - Fields từ backend model
+  import_price: number; // Giá nhập
+  selling_price: number; // Giá bán
+
+  // ✅ GIỮ NGUYÊN - Fields cũ để backward compatibility
+  price_adjustment: number; // Vẫn có để tính toán fallback
+
+  stock_quantity: number;
+  sku?: string;
+  is_available: boolean;
+
+  // 🔧 CẬP NHẬT - Fields tính toán
+  final_price?: number; // Sẽ ưu tiên selling_price hoặc fallback
+  display_name?: string;
+  variant_name?: string; // Alias cho display_name
+
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PetVariantOptions {
+  colors: string[];
+  genders: ('Male' | 'Female')[];
+  age_range: {
+    min: number;
+    max: number;
+  };
+  weight_range: {
+    min: number;
+    max: number;
+  };
+  totalVariants: number;
+}
+
+export interface VariantFilters {
+  color?: string;
+  gender?: 'Male' | 'Female';
+  minAge?: number;
+  maxAge?: number;
+  minWeight?: number;
+  maxWeight?: number;
+}
+
+// Cập nhật Pet interface để include variants - KHÔNG CÓ PRICE
 export interface Pet {
   _id: string;
   name: string;
-  price: number;
-  type: string; 
+  // ❌ BỎ HOÀN TOÀN: price: number; 
+  type: string;
   breed_id: {
     _id: string;
     name: string;
     description?: string;
   } | string;
-  age?: number;
-  weight?: number;
-  gender?: 'Male' | 'Female';
+  user_id?: {
+    _id: string;
+    username: string;
+    email: string;
+  } | string;
+  // ❌ BỎ HOÀN TOÀN age, weight, gender - chuyển sang variants
   description?: string;
   status: 'available' | 'sold' | 'reserved';
   images: Array<{
@@ -66,6 +123,8 @@ export interface Pet {
     url: string;
     description?: string;
   }>;
+  variants?: PetVariant[]; // 🆕 THÊM MỚI - REQUIRED
+  variant_options?: PetVariantOptions; // 🆕 THÊM MỚI
   created_at: string;
   updated_at: string;
 }
@@ -77,18 +136,6 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-export interface PaginatedResponse<T> {
-  items: T[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalCount: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
-    limit: number;
-  };
-}
-
 export interface PetImage {
   _id: string;
   url: string;
@@ -96,13 +143,19 @@ export interface PetImage {
   pet_id: string;
 }
 
+// Cập nhật CartItem interface
 export interface CartItem {
   _id: string;
   user_id: string;
   pet_id?: Pet;
   product_id?: Product;
+  variant_id?: PetVariant; // 🆕 THÊM MỚI
   quantity: number;
   added_at: string;
+  item_type?: 'pet' | 'product' | 'variant'; // 🆕 THÊM MỚI
+  item_info?: any;
+  unit_price?: number;
+  total_price?: number;
 }
 
 export interface CartState {
@@ -123,13 +176,14 @@ export interface Order {
   user_id: string;
 }
 
-// Thêm interface cho OrderItem
+// Cập nhật OrderItem interface
 export interface OrderItem {
   _id: string;
   quantity: number;
   unit_price: number;
   pet_id?: Pet;
   product_id?: Product;
+  variant_id?: PetVariant; // 🆕 THÊM MỚI
   order_id: Order;
   addresses_id: string;
   created_at: string;
@@ -149,9 +203,11 @@ export interface RegisterRequest {
   role?: string;
 }
 
+// Cập nhật AddToCartRequest interface
 export interface AddToCartRequest {
   pet_id?: string;
   product_id?: string;
+  variant_id?: string; // 🆕 THÊM MỚI
   quantity: number;
 }
 
@@ -319,7 +375,7 @@ export interface Voucher {
   expiry_date: string;
   max_usage: number;
   used_count?: number;
-  status: 'active' | 'inactive' | 'pending' | 'expired' |'used';
+  status: 'active' | 'inactive' | 'pending' | 'expired' | 'used';
   textColor?: string;
   color?: string;
   isDashed?: boolean;
@@ -471,116 +527,6 @@ export interface CareServiceState {
   isLoading: boolean;
   error: string | null;
 }
-export interface PetVariant {
-  _id: string;
-  pet_id: string | Pet;
-  color: string;
-  weight: number;
-  gender: 'Male' | 'Female';
-  age: number;
-  price_adjustment: number;
-  stock_quantity: number;
-  sku?: string;
-  is_available: boolean;
-  final_price?: number;
-  display_name?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PetVariantOptions {
-  colors: string[];
-  genders: ('Male' | 'Female')[];
-  age_range: number[];
-  weight_range: number[];
-  ageRange: {
-    min: number;
-    max: number;
-  } | null;
-  weightRange: {
-    min: number;
-    max: number;
-  } | null;
-  totalVariants: number;
-}
-
-export interface VariantFilters {
-  color?: string;
-  gender?: 'Male' | 'Female';
-  minAge?: number;
-  maxAge?: number;
-  minWeight?: number;
-  maxWeight?: number;
-}
-
-// Cập nhật Pet interface để include variants
-export interface Pet {
-  _id: string;
-  name: string;
-  price: number;
-  type: string;
-  breed_id: {
-    _id: string;
-    name: string;
-    description?: string;
-  } | string;
-  user_id?: {
-    _id: string;
-    username: string;
-    email: string;
-  } | string;
-  age?: number;
-  weight?: number;
-  gender?: 'Male' | 'Female';
-  description?: string;
-  status: 'available' | 'sold' | 'reserved';
-  images: Array<{
-    _id?: string;
-    url: string;
-    description?: string;
-  }>;
-  variants?: PetVariant[]; // 🆕 THÊM MỚI
-  variant_options?: PetVariantOptions; // 🆕 THÊM MỚI
-  created_at: string;
-  updated_at: string;
-}
-
-// Cập nhật CartItem interface
-export interface CartItem {
-  _id: string;
-  user_id: string;
-  pet_id?: Pet;
-  product_id?: Product;
-  variant_id?: PetVariant; // 🆕 THÊM MỚI
-  quantity: number;
-  added_at: string;
-  item_type?: 'pet' | 'product' | 'variant'; // 🆕 THÊM MỚI
-  item_info?: any;
-  unit_price?: number;
-  total_price?: number;
-}
-
-// Cập nhật AddToCartRequest interface
-export interface AddToCartRequest {
-  pet_id?: string;
-  product_id?: string;
-  variant_id?: string; // 🆕 THÊM MỚI
-  quantity: number;
-}
-
-// Cập nhật OrderItem interface
-export interface OrderItem {
-  _id: string;
-  quantity: number;
-  unit_price: number;
-  pet_id?: Pet;
-  product_id?: Product;
-  variant_id?: PetVariant; // 🆕 THÊM MỚI
-  order_id: Order;
-  addresses_id: string;
-  created_at: string;
-  updated_at: string;
-}
 
 export interface Breed {
   _id: string;
@@ -613,4 +559,136 @@ export interface BreedImage {
   is_primary: boolean;
   breed_id: string;
   created_at: string;
+}
+
+// 🚀 Helper functions để handle transition từ Pet cũ sang PetVariant mới
+export namespace PetVariantHelpers {
+
+  /**
+   * Lấy giá cuối cùng từ variant - KHÔNG CẦN basePetPrice
+   */
+  export function getFinalPrice(variant: PetVariant, basePetPrice?: number): number {
+    // 1. Ưu tiên selling_price nếu có
+    if (variant.selling_price && variant.selling_price > 0) {
+      return variant.selling_price;
+    }
+
+    // 2. Fallback: final_price đã tính sẵn
+    if (variant.final_price && variant.final_price > 0) {
+      return variant.final_price;
+    }
+
+    // 3. Fallback: import_price nếu không có gì khác
+    if (variant.import_price && variant.import_price > 0) {
+      return variant.import_price;
+    }
+
+    // 4. Final fallback: price_adjustment (legacy)
+    return Math.abs(variant.price_adjustment || 0);
+  }
+
+  /**
+   * Lấy display name của variant
+   */
+  export function getDisplayName(variant: PetVariant): string {
+    if (variant.variant_name) return variant.variant_name;
+    if (variant.display_name) return variant.display_name;
+
+    // Tạo display name từ thuộc tính
+    return `${variant.color} - ${variant.weight}kg - ${variant.gender} - ${variant.age} years`;
+  }
+
+  /**
+   * Kiểm tra variant có available không
+   */
+  export function isVariantAvailable(variant: PetVariant): boolean {
+    return variant.is_available && (variant.stock_quantity || 0) > 0;
+  }
+
+  /**
+   * Lấy giá nhập để tính profit margin
+   */
+  export function getImportPrice(variant: PetVariant): number {
+    return variant.import_price || 0;
+  }
+
+  /**
+   * Tính profit margin
+   */
+  export function getProfitMargin(variant: PetVariant, basePetPrice?: number): number {
+    const finalPrice = getFinalPrice(variant, basePetPrice);
+    const importPrice = getImportPrice(variant);
+
+    if (importPrice <= 0) return 0;
+
+    return ((finalPrice - importPrice) / importPrice) * 100;
+  }
+
+  /**
+   * Lấy giá từ Pet - CHỈ TỪ VARIANTS
+   */
+  export function getPetPrice(pet: Pet): number {
+    if (pet.variants && pet.variants.length > 0) {
+      // Lấy giá thấp nhất từ variants available
+      const availableVariants = pet.variants.filter(v => isVariantAvailable(v));
+      if (availableVariants.length > 0) {
+        return Math.min(...availableVariants.map(v => getFinalPrice(v)));
+      }
+      // Nếu không có variant available, lấy variant đầu tiên
+      return getFinalPrice(pet.variants[0]);
+    }
+    // Không có variants = không có giá
+    return 0;
+  }
+
+  /**
+   * Lấy giá cao nhất từ variants
+   */
+  export function getPetMaxPrice(pet: Pet): number {
+    if (pet.variants && pet.variants.length > 0) {
+      const availableVariants = pet.variants.filter(v => isVariantAvailable(v));
+      if (availableVariants.length > 0) {
+        return Math.max(...availableVariants.map(v => getFinalPrice(v)));
+      }
+      return getFinalPrice(pet.variants[0]);
+    }
+    return 0;
+  }
+
+  /**
+   * Kiểm tra pet có available variants không
+   */
+  export function hasAvailableVariants(pet: Pet): boolean {
+    return pet.variants?.some(v => isVariantAvailable(v)) || false;
+  }
+
+  /**
+   * Lấy variant mặc định (giá thấp nhất, có sẵn)
+   */
+  export function getDefaultVariant(pet: Pet): PetVariant | null {
+    if (!pet.variants?.length) return null;
+
+    const availableVariants = pet.variants.filter(v => isVariantAvailable(v));
+    if (!availableVariants.length) return pet.variants[0]; // Fallback variant đầu tiên
+
+    return availableVariants.reduce((min, variant) =>
+      getFinalPrice(variant) < getFinalPrice(min) ? variant : min
+    );
+  }
+
+  /**
+   * Kiểm tra có nên hiển thị "Từ" trong giá không
+   */
+  export function shouldShowPricePrefix(pet: Pet): boolean {
+    if (!pet.variants?.length) return false;
+
+    const availableVariants = pet.variants.filter(v => isVariantAvailable(v));
+    if (availableVariants.length <= 1) return false;
+
+    const prices = availableVariants.map(v => getFinalPrice(v));
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+
+    return minPrice !== maxPrice; // Hiển thị "Từ" nếu có nhiều mức giá
+  }
 }

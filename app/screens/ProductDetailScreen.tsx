@@ -1,4 +1,3 @@
-// app/screens/ProductDetailScreen.tsx
 import PetVariantSelector from '@/components/PetVariantSelector';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -31,10 +30,11 @@ import {
 import { AppDispatch, RootState } from '../redux/store';
 import { petsService } from '../services/petsService';
 import { productsService } from '../services/productsService';
-import { Review, reviewService, ReviewStats } from '../services/ReviewServices'; // ✅ Import reviewService
+import { Review, reviewService, ReviewStats } from '../services/ReviewServices';
 import { Pet, PetImage, PetVariant, Product, ProductImage } from '../types';
 import { API_BASE_URL } from '../utils/api-client';
 import { requiresAuth, useAuthGuard } from '../utils/authGuard';
+import { PetVariantHelpers } from '../utils/petVariantHelpers'; // 🆕 IMPORT PetVariantHelpers
 
 // --- Data Interfaces ---
 interface Variation { id: string; image: any; }
@@ -110,7 +110,7 @@ const InfoRow: FC<{ label: string; value: string }> = ({ label, value }) => (
   </View>
 );
 
-// ✅ ENHANCED ReviewCard với Reviews thật
+// ReviewCard Component
 const ReviewCard: FC<{
   navigation: any;
   reviews: Review[];
@@ -118,7 +118,6 @@ const ReviewCard: FC<{
   onViewAllPress: () => void;
   loading: boolean;
 }> = ({ navigation, reviews, reviewStats, onViewAllPress, loading }) => {
-
   if (loading) {
     return (
       <View style={styles.reviewLoadingContainer}>
@@ -181,7 +180,7 @@ const ReviewCard: FC<{
   );
 };
 
-// Enhanced RelatedItems Component
+// RelatedItems Component
 const RelatedItems: FC<{
   navigation: any;
   currentItemId: string;
@@ -238,6 +237,7 @@ const RelatedItems: FC<{
             .slice(0, limit)
             .map((pet: Pet) => ({
               ...pet,
+              price: PetVariantHelpers.getPetPrice(pet), // 🆕 Sử dụng PetVariantHelpers
               itemType: 'pet' as const,
               relationshipType: 'similar'
             }));
@@ -309,7 +309,7 @@ const RelatedItems: FC<{
 
   const renderRelatedItem = ({ item, index }: { item: RelatedItem, index: number }) => (
     <TouchableOpacity
-      key={`related-${item._id}-${item.itemType}-${index}`} // Thêm key duy nhất
+      key={`related-${item._id}-${item.itemType}-${index}`}
       style={styles.relatedItem}
       onPress={() => handleItemPress(item)}
       activeOpacity={0.7}
@@ -332,7 +332,7 @@ const RelatedItems: FC<{
           {item.name}
         </Text>
         <Text style={styles.itemPrice}>
-          {item.price?.toLocaleString('vi-VN')}₫
+          {item.price > 0 ? item.price.toLocaleString('vi-VN') + '₫' : 'Giá không khả dụng'} {/* 🆕 Xử lý giá không hợp lệ */}
         </Text>
         {item.compatibleWithPetType && (
           <Text style={styles.compatibilityText}>
@@ -390,7 +390,7 @@ const RelatedItems: FC<{
   );
 };
 
-// Enhanced SimilarPets Component
+// SimilarPets Component
 const SimilarPets: FC<{
   navigation: any;
   petId?: string;
@@ -415,7 +415,10 @@ const SimilarPets: FC<{
       const response = await petsService.getSimilarPets(petId, limit);
       if (response.success) {
         console.log('✅ Similar pets loaded:', response.data);
-        setSimilarPets(response.data.similarPets || []);
+        setSimilarPets(response.data.similarPets?.map((pet: Pet) => ({
+          ...pet,
+          price: PetVariantHelpers.getPetPrice(pet) // 🆕 Sử dụng PetVariantHelpers
+        })) || []);
       }
     } catch (error) {
       console.error('❌ Error loading similar pets:', error);
@@ -446,7 +449,6 @@ const SimilarPets: FC<{
     if (score >= 80) return '#F59E0B';
     return '#EF4444';
   };
-
 
   if (similarPets.length === 0) {
     return null;
@@ -494,7 +496,7 @@ const SimilarPets: FC<{
                 {typeof pet.breed_id === 'object' ? pet.breed_id?.name : 'Chưa rõ giống'}
               </Text>
               <Text style={styles.itemPrice}>
-                {pet.price?.toLocaleString('vi-VN')}₫
+                {pet.price > 0 ? pet.price.toLocaleString('vi-VN') + '₫' : 'Giá không khả dụng'} {/* 🆕 Xử lý giá không hợp lệ */}
               </Text>
               {showSimilarityScore && pet.similarityScore && (
                 <View style={styles.similarityInfo}>
@@ -519,7 +521,7 @@ const SimilarPets: FC<{
   );
 };
 
-// Enhanced CompatibleProducts Component
+// CompatibleProducts Component
 const CompatibleProducts: FC<{
   navigation: any;
   petType: string;
@@ -560,14 +562,13 @@ const CompatibleProducts: FC<{
     });
   };
 
-  const getImageUrl = (product: any): string => {
-    if (product.images && product.images.length > 0) {
-      const primaryImage = product.images.find((img: any) => img.is_primary);
-      return primaryImage?.url || product.images[0]?.url || 'https://via.placeholder.com/150';
+  const getImageUrl = (images: any[] = []) => {
+    if (images && images.length > 0) {
+      const primaryImage = images.find(img => img.is_primary);
+      return primaryImage?.url || images[0]?.url;
     }
-    return 'https://via.placeholder.com/150?text=Product';
+    return 'https://via.placeholder.com/150?text=No+Image';
   };
-
   const getPetTypeIcon = (type: string): string => {
     const icons: { [key: string]: string } = {
       'chó': '🐕',
@@ -683,9 +684,19 @@ const FooterBar: FC<{
 }) => {
     const getDisplayPrice = () => {
       if (selectedVariant) {
-        return selectedVariant.final_price || (item.price + selectedVariant.price_adjustment);
+        const price = PetVariantHelpers.getFinalPrice(selectedVariant);
+        return price;
       }
-      return item.price;
+      if ('breed_id' in item) {
+        const defaultVariant = PetVariantHelpers.getDefaultVariant(item as Pet);
+        if (defaultVariant) {
+          const price = PetVariantHelpers.getFinalPrice(defaultVariant);
+          return price;
+        }
+        const price = PetVariantHelpers.getPetPrice(item as Pet);
+        return price;
+      }
+      return (item as Product).price || 0;
     };
 
     const hasVariants = 'breed_id' in item && Array.isArray(item.variants) && item.variants.length > 0;
@@ -786,7 +797,7 @@ const ProductDetailScreen: FC = () => {
   const [selectedVariant, setSelectedVariant] = useState<PetVariant | null>(null);
   const [variantActionType, setVariantActionType] = useState<'add_to_cart' | 'buy_now'>('add_to_cart');
 
-  // ✅ REVIEWS STATES
+  // Reviews States
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewStats, setReviewStats] = useState<ReviewStats>({
     avgRating: 0,
@@ -803,7 +814,15 @@ const ProductDetailScreen: FC = () => {
 
   const { h, m, s } = useCountdown(36 * 60 + 58);
 
-  // ✅ LOAD REVIEWS FUNCTION
+  // 🆕 Kiểm tra trạng thái biến thể khả dụng
+  const hasAvailableVariants = useMemo(() => {
+    if (item && 'breed_id' in item && Array.isArray((item as Pet).variants)) {
+      return (item as Pet).variants.some(variant => PetVariantHelpers.isVariantAvailable(variant));
+    }
+    return true;
+  }, [item]);
+
+  // Load Reviews Function
   const loadReviews = async () => {
     if (!item) return;
 
@@ -814,16 +833,14 @@ const ProductDetailScreen: FC = () => {
       const isPet = 'breed_id' in item;
 
       if (isPet) {
-        // Gọi API reviews cho Pet
         response = await reviewService.getReviewsByPet(item._id, {
           page: 1,
-          limit: 3, // Chỉ lấy 3 reviews gần nhất cho preview
+          limit: 3,
         });
       } else {
-        // Gọi API reviews cho Product
         response = await reviewService.getReviewsByProduct(item._id, {
           page: 1,
-          limit: 3, // Chỉ lấy 3 reviews gần nhất cho preview
+          limit: 3,
         });
       }
 
@@ -837,13 +854,12 @@ const ProductDetailScreen: FC = () => {
       }
     } catch (error) {
       console.error('❌ Error loading reviews:', error);
-      // Không hiển thị error cho user, chỉ log
     } finally {
       setReviewsLoading(false);
     }
   };
 
-  // ✅ HANDLE VIEW ALL REVIEWS
+  // Handle View All Reviews
   const handleViewAllReviews = () => {
     if (!item) return;
 
@@ -857,13 +873,17 @@ const ProductDetailScreen: FC = () => {
     });
   };
 
+  // 🆕 Tự động chọn biến thể mặc định khi tải item
   useEffect(() => {
     if (item && 'breed_id' in item) {
-      console.log('Pet variants available:', (item as Pet).variants?.length || 0);
+      const defaultVariant = PetVariantHelpers.getDefaultVariant(item as Pet);
+      if (defaultVariant) {
+        console.log('🔍 Auto-selecting default variant:', { variantId: defaultVariant._id });
+        setSelectedVariant(defaultVariant);
+      }
     }
   }, [item]);
 
-  // ✅ LOAD REVIEWS KHI ITEM THAY ĐỔI
   useEffect(() => {
     if (item) {
       loadReviews();
@@ -872,9 +892,19 @@ const ProductDetailScreen: FC = () => {
 
   const getDisplayPrice = (variant?: PetVariant) => {
     if (variant) {
-      return variant.final_price || (item!.price + variant.price_adjustment);
+      const price = PetVariantHelpers.getFinalPrice(variant);
+      return price;
     }
-    return item!.price;
+    if (item && 'breed_id' in item) {
+      const defaultVariant = PetVariantHelpers.getDefaultVariant(item as Pet);
+      if (defaultVariant) {
+        const price = PetVariantHelpers.getFinalPrice(defaultVariant);
+        return price;
+      }
+      const price = PetVariantHelpers.getPetPrice(item as Pet);
+      return price;
+    }
+    return (item as Product).price || 0;
   };
 
   const handleToggleFavorite = async () => {
@@ -1011,9 +1041,23 @@ const ProductDetailScreen: FC = () => {
   const performAddToCart = async () => {
     const isPet = 'breed_id' in item!;
     if (isPet && Array.isArray(item!.variants) && item!.variants.length > 0) {
-      setVariantActionType('add_to_cart');
-      setShowVariantSelector(true);
-      return;
+      const availableVariants = item!.variants.filter(variant =>
+        PetVariantHelpers.isVariantAvailable(variant)
+      );
+
+      if (availableVariants.length === 1) {
+        console.log('🔍 Auto-selecting single available variant:', { variantId: availableVariants[0]._id });
+        setSelectedVariant(availableVariants[0]);
+        await addItemToCart(availableVariants[0]);
+        return;
+      } else if (availableVariants.length > 1) {
+        setVariantActionType('add_to_cart');
+        setShowVariantSelector(true);
+        return;
+      } else {
+        Alert.alert('Hết hàng', 'Tất cả biến thể của thú cưng này đã hết hàng');
+        return;
+      }
     }
     await addItemToCart();
   };
@@ -1039,9 +1083,23 @@ const ProductDetailScreen: FC = () => {
   const performBuyNow = async () => {
     const isPet = 'breed_id' in item!;
     if (isPet && Array.isArray(item!.variants) && item!.variants.length > 0) {
-      setVariantActionType('buy_now');
-      setShowVariantSelector(true);
-      return;
+      const availableVariants = item!.variants.filter(variant =>
+        PetVariantHelpers.isVariantAvailable(variant)
+      );
+
+      if (availableVariants.length === 1) {
+        console.log('🔍 Auto-selecting single available variant for buy now:', { variantId: availableVariants[0]._id });
+        setSelectedVariant(availableVariants[0]);
+        await proceedToBuyNow(availableVariants[0]);
+        return;
+      } else if (availableVariants.length > 1) {
+        setVariantActionType('buy_now');
+        setShowVariantSelector(true);
+        return;
+      } else {
+        Alert.alert('Hết hàng', 'Tất cả biến thể của thú cưng này đã hết hàng');
+        return;
+      }
     }
     await proceedToBuyNow();
   };
@@ -1067,7 +1125,7 @@ const ProductDetailScreen: FC = () => {
         weight: variant.weight,
         gender: variant.gender,
         age: variant.age,
-        display_name: variant.variant_name || variant.display_name,
+        display_name: PetVariantHelpers.getDisplayName(variant),
       } : undefined,
     }];
 
@@ -1280,7 +1338,6 @@ const ProductDetailScreen: FC = () => {
   }
 
   const productTitle = item.name || 'Unknown Item';
-  const productPrice = item.price ? `${item.price.toLocaleString('vi-VN')}₫` : 'N/A';
   const productImage = Array.isArray(item.images) && item.images.length > 0
     ? { uri: item.images[0].url }
     : require('@/assets/images/dog.png');
@@ -1291,9 +1348,7 @@ const ProductDetailScreen: FC = () => {
   const weight = isPet ? ((item as Pet).weight ? `${(item as Pet).weight} kg` : 'Unknown') : 'N/A';
   const description = item.description || (isPet ? 'Purus in massa tempor nec feugiat...' : 'Không có mô tả');
 
-  const displayPrice = selectedVariant
-    ? (selectedVariant.final_price || (item.price + selectedVariant.price_adjustment))
-    : item.price;
+  const displayPrice = getDisplayPrice(selectedVariant);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1315,7 +1370,11 @@ const ProductDetailScreen: FC = () => {
         <View style={styles.content}>
           <View style={[styles.rowCenter, styles.marginTop]}>
             <Text style={styles.price}>
-              {displayPrice.toLocaleString('vi-VN')}₫
+              {hasAvailableVariants
+                ? displayPrice > 0
+                  ? displayPrice.toLocaleString('vi-VN') + '₫'
+                  : 'Giá không khả dụng'
+                : 'Hết hàng'}
             </Text>
             <View style={styles.ratingRow}>
               <FontAwesome name="star" size={14} color="#FBBF24" />
@@ -1328,17 +1387,15 @@ const ProductDetailScreen: FC = () => {
             </View>
           </View>
           <Text style={styles.title}>{productTitle}</Text>
-          {selectedVariant && (
+          {/* {(item && 'breed_id' in item && (item as Pet).variants?.length > 0) && (
             <View style={styles.variantInfoContainer}>
-              <Text style={styles.variantInfoTitle}>Biến thể đã chọn:</Text>
               <Text style={styles.variantInfoText}>
-                {selectedVariant.variant_name || 'Biến thể đặc biệt'} - {selectedVariant.final_price ?
-                  `${selectedVariant.final_price.toLocaleString('vi-VN')}₫` :
-                  `+${selectedVariant.price_adjustment.toLocaleString('vi-VN')}₫`
-                }
+                {selectedVariant
+                  ? PetVariantHelpers.getDisplayName(selectedVariant) + ' - ' + PetVariantHelpers.getFinalPrice(selectedVariant).toLocaleString('vi-VN') + '₫'
+                  : PetVariantHelpers.getDisplayName(PetVariantHelpers.getDefaultVariant(item as Pet)!) + ' - ' + PetVariantHelpers.getPetPrice(item as Pet).toLocaleString('vi-VN') + '₫'}
               </Text>
             </View>
-          )}
+          )} */}
           {Array.isArray(item.images) && item.images.length > 0 && (
             <VariationSelector
               images={item.images}
@@ -1346,8 +1403,6 @@ const ProductDetailScreen: FC = () => {
               selectedId={selectedVar?.id || ''}
             />
           )}
-
-          {/* ✅ REVIEWS SECTION */}
           <Text style={styles.sectionTitle}>Đánh giá & Nhận xét</Text>
           <View style={styles.reviewHeader}>
             <Text style={styles.avgRating}>
@@ -1368,7 +1423,6 @@ const ProductDetailScreen: FC = () => {
             onViewAllPress={handleViewAllReviews}
             loading={reviewsLoading}
           />
-
           <Text style={styles.sectionTitle}>Mô tả</Text>
           <Text
             style={styles.descText}
@@ -1399,21 +1453,6 @@ const ProductDetailScreen: FC = () => {
               limit={8}
             />
           </View>
-          {isPet && (item as Pet).type && (
-            <View style={styles.relatedSection}>
-              <Text style={styles.sectionTitle}>
-                🛒 Sản phẩm dành cho {(item as Pet).type}
-              </Text>
-              <Text style={styles.sectionSubtitle}>
-                Thức ăn, phụ kiện và đồ chơi phù hợp
-              </Text>
-              <CompatibleProducts
-                navigation={navigation}
-                petType={(item as Pet).type}
-                limit={4}
-              />
-            </View>
-          )}
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
@@ -1434,10 +1473,17 @@ const ProductDetailScreen: FC = () => {
       {item && 'breed_id' in item && Array.isArray((item as Pet).variants) && (
         <PetVariantSelector
           visible={showVariantSelector}
-          onClose={() => setShowVariantSelector(false)}
+          onClose={() => {
+            console.log('🔧 Closing variant selector');
+            setShowVariantSelector(false);
+          }}
           pet={item as Pet}
           onSelectVariant={handleVariantSelect}
           selectedVariant={selectedVariant}
+          title={variantActionType === 'add_to_cart'
+            ? 'Chọn biến thể để thêm vào giỏ'
+            : 'Chọn biến thể để mua ngay'
+          }
         />
       )}
       <CustomFavouriteAlert
@@ -1463,7 +1509,6 @@ const ProductDetailScreen: FC = () => {
 
 export default ProductDetailScreen;
 
-// Styles
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   headerBar: {
@@ -1493,7 +1538,6 @@ const styles = StyleSheet.create({
   ratingText: { marginHorizontal: 4 },
   soldText: { color: '#6B7280' },
   title: { fontSize: 24, fontWeight: 'bold', marginVertical: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginTop: 16 },
   variantInfoContainer: {
     marginTop: 8,
     padding: 12,
@@ -1558,8 +1602,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 13,
   },
-
-  // ✅ Reviews Loading & Empty States
   reviewLoadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1597,7 +1639,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontStyle: 'italic',
   },
-
   descText: { color: '#6B7280', lineHeight: 20, marginTop: 8 },
   toggleDescBtn: { marginTop: 8, alignSelf: 'flex-start' },
   toggleDescText: { color: '#2563EB', fontWeight: '600' },
@@ -1834,14 +1875,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
   },
   cartBtn: {
-    backgroundColor: '#2563EB', // Fixed color
+    backgroundColor: '#2563EB',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
     minHeight: 48,
-    width: 48, // Fixed width prevents expansion
+    width: 48,
     elevation: 3,
   },
   cartBtnTxt: {
