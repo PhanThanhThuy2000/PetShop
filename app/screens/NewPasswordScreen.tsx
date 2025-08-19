@@ -15,6 +15,9 @@ const NewPasswordScreen = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    const PASSWORD_RULE_TEXT = 'Mật khẩu phải ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt';
+    const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
     const handleSave = async () => {
         if (!email || !otp) {
             Alert.alert('Thiếu thông tin', 'Thiếu email hoặc mã OTP. Vui lòng thực hiện lại bước trước.');
@@ -25,8 +28,8 @@ const NewPasswordScreen = () => {
             Alert.alert('Thiếu thông tin', 'Vui lòng nhập đầy đủ mật khẩu mới và xác nhận mật khẩu.');
             return;
         }
-        if (password.length < 6) {
-            Alert.alert('Mật khẩu yếu', 'Mật khẩu phải có ít nhất 6 ký tự.');
+        if (!PASSWORD_REGEX.test(password)) {
+            Alert.alert('Mật khẩu không hợp lệ', PASSWORD_RULE_TEXT);
             return;
         }
         if (password !== confirmPassword) {
