@@ -1,7 +1,51 @@
-import React from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import api from '../utils/api-client';
+import Icon from 'react-native-vector-icons/Feather';
 
 const NewPasswordScreen = () => {
+    const navigation = useNavigation<any>();
+    const route = useRoute<any>();
+    const { email = '', otp = '', next = 'Login' } = route.params || {};
+
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    const handleSave = async () => {
+        if (!email || !otp) {
+            Alert.alert('Thiếu thông tin', 'Thiếu email hoặc mã OTP. Vui lòng thực hiện lại bước trước.');
+            navigation.goBack();
+            return;
+        }
+        if (!password || !confirmPassword) {
+            Alert.alert('Thiếu thông tin', 'Vui lòng nhập đầy đủ mật khẩu mới và xác nhận mật khẩu.');
+            return;
+        }
+        if (password.length < 6) {
+            Alert.alert('Mật khẩu yếu', 'Mật khẩu phải có ít nhất 6 ký tự.');
+            return;
+        }
+        if (password !== confirmPassword) {
+            Alert.alert('Không khớp', 'Xác nhận mật khẩu không trùng khớp.');
+            return;
+        }
+        try {
+            setIsSubmitting(true);
+            await api.post('/users/reset-password', { email, otp, newPassword: password });
+            Alert.alert('Thành công', 'Mật khẩu của bạn đã được đặt lại.', [
+                { text: 'OK', onPress: () => navigation.navigate(next) },
+            ]);
+        } catch (e) {
+            Alert.alert('Lỗi', 'Không thể đặt lại mật khẩu. Vui lòng kiểm tra mã OTP và thử lại.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.waveBackgroundLight} />
@@ -14,19 +58,60 @@ const NewPasswordScreen = () => {
                 </View>
             </View>
 
-            <Text style={styles.title}>Setup New Password</Text>
-            <Text style={styles.subtitle}>Please, setup a new password for your account</Text>
+            <Text style={styles.title}>Đặt mật khẩu mới</Text>
+            <Text style={styles.subtitle}>Vui lòng nhập mật khẩu mới cho tài khoản của bạn</Text>
 
             {/* Form nhập liệu */}
-            <TextInput style={styles.input} placeholder="New Password" secureTextEntry />
-            <TextInput style={styles.input} placeholder="Repeat Password" secureTextEntry />
+            <View style={styles.formContainer}>
+                <View style={styles.passwordWrapper}>
+                    <TextInput
+                        style={styles.passwordInput}
+                        placeholder="Mật khẩu mới"
+                        placeholderTextColor="#BDBDBD"
+                        secureTextEntry={!showPassword}
+                        value={password}
+                        onChangeText={setPassword}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={styles.eyeIcon}
+                    >
+                        <Icon
+                            name={showPassword ? 'eye' : 'eye-off'}
+                            size={20}
+                            color="#BDBDBD"
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.passwordWrapper}>
+                    <TextInput
+                        style={styles.passwordInput}
+                        placeholder="Nhập lại mật khẩu"
+                        placeholderTextColor="#BDBDBD"
+                        secureTextEntry={!showConfirmPassword}
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        style={styles.eyeIcon}
+                    >
+                        <Icon
+                            name={showConfirmPassword ? 'eye' : 'eye-off'}
+                            size={20}
+                            color="#BDBDBD"
+                        />
+                    </TouchableOpacity>
+                </View>
+            </View>
 
             {/* Nút Save và Cancel */}
-            <TouchableOpacity style={styles.saveButton}>
-                <Text style={styles.saveButtonText}>Save</Text>
+            <TouchableOpacity style={styles.saveButton} disabled={isSubmitting} onPress={handleSave}>
+                <Text style={styles.saveButtonText}>Lưu</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
-                <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={styles.cancelText}>Hủy</Text>
             </TouchableOpacity>
         </View>
     );
@@ -100,19 +185,32 @@ const styles = StyleSheet.create({
         color: '#666',
         textAlign: 'center',
         marginBottom: 10,
-        width: '70%',
-    },
-    input: {
         width: '80%',
-        height: 50,
+    },
+    formContainer: {
+        width: '100%',
+        paddingHorizontal: 24,
+        marginTop: 12,
+    },
+    passwordWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F7F7F7',
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        marginBottom: 15,
-        paddingHorizontal: 15,
-        backgroundColor: '#f9f9f9',
+        borderColor: '#E5E5E5',
+        marginBottom: 16,
+    },
+    passwordInput: {
+        flex: 1,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
         fontSize: 16,
-        textAlign: 'center',
+        color: '#202020',
+    },
+    eyeIcon: {
+        paddingHorizontal: 15,
+        paddingVertical: 16,
     },
     saveButton: {
         width: '80%',
