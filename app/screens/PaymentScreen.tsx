@@ -698,7 +698,7 @@ const PaymentScreen = () => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Payment</Text>
+          <Text style={styles.headerTitle}>Thanh toán</Text>
           <View style={{ width: 24 }} />
         </View>
 
@@ -733,7 +733,7 @@ const PaymentScreen = () => {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Items</Text>
+            <Text style={styles.sectionTitle}>Sản phẩm</Text>
             <TouchableOpacity
               style={styles.voucherSelector}
               onPress={() => setShowVoucherModal(true)}
@@ -768,7 +768,7 @@ const PaymentScreen = () => {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Shipping Options</Text>
+          <Text style={styles.sectionTitle}>Phương thức vận chuyển</Text>
           <TouchableOpacity
             style={[styles.shippingOption, shippingMethod === 'standard' && styles.shippingActive]}
             onPress={() => setShippingMethod('standard')}
@@ -777,10 +777,10 @@ const PaymentScreen = () => {
               {shippingMethod === 'standard' && <View style={styles.selectedDot} />}
             </View>
             <View style={styles.shippingLabel}>
-              <Text style={styles.shippingText}>Standard</Text>
-              <Text style={styles.shippingTime}>5-7 days</Text>
+              <Text style={styles.shippingText}>Tiêu chuẩn</Text>
+              <Text style={styles.shippingTime}>5-7 ngày</Text>
             </View>
-            <Text style={styles.shippingFree}>FREE</Text>
+            <Text style={styles.shippingFree}>MIỄN PHÍ</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.shippingOption, shippingMethod === 'express' && styles.shippingActive]}
@@ -790,19 +790,18 @@ const PaymentScreen = () => {
               {shippingMethod === 'express' && <View style={styles.selectedDot} />}
             </View>
             <View style={styles.shippingLabel}>
-              <Text style={styles.shippingText}>Express</Text>
-              <Text style={styles.shippingTime}>1-2 days</Text>
+              <Text style={styles.shippingText}>Giao nhanh</Text>
+              <Text style={styles.shippingTime}>1-2 ngày</Text>
             </View>
             <Text style={styles.shippingPrice}>50.000 ₫</Text>
           </TouchableOpacity>
-          <Text style={styles.deliveryNote}>Delivered on or before Thursday, 23 April 2020</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Method</Text>
+          <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
           {[
-            { id: 'cod', label: 'Cash on Delivery', icon: 'money-check' },
-            { id: 'vnpay', label: 'Vn Pay', icon: 'money-bill-wave' },
+            { id: 'cod', label: 'Thanh toán khi nhận hàng', icon: 'money-check' },
+            { id: 'vnpay', label: 'Thanh toán qua VnPay', icon: 'money-bill-wave' },
           ].map((method) => (
             <TouchableOpacity
               key={method.id}
@@ -819,9 +818,9 @@ const PaymentScreen = () => {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Summary</Text>
-          <SummaryRow label="Merchandise Subtotal" value={summaryData.merchandiseSubtotal} />
-          <SummaryRow label="Shipping Subtotal" value={summaryData.shippingSubtotal} />
+          <Text style={styles.sectionTitle}>Tóm tắt</Text>
+          <SummaryRow label="Tổng tiền hàng" value={summaryData.merchandiseSubtotal} />
+          <SummaryRow label="Tổng tiền vận chuyển" value={summaryData.shippingSubtotal} />
           {selectedVoucher && (
             <View style={styles.voucherDiscountRow}>
               <View style={styles.voucherDiscountLabel}>
@@ -842,7 +841,7 @@ const PaymentScreen = () => {
           <Text style={styles.totalPrice}>{calculateTotal().toLocaleString('vi-VN') + ' ₫'}</Text>
         </View>
         <TouchableOpacity style={styles.payButton} onPress={handlePay}>
-          <Text style={styles.payText}>Pay</Text>
+          <Text style={styles.payText}>Thanh toán</Text>
         </TouchableOpacity>
       </ScrollView>
 
