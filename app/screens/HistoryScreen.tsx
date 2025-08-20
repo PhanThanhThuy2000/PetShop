@@ -63,11 +63,11 @@ const OrderItemComponent = ({ item, onOrderCancelled }: { item: OrderItem; onOrd
     const getStatusText = (status: string) => {
         switch (status) {
             case 'pending':
-                return 'đang chờ xử lý';
+                return 'Đang chờ xử lý';
             case 'processing':
-                return 'đang xử lý';
+                return 'Đang xử lý';
             case 'completed':
-                return 'đã hoàn thành';
+                return 'Đã hoàn thành';
             case 'cancelled':
                 return 'Đã hủy';
             default:

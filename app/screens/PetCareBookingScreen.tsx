@@ -195,8 +195,8 @@ const getVariantInfo = (orderItem: PurchasedPetOrderItem): string => {
     const parts = [];
     if (variant.color) parts.push(`Màu: ${variant.color}`);
     if (variant.weight) parts.push(`${variant.weight}kg`);
-    if (variant.gender) parts.push(variant.gender === 'Male' ? 'Đực' : 'Cái');
-    if (variant.age) parts.push(`${variant.age} tuổi`);
+    if (variant.gender) parts.push(variant.gender === 'Giới tính' ? 'Đực' : 'Cái');
+    if (variant.age) parts.push(`${variant.age} Tuổi`);
 
     return parts.join(' • ');
 };
@@ -230,9 +230,9 @@ const convertToPetFormat = (orderItem: PurchasedPetOrderItem): Pet | null => {
 
     let petAge = 'Chưa rõ tuổi';
     if (orderItem.variant_id?.age) {
-        petAge = `${orderItem.variant_id.age} tuổi`;
+        petAge = `${orderItem.variant_id.age} Tuổi`;
     } else if (pet.age) {
-        petAge = `${pet.age} tuổi`;
+        petAge = `${pet.age} Tuổi`;
     }
 
     return {

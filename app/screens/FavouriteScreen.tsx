@@ -45,7 +45,7 @@ const FavoriteCard = ({ item }: { item: FavouriteItem }) => {
         : 'Liên hệ';
 
     // ✅ XỬ LÝ LOẠI ITEM
-    const itemTypeInfo = item.pet_id ? { text: 'Pet', color: '#059669' } : { text: 'Product', color: '#8B5CF6' };
+    const itemTypeInfo = item.pet_id ? { text: 'Thú cưng', color: '#059669' } : { text: 'Sản phẩm', color: '#8B5CF6' };
 
     // ✅ NAVIGATE ĐẾN PRODUCT DETAIL
     const handlePress = () => {
@@ -170,7 +170,7 @@ const FavouriteScreen = () => {
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Yêu thích</Text>
                 <Text style={styles.headerSubtitle}>
-                    {favourites.length} sản phẩm
+                    {favourites.length} Sản phẩm
                 </Text>
             </View>
 
@@ -195,7 +195,6 @@ const FavouriteScreen = () => {
                 }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyIcon}>💔</Text>
                         <Text style={styles.emptyTitle}>Chưa có sản phẩm yêu thích</Text>
                         <Text style={styles.emptyText}>
                             Hãy thêm những sản phẩm bạn thích vào danh sách để dễ dàng tìm lại sau này

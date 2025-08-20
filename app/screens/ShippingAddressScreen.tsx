@@ -102,10 +102,10 @@ const ShippingAddressScreen = () => {
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Shipping Address</Text>
+        <Text style={styles.title}>Thêm địa chỉ </Text>
 
         {/* Chọn quốc gia */}
-        <Text style={styles.labelSmall}>Country</Text>
+        <Text style={styles.labelSmall}>Quốc gia</Text>
         <View style={styles.rowBetween}>
           <Text style={styles.labelLarge}>{selectedCountry.name}</Text>
           <TouchableOpacity onPress={() => setModalVisible(true)}>
@@ -114,10 +114,10 @@ const ShippingAddressScreen = () => {
         </View>
 
         {/* Tên và số điện thoại */}
-        <Text style={styles.label}>Full Name</Text>
-        <TextInput style={styles.input} value={userName} onChangeText={setUserName} placeholder="Full Name" />
+        <Text style={styles.label}>Họ và tên</Text>
+        <TextInput style={styles.input} value={userName} onChangeText={setUserName} placeholder="Họ và tên" />
 
-        <Text style={styles.label}>Phone</Text>
+        <Text style={styles.label}>Số điện thoại</Text>
         <View style={styles.phoneRow}>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.flagBox}>
             <Text style={{ fontSize: 20 }}>{selectedCountry.flag}</Text>
@@ -132,7 +132,7 @@ const ShippingAddressScreen = () => {
         </View>
 
         {/* Tỉnh / huyện / xã */}
-        <Text style={styles.label}>Province</Text>
+        <Text style={styles.label}>Tỉnh</Text>
         <Picker
           selectedValue={province}
           onValueChange={(code) => {
@@ -150,7 +150,7 @@ const ShippingAddressScreen = () => {
           {provinces.map(p => <Picker.Item key={p.code} label={p.name} value={p.code} />)}
         </Picker>
 
-        <Text style={styles.label}>District</Text>
+        <Text style={styles.label}>Huyện</Text>
         <Picker
           selectedValue={district}
           onValueChange={(code) => {
@@ -167,7 +167,7 @@ const ShippingAddressScreen = () => {
           {districts.map(d => <Picker.Item key={d.code} label={d.name} value={d.code} />)}
         </Picker>
 
-        <Text style={styles.label}>Ward</Text>
+        <Text style={styles.label}>Xã</Text>
         <Picker
           selectedValue={ward}
           onValueChange={(code) => {
@@ -189,7 +189,7 @@ const ShippingAddressScreen = () => {
           onChangeText={setNote}
         />
 
-        <Text style={styles.label}>Postal Code</Text>
+        <Text style={styles.label}>Mã bưu chính</Text>
         <TextInput
           style={styles.input}
           placeholder="VD: 700000"

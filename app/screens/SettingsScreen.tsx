@@ -92,7 +92,7 @@ const SettingsScreen: React.FC = () => {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.title}>Cài đặt</Text>
         <View style={{ width: 36 }} />
       </View>
 
