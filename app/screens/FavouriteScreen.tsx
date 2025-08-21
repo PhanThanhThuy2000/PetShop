@@ -169,9 +169,9 @@ const FavouriteScreen = () => {
             {/* ✅ HEADER */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Yêu thích</Text>
-                <Text style={styles.headerSubtitle}>
+                {/* <Text style={styles.headerSubtitle}>
                     {favourites.length} Sản phẩm
-                </Text>
+                </Text> */}
             </View>
 
             {/* ✅ FAVOURITES LIST */}

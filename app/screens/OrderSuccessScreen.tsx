@@ -12,15 +12,15 @@ const OrderSuccessScreen = () => {
         style={styles.image}
         resizeMode="contain"
       />
-      <Text style={styles.title}>Your order has been placed successfully</Text>
+      <Text style={styles.title}>Đơn hàng của bạn đã được đặt thành công</Text>
       <Text style={styles.description}>
-        Thank you for choosing us! Feel free to continue shopping and explore our wide range of products. Happy Shopping!
+        Cảm ơn bạn đã chọn chúng tôi! Hãy tiếp tục mua sắm và khám phá nhiều sản phẩm của chúng tôi. Chúc bạn mua sắm vui vẻ!
       </Text>
       <TouchableOpacity 
         style={styles.button} 
         onPress={() => navigation.navigate('app', { screen: 'Home' })}
       >
-        <Text style={styles.buttonText}>Continue Shopping</Text>
+        <Text style={styles.buttonText}>Tiếp tục mua sắm</Text>
       </TouchableOpacity>
     </View>
   );

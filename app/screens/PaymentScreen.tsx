@@ -837,7 +837,7 @@ const PaymentScreen = () => {
         </View>
 
         <View style={styles.totalRow}>
-          <Text style={styles.totalText}>Total</Text>
+          <Text style={styles.totalText}>Tổng tiền</Text>
           <Text style={styles.totalPrice}>{calculateTotal().toLocaleString('vi-VN') + ' ₫'}</Text>
         </View>
         <TouchableOpacity style={styles.payButton} onPress={handlePay}>
