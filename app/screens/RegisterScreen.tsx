@@ -305,8 +305,9 @@ const RegisterScreen: React.FC = () => {
       return false;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Lỗi xác thực', 'Mật khẩu phải có ít nhất 6 ký tự');
+    const strongPwd = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    if (!strongPwd.test(password)) {
+      Alert.alert('Lỗi xác thực', 'Mật khẩu phải ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt');
       return false;
     }
 

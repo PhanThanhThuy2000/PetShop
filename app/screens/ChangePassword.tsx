@@ -115,8 +115,9 @@ const ChangePasswordScreen = () => {
         return;
       }
 
-      if (newPassword.length < 6) {
-        Alert.alert('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự');
+      const strongPwd = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+      if (!strongPwd.test(newPassword)) {
+        Alert.alert('Lỗi', 'Mật khẩu phải ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt');
         return;
       }
 

@@ -51,6 +51,11 @@ const LoginScreen = () => {
             Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email và mật khẩu');
             return;
         }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+            Alert.alert('Lỗi', 'Vui lòng nhập địa chỉ email hợp lệ');
+            return;
+        }
         dispatch(loginUser({ email: email.trim(), password }));
     };
 
@@ -59,7 +64,7 @@ const LoginScreen = () => {
     };
 
     const handleForgotPassword = () => {
-        navigation.navigate('NewPassword');
+        navigation.navigate('RecoveryPassword');
     }
 
     return (
@@ -136,7 +141,7 @@ const LoginScreen = () => {
                             <Text style={styles.primaryButtonText}>Tiếp theo</Text>
                         )}
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate('Welcome')}>
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
                         <Text style={styles.cancelText}>Hủy</Text>
                     </TouchableOpacity>
                 </View>

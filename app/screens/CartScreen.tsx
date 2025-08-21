@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     paddingBottom: 120
   },
   header: {
-    marginTop: 8,
+    marginTop:20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

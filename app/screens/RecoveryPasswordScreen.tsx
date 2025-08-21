@@ -1,18 +1,15 @@
 import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert } from 'react-native';
 import api from '../utils/api-client';
 
 const RecoveryPasswordScreen = () => {
-  const [selectedMethod, setSelectedMethod] = useState('Email');
   const [email, setEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigation = useNavigation<any>();
 
   return (
     <View style={styles.container}>
-      {/* Image container with rounded circle background */}
       <View style={styles.imageContainer}>
         <Image
           source={require('../../assets/images/imageDog.png')}
@@ -20,57 +17,14 @@ const RecoveryPasswordScreen = () => {
         />
       </View>
       
-      <Text style={styles.title}>Password Recovery</Text>
+      <Text style={styles.title}>Khôi phục mật khẩu</Text>
       <Text style={styles.subtitle}>
-        How you would like to restore{'\n'}your password?
+        Vui lòng nhập email để nhận mã OTP đặt lại mật khẩu
       </Text>
 
-      {/* SMS Option */}
-      <TouchableOpacity
-        style={[
-          styles.option,
-          selectedMethod === 'SMS' && styles.optionSelectedSMS,
-        ]}
-        onPress={() => setSelectedMethod('SMS')}
-      >
-        <Text style={[styles.optionText, selectedMethod === 'SMS' && styles.selectedText]}>
-          SMS
-        </Text>
-        <View style={[
-          styles.radioButton,
-          selectedMethod === 'SMS' && styles.radioButtonSelected
-        ]}>
-          {selectedMethod === 'SMS' && (
-            <Icon name="check" size={16} color="#FFF" />
-          )}
-        </View>
-      </TouchableOpacity>
-
-      {/* Email Option */}
-      <TouchableOpacity
-        style={[
-          styles.option,
-          selectedMethod === 'Email' && styles.optionSelectedEmail,
-        ]}
-        onPress={() => setSelectedMethod('Email')}
-      >
-        <Text style={[styles.optionText, selectedMethod === 'Email' && styles.selectedText]}>
-          Email
-        </Text>
-        <View style={[
-          styles.radioButton,
-          selectedMethod === 'Email' && styles.radioButtonSelectedEmail
-        ]}>
-          {selectedMethod === 'Email' && (
-            <View style={styles.pinkDot} />
-          )}
-        </View>
-      </TouchableOpacity>
-
-      {/* Email Input and New Password */}
       <View style={{ width: '100%', marginTop: 12 }}>
         <TextInput
-          placeholder="Enter your email"
+          placeholder="Nhập email của bạn"
           placeholderTextColor="#999"
           style={styles.textInput}
           autoCapitalize="none"
@@ -78,42 +32,46 @@ const RecoveryPasswordScreen = () => {
           value={email}
           onChangeText={setEmail}
         />
-        <TextInput
-          placeholder="New password"
-          placeholderTextColor="#999"
-          style={styles.textInput}
-          secureTextEntry
-          value={newPassword}
-          onChangeText={setNewPassword}
-        />
       </View>
 
-      {/* Bottom buttons */}
       <View style={styles.bottomContainer}>
         <TouchableOpacity
           style={styles.nextButton}
+          disabled={isSubmitting}
           onPress={async () => {
-            if (!email) return;
+            if (!email.trim()) {
+              Alert.alert('Thiếu email', 'Vui lòng nhập email của bạn');
+              return;
+            }
             try {
-              await api.post('/users/forgot-password', { email });
-            } catch (_) {}
-            navigation.navigate('OtpVerification', {
-              mode: 'reset',
-              email,
-              next: 'Login',
-              newPassword,
-            });
+              setIsSubmitting(true);
+              await api.post('/users/forgot-password', { email: email.trim() });
+              navigation.navigate('OtpVerification', {
+                mode: 'reset',
+                email: email.trim(),
+                next: 'Login',
+              });
+            } catch (err: any) {
+              const serverMsg = err?.response?.data?.message;
+              const friendlyMsg =
+                serverMsg === 'Email not found'
+                  ? 'Email không tồn tại'
+                  : serverMsg === 'Too many requests. Please try again later.'
+                  ? 'Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau.'
+                  : serverMsg;
+              Alert.alert('Lỗi', friendlyMsg || 'Không thể gửi mã OTP. Vui lòng thử lại.');
+            } finally {
+              setIsSubmitting(false);
+            }
           }}
         >
-          <Text style={styles.nextButtonText}>Next</Text>
+          <Text style={styles.nextButtonText}>Tiếp theo</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.cancelButton}>
-          <Text style={styles.cancelText}>Cancel</Text>
+        <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.cancelText}>Hủy</Text>
         </TouchableOpacity>
 
-        {/* Home indicator */}
-        <View style={styles.homeIndicator} />
       </View>
     </View>
   );
@@ -194,42 +152,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  optionSelectedSMS: {
-    backgroundColor: '#E8F4FD',
-  },
-  optionSelectedEmail: {
-    backgroundColor: '#FFF0F0',
-  },
   optionText: {
     fontSize: 18, // Tăng từ 16 lên 18
     color: '#333333',
     fontWeight: '600', // Tăng từ '500' lên '600'
-  },
-  selectedText: {
-    color: '#1A1A1A',
-    fontWeight: '700', // Tăng từ '600' lên '700'
-  },
-  radioButton: {
-    position: 'absolute',
-    right: 20,
-    width: 22, // Tăng từ 20 lên 22
-    height: 22, // Tăng từ 20 lên 22
-    borderRadius: 11, // Tăng từ 10 lên 11
-    backgroundColor: '#E5E5E5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioButtonSelected: {
-    backgroundColor: '#007AFF',
-  },
-  radioButtonSelectedEmail: {
-    backgroundColor: '#FFB3B3',
-  },
-  pinkDot: {
-    width: 9, // Tăng từ 8 lên 9
-    height: 9, // Tăng từ 8 lên 9
-    borderRadius: 4.5, // Tăng từ 4 lên 4.5
-    backgroundColor: '#FF6B6B',
   },
   bottomContainer: {
     position: 'absolute',

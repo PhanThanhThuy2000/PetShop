@@ -92,7 +92,7 @@ const SettingsScreen: React.FC = () => {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.title}>Cài đặt</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -107,7 +107,7 @@ const SettingsScreen: React.FC = () => {
 
         <Text style={styles.sectionHeader}>Tài khoản và bảo mật</Text>
         <View style={styles.sectionContainer}>
-          <Row label="Ngôn ngữ" value="English" onPress={showNotDevelopedAlert} />
+          <Row label="Ngôn ngữ" value="Tiếng Việt" onPress={showNotDevelopedAlert} />
           <Row label="Thông tin" onPress={() => navigation.navigate('About')} />
           <Row label="Đổi mật khẩu" onPress={() => navigation.navigate('ChangePassword')} />
           <Row label="Xóa tài khoản" onPress={showNotDevelopedAlert} />

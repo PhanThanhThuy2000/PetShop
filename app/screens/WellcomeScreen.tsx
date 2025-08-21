@@ -40,7 +40,7 @@ const WelcomeScreen: React.FC = () => {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.subtitle}>Chào mừng bạn đến với cửa hàng thú </Text>
+        <Text style={styles.subtitle}>Chào mừng bạn đến với cửa hàng thú cưng</Text>
       </View>
 
       <View style={styles.footerContainer}>
