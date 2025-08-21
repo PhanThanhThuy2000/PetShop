@@ -17,7 +17,6 @@ import {
   View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import PetList from '../components/Pet/PetList'; // Import PetList component
 import { petsService, productsService } from '../services/api-services';
 import { Pet, Product } from '../types';
 
@@ -365,6 +364,12 @@ const SearchScreen: React.FC = () => {
       const nextPage = productsPage + 1;
       setProductsPage(nextPage);
       performSearch(searchQuery, 'products', nextPage);
+    } else if (activeTab === 'all' && (hasMorePets || hasMoreProducts)) {
+      const nextPetsPage = hasMorePets ? petsPage + 1 : petsPage;
+      const nextProductsPage = hasMoreProducts ? productsPage + 1 : productsPage;
+      setPetsPage(nextPetsPage);
+      setProductsPage(nextProductsPage);
+      performSearch(searchQuery, 'all', Math.max(nextPetsPage, nextProductsPage));
     }
   };
 
@@ -383,7 +388,7 @@ const SearchScreen: React.FC = () => {
       <View style={styles.suggestionsContainer}>
         <FlatList
           data={recentSearches.filter(item => item.toLowerCase().includes(searchQuery.toLowerCase()))}
-          keyExtractor={(item, index) => `suggestion-${index}`}
+          keyExtractor={(item, index) => `suggestion - ${index} `}
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.suggestionItem} onPress={() => handleRecentSearchPress(item)}>
               <MaterialIcons name="history" size={20} color="#9CA3AF" />
@@ -404,7 +409,7 @@ const SearchScreen: React.FC = () => {
         onPress={() => handleTabChange('all')}
       >
         <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>
-          Tất cả ({pets.length + products.length})
+          Tất cả ({searchResults.length})
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -426,23 +431,30 @@ const SearchScreen: React.FC = () => {
     </View>
   );
 
-  const renderProductItem = ({ item }: { item: SearchResult }) => {
-    if (item.type !== 'product') return null;
-    const data = item.data as Product;
+  const renderSearchItem = ({ item }: { item: SearchResult }) => {
+    const isPet = item.type === 'pet';
+    const data = item.data as Pet | Product;
     const imageUri = data.images?.[0]?.url || 'https://via.placeholder.com/150';
-    const price = data.price ? data.price.toLocaleString('vi-VN') + '₫' : 'Liên hệ';
+    // Hiển thị giá từ final_price (cho pet) hoặc price (cho product)
+    const price = isPet
+      ? (data as Pet).variants && (data as Pet).variants.length > 0 && (data as Pet).variants[0].final_price
+        ? (data as Pet).variants[0].final_price.toLocaleString('vi-VN') + '₫'
+        : 'Liên hệ'
+      : (data as Product).price && (data as Product).price > 0
+        ? (data as Product).price.toLocaleString('vi-VN') + '₫'
+        : 'Liên hệ';
 
     return (
       <TouchableOpacity style={styles.gridItem} onPress={() => handleItemPress(item)}>
         <View style={styles.imageContainer}>
           <Image source={{ uri: imageUri }} style={styles.itemImage} />
-          <View style={[styles.typeTag, styles.productTag]}>
-            <Text style={styles.typeTagText}>SP</Text>
+          <View style={[styles.typeTag, isPet ? styles.petTag : styles.productTag]}>
+            <Text style={styles.typeTagText}>{isPet ? 'Pet' : 'SP'}</Text>
           </View>
         </View>
         <View style={styles.itemInfo}>
           <Text style={styles.itemTitle} numberOfLines={2}>
-            {data.name}
+            {data.name || 'Không có tên'}
           </Text>
           <Text style={styles.itemPrice}>{price}</Text>
         </View>
@@ -465,84 +477,37 @@ const SearchScreen: React.FC = () => {
   );
 
   const renderGridContent = () => {
+    let data: SearchResult[] = [];
     if (activeTab === 'pets') {
-      return (
-        <PetList
-          pets={pets}
-          loading={loading}
-          numColumns={2}
-          onPetPress={pet => navigation.navigate('ProductDetail', { petId: pet._id })}
-          contentContainerStyle={styles.gridContainer}
-          ListEmptyComponent={renderEmptyState}
-          scrollEnabled={true}
-        />
-      );
+      data = pets.map(pet => ({ type: 'pet' as const, data: pet }));
     } else if (activeTab === 'products') {
-      return (
-        <FlatList
-          data={products.map(product => ({ type: 'product' as const, data: product }))}
-          renderItem={renderProductItem}
-          keyExtractor={(item, index) => `product-${item.data._id}-${index}`}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          showsVerticalScrollIndicator={false}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.1}
-          contentContainerStyle={styles.gridContainer}
-          ListEmptyComponent={renderEmptyState}
-          ListFooterComponent={
-            loading && products.length > 0 ? (
-              <View style={styles.loadMoreContainer}>
-                <ActivityIndicator size="small" color="#3B82F6" />
-                <Text style={styles.loadMoreText}>Đang tải thêm...</Text>
-              </View>
-            ) : null
-          }
-        />
-      );
+      data = products.map(product => ({ type: 'product' as const, data: product }));
     } else {
-      // Tab 'all': Display both PetList and FlatList for products
-      return (
-        <View style={styles.allTabContainer}>
-          {pets.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>Thú cưng</Text>
-              <PetList
-                pets={pets}
-                loading={loading}
-                numColumns={2}
-                onPetPress={pet => navigation.navigate('ProductDetail', { petId: pet._id })}
-                contentContainerStyle={styles.gridContainer}
-                scrollEnabled={false}
-              />
-            </>
-          )}
-          {products.length > 0 && (
-            <>
-              <FlatList
-                data={products.map(product => ({ type: 'product' as const, data: product }))}
-                renderItem={renderProductItem}
-                keyExtractor={(item, index) => `product-${item.data._id}-${index}`}
-                numColumns={2}
-                columnWrapperStyle={styles.row}
-                showsVerticalScrollIndicator={false}
-                onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.1}
-                contentContainerStyle={styles.gridContainer}
-                scrollEnabled={false}
-              />
-            </>
-          )}
-          {loading && (pets.length > 0 || products.length > 0) && (
+      data = searchResults;
+    }
+
+    return (
+      <FlatList
+        data={data}
+        renderItem={renderSearchItem}
+        keyExtractor={(item, index) => `${item.type} -${item.data._id} -${index} `}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        showsVerticalScrollIndicator={false}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.1}
+        contentContainerStyle={styles.gridContainer}
+        ListEmptyComponent={renderEmptyState}
+        ListFooterComponent={
+          loading && data.length > 0 ? (
             <View style={styles.loadMoreContainer}>
               <ActivityIndicator size="small" color="#3B82F6" />
               <Text style={styles.loadMoreText}>Đang tải thêm...</Text>
             </View>
-          )}
-          {pets.length === 0 && products.length === 0 && renderEmptyState()}
-        </View>
-      );
-    }
+          ) : null
+        }
+      />
+    );
   };
 
   return (
@@ -687,19 +652,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gridContainer: {
-    paddingHorizontal: 8, // Reduced padding to allow more space for margins
+    paddingHorizontal: 8,
     paddingTop: 8,
     paddingBottom: 20,
   },
   row: {
     justifyContent: 'space-between',
-    marginBottom: 16, // Vertical space between rows
+    marginBottom: 16,
   },
   gridItem: {
-    width: (screenWidth - 32) / 2 - 8, // Adjusted width with margin consideration (32px total horizontal padding, 8px margin)
+    width: (screenWidth - 32) / 2 - 8,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    margin: 4, // Added margin to separate items (2px on each side)
+    margin: 4,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -752,17 +717,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-  },
   loadMoreContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -794,17 +748,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 24,
-  },
-  allTabContainer: {
-    flex: 1,
-    paddingHorizontal: 8, // Adjusted to match gridContainer
-    paddingTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
   },
 });
 

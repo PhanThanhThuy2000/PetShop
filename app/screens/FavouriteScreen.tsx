@@ -192,7 +192,6 @@ const FavouriteScreen = () => {
             </View>
 
             {/* ✅ FAVOURITES LIST */}
-            Common crawl section
             <FlatList
                 data={favourites}
                 renderItem={renderFavoriteItem}
