@@ -307,46 +307,69 @@ const RelatedItems: FC<{
     return 'https://via.placeholder.com/150?text=No+Image';
   };
 
-  const renderRelatedItem = ({ item, index }: { item: RelatedItem, index: number }) => (
-    <TouchableOpacity
-      key={`related-${item._id}-${item.itemType}-${index}`}
-      style={styles.relatedItem}
-      onPress={() => handleItemPress(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: getImageUrl(item) }}
-          style={styles.relatedImage}
-          resizeMode="cover"
-        />
-        {item.relationshipType && getRelationshipBadge(item.relationshipType)}
-        <View style={styles.itemTypeBadge}>
-          <Text style={styles.itemTypeBadgeText}>
-            {item.itemType === 'pet' ? '🐾' : '🛍️'}
-          </Text>
+  const renderRelatedItem = ({ item, index }: { item: RelatedItem, index: number }) => {
+    // Hàm hỗ trợ để lấy giá hiển thị
+    const getDisplayPrice = (item: RelatedItem): string => {
+      if (item.itemType === 'pet') {
+        // Kiểm tra xem item có variants và display_price hợp lệ không
+        if (item.variants && item.variants.length > 0 && item.display_price !== null) {
+          // Nếu có khoảng giá (hasRange = true), hiển thị khoảng giá
+          if (item.price_range?.hasRange && item.price_range.min !== null && item.price_range.max !== null) {
+            return `${item.price_range.min.toLocaleString('vi-VN')}₫ - ${item.price_range.max.toLocaleString('vi-VN')}₫`;
+          }
+          // Nếu không có khoảng giá, hiển thị display_price
+          return item.display_price.toLocaleString('vi-VN') + '₫';
+        }
+        // Nếu không có variants hoặc display_price, sử dụng PetVariantHelpers
+        const price = PetVariantHelpers.getPetPrice(item as any);
+        return price > 0 ? price.toLocaleString('vi-VN') + '₫' : 'Giá không khả dụng';
+      } else {
+        // Đối với product, sử dụng item.price
+        return item.price > 0 ? item.price.toLocaleString('vi-VN') + '₫' : 'Giá không khả dụng';
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        key={`related-${item._id}-${item.itemType}-${index}`}
+        style={styles.relatedItem}
+        onPress={() => handleItemPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: getImageUrl(item) }}
+            style={styles.relatedImage}
+            resizeMode="cover"
+          />
+          {item.relationshipType && getRelationshipBadge(item.relationshipType)}
+          <View style={styles.itemTypeBadge}>
+            <Text style={styles.itemTypeBadgeText}>
+              {item.itemType === 'pet' ? '🐾' : '🛍️'}
+            </Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemName} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={styles.itemPrice}>
-          {item.price > 0 ? item.price.toLocaleString('vi-VN') + '₫' : 'Giá không khả dụng'} {/* 🆕 Xử lý giá không hợp lệ */}
-        </Text>
-        {item.compatibleWithPetType && (
-          <Text style={styles.compatibilityText}>
-            Dành cho {item.compatibleWithPetType}
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemName} numberOfLines={2}>
+            {item.name}
           </Text>
-        )}
-        {item.similarityScore && (
-          <Text style={styles.similarityScore}>
-            Độ tương tự: {item.similarityScore}%
+          <Text style={styles.itemPrice}>
+            {getDisplayPrice(item)}
           </Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+          {item.compatibleWithPetType && (
+            <Text style={styles.compatibilityText}>
+              Dành cho {item.compatibleWithPetType}
+            </Text>
+          )}
+          {item.similarityScore && (
+            <Text style={styles.similarityScore}>
+              Độ tương tự: {item.similarityScore}%
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (

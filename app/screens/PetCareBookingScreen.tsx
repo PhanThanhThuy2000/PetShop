@@ -542,14 +542,14 @@ const PetCareBookingScreen: React.FC = () => {
                         </Text>
                         <View style={styles.bookingInfo}>
                             <Text style={styles.bookingInfoTitle}>Thông tin đặt lịch:</Text>
-                            <Text style={styles.bookingInfoItem}>• Thú cưng: {selectedPet?.name} ({selectedPet?.type})</Text>
+                            <Text style={styles.bookingInfoItem}>• Thú cưng: {selectedPet?.name} {selectedPet?.type}</Text>
                             <Text style={styles.bookingInfoItem}>• Dịch vụ: {selectedService?.name}</Text>
                             <Text style={styles.bookingInfoItem}>• Ngày: {selectedDate}</Text>
                             <Text style={styles.bookingInfoItem}>• Giờ: {selectedTime}</Text>
                         </View>
                         <TouchableOpacity
                             style={styles.newBookingButton}
-                            onPress={resetForm}
+                            onPress={() => navigation.navigate('AppointmentHistory')}
                         >
                             <Text style={styles.newBookingButtonText}>Đặt lịch mới</Text>
                         </TouchableOpacity>
@@ -753,7 +753,7 @@ const PetCareBookingScreen: React.FC = () => {
                             <Text style={styles.summaryTitle}>Tóm tắt đặt lịch</Text>
                             <View style={styles.summaryItem}>
                                 <Text style={styles.summaryLabel}>Thú cưng:</Text>
-                                <Text style={styles.summaryValue}>{selectedPet?.name} ({selectedPet?.type})</Text>
+                                <Text style={styles.summaryValue}>{selectedPet?.name} {selectedPet?.type}</Text>
                             </View>
                             <View style={styles.summaryItem}>
                                 <Text style={styles.summaryLabel}>Dịch vụ:</Text>
