@@ -263,64 +263,6 @@ const PetVariantSelector: React.FC<PetVariantSelectorProps> = ({
                     </View>
 
                     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                        {/* Pet Info */}
-                        <View style={styles.petInfo}>
-                            <Text style={styles.petName}>{pet.name}</Text>
-                            <Text style={styles.petType}>{pet.type}</Text>
-                            {currentVariant && (
-                                <View style={styles.selectedVariantInfo}>
-                                    <Text style={styles.selectedVariantLabel}>Đã chọn:</Text>
-                                    <Text style={styles.selectedVariantText}>
-                                        {PetVariantHelpers.getDisplayName(currentVariant)}
-                                    </Text>
-                                    <Text style={styles.selectedVariantPrice}>
-                                        {PetVariantHelpers.getFinalPrice(currentVariant).toLocaleString('vi-VN')}₫
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-
-                        {/* 🆕 Quick Filters */}
-                        {(filterOptions.colors.length > 1 || filterOptions.genders.length > 1) && (
-                            <View style={styles.filtersContainer}>
-                                <Text style={styles.sectionTitle}>Bộ lọc nhanh</Text>
-                                
-                                {filterOptions.colors.length > 1 && renderFilterSection(
-                                    'Màu sắc',
-                                    filterOptions.colors,
-                                    selectedFilters.color,
-                                    (value) => handleFilterSelect('color', value)
-                                )}
-                                
-                                {filterOptions.genders.length > 1 && renderFilterSection(
-                                    'Giới tính',
-                                    filterOptions.genders,
-                                    selectedFilters.gender,
-                                    (value) => handleFilterSelect('gender', value),
-                                    (item) => item,
-                                    (item) => item === 'Male' ? 'Đực' : 'Cái'
-                                )}
-                                
-                                {filterOptions.ages.length > 1 && renderFilterSection(
-                                    'Tuổi',
-                                    filterOptions.ages,
-                                    selectedFilters.age,
-                                    (value) => handleFilterSelect('age', value),
-                                    (item) => item.toString(),
-                                    (item) => `${item} năm`
-                                )}
-                                
-                                {filterOptions.weights.length > 1 && renderFilterSection(
-                                    'Cân nặng',
-                                    filterOptions.weights,
-                                    selectedFilters.weight,
-                                    (value) => handleFilterSelect('weight', value),
-                                    (item) => item.toString(),
-                                    (item) => `${item}kg`
-                                )}
-                            </View>
-                        )}
-
                         {/* Variants List */}
                         <View style={styles.variantsContainer}>
                             <Text style={styles.sectionTitle}>

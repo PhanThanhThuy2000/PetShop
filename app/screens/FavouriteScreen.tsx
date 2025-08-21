@@ -40,9 +40,21 @@ const FavoriteCard = ({ item }: { item: FavouriteItem }) => {
         : require('@/assets/images/dog.png');
 
     // ✅ XỬ LÝ GIÁ
-    const price = favoriteItem.price
-        ? `${ favoriteItem.price.toLocaleString('vi-VN') }₫`
-        : 'Liên hệ';
+    const getDisplayPrice = (): string => {
+        if (item.pet_id) {
+            // Đối với pet, sử dụng selling_price của variant đầu tiên
+            if (favoriteItem.variants && favoriteItem.variants.length > 0 && favoriteItem.variants[0].selling_price !== null && favoriteItem.variants[0].selling_price > 0) {
+                return favoriteItem.variants[0].selling_price.toLocaleString('vi-VN') + '₫';
+            }
+            return 'Liên hệ';
+        } else if (item.product_id) {
+            // Đối với product, sử dụng price
+            return favoriteItem.price && favoriteItem.price > 0
+                ? favoriteItem.price.toLocaleString('vi-VN') + '₫'
+                : 'Liên hệ';
+        }
+        return 'Liên hệ';
+    };
 
     // ✅ XỬ LÝ LOẠI ITEM
     const itemTypeInfo = item.pet_id ? { text: 'Thú cưng', color: '#059669' } : { text: 'Sản phẩm', color: '#8B5CF6' };
@@ -91,7 +103,7 @@ const FavoriteCard = ({ item }: { item: FavouriteItem }) => {
                 <Text style={styles.gridItemName} numberOfLines={2}>
                     {favoriteItem.name || 'Unknown Item'}
                 </Text>
-                <Text style={styles.gridItemPrice}>{price}</Text>
+                <Text style={styles.gridItemPrice}>{getDisplayPrice()}</Text>
             </View>
         </TouchableOpacity>
     );
@@ -119,6 +131,11 @@ const FavouriteScreen = () => {
 
     // ✅ RENDER FAVORITE ITEM
     const renderFavoriteItem = ({ item }: { item: FavouriteItem }) => {
+        // Kiểm tra xem item có pet_id hoặc product_id hợp lệ không
+        if (!item.pet_id && !item.product_id) {
+            console.warn('⚠️ Skipping invalid favourite item:', item);
+            return null;
+        }
         return <FavoriteCard item={item} />;
     };
 
@@ -169,9 +186,9 @@ const FavouriteScreen = () => {
             {/* ✅ HEADER */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Yêu thích</Text>
-                {/* <Text style={styles.headerSubtitle}>
-                    {favourites.length} Sản phẩm
-                </Text> */}
+                <Text style={styles.headerSubtitle}>
+                    {favourites.filter(item => item.pet_id || item.product_id).length} sản phẩm
+                </Text>
             </View>
 
             {/* ✅ FAVOURITES LIST */}
