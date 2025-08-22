@@ -191,8 +191,6 @@ const CustomerSupportChatScreen: React.FC = () => {
 
   const handleRoomJoined = async (data: any) => {
     console.log('Room joined successfully:', data);
-    // History đã được load trong handleAuthenticated
-    // Chỉ cần set loading = false nếu chưa được set
     if (loading) {
       setLoading(false);
     }
@@ -476,6 +474,54 @@ const CustomerSupportChatScreen: React.FC = () => {
     }
   };
 
+  const handleTakePhoto = async () => {
+    try {
+      // Request camera permission
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Lỗi', 'Cần quyền sử dụng máy ảnh để chụp hình.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0] && chatRoom) {
+        const asset = result.assets[0];
+
+        try {
+          setSendingImage(true);
+
+          // Upload image
+          const uploadResult = await customerChatService.uploadImage({
+            uri: asset.uri,
+            type: 'image/jpeg',
+            name: 'photo.jpg',
+          });
+
+          // Send image message
+          customerSocketService.sendMessage(
+            chatRoom._id,
+            'Đã gửi một hình ảnh',
+            'image',
+            uploadResult.imageUrl
+          );
+        } catch (error) {
+          console.error('Camera image upload error:', error);
+          Alert.alert('Lỗi', 'Không thể tải lên hình ảnh. Vui lòng thử lại.');
+        } finally {
+          setSendingImage(false);
+        }
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert('Lỗi', 'Không thể mở máy ảnh.');
+    }
+  };
+
   const getAvatarSource = (avatar_url?: string) => {
     if (!avatar_url) return require('../../assets/images/imageChatdog.png');
     if (avatar_url.startsWith('http')) return { uri: avatar_url };
@@ -666,6 +712,18 @@ const CustomerSupportChatScreen: React.FC = () => {
           <TouchableOpacity 
             style={styles.imageButton}
             onPress={handleImagePicker}
+            disabled={sendingImage}
+          >
+            {sendingImage ? (
+              <ActivityIndicator size="small" color="#4CAF50" />
+            ) : (
+              <Ionicons name="image" size={24} color="#4CAF50" />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.imageButton}
+            onPress={handleTakePhoto}
             disabled={sendingImage}
           >
             {sendingImage ? (
