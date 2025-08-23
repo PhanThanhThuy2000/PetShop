@@ -560,15 +560,10 @@ const AppointmentHistoryScreen: React.FC = () => {
                     {item.status === 'confirmed' && (
                         <TouchableOpacity
                             style={styles.contactSupportButton}
-                            onPress={() => {
-                                Alert.alert(
-                                    'Liên hệ để hủy lịch',
-                                    'Lịch hẹn đã được xác nhận. Vui lòng liên hệ phòng khám để được hỗ trợ hủy lịch.\n\nHotline: 1900 123 456\nEmail: support@petcare.com',
-                                    [{ text: 'OK', style: 'default' }]
-                                );
-                            }}
+                            onPress={() => navigation.navigate('CustomerSupport')}
+
                         >
-                            <Ionicons name="call-outline" size={16} color="#D97706" />
+                            <Ionicons name="chatbubble-ellipses-outline" size={16} color="#D97706" />
                             <Text style={styles.contactSupportButtonText}>Liên hệ hủy</Text>
                         </TouchableOpacity>
                     )}

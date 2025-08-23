@@ -192,7 +192,7 @@ const PetsByBreedScreen = () => {
         </View>
 
         <TouchableOpacity style={styles.filterButton} activeOpacity={0.7}>
-          <FeatherIcon name="filter" size={20} color="#6B7280" />
+          <FeatherIcon name="search" size={20} color="#6B7280" />
         </TouchableOpacity>
       </View>
 
@@ -207,11 +207,6 @@ const PetsByBreedScreen = () => {
               <ActivityIndicator size="small" color="#3B82F6" />
             </View>
           )}
-        </View>
-
-        <View style={styles.summaryRight}>
-          <FeatherIcon name="grid" size={16} color="#6B7280" />
-          <Text style={styles.viewModeText}>Lưới</Text>
         </View>
       </View>
 

@@ -8,6 +8,7 @@ import {
   Alert,
   Modal,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -17,10 +18,11 @@ import {
 import api from '../utils/api-client'; // Import the configured axios instance
 
 const countries = [
-  { code: '+84', name: 'Vietnam', flag: '🇻🇳' },
+  { code: '+84', name: 'Việt Nam', flag: '🇻🇳' },
 ];
 
 const PROVINCES_API_BASE_URL = 'https://provinces.open-api.vn/api';
+
 const EditAddressScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -165,7 +167,7 @@ const EditAddressScreen = () => {
       await api.put(`/addresses/${address._id}`, updatedData);
 
       Alert.alert('✅ Thành công', 'Cập nhật địa chỉ thành công');
-      navigation.navigate('ListAdress');
+      navigation.navigate('ListAddress');
     } catch (error) {
       console.error('Lỗi cập nhật địa chỉ:', error);
       Alert.alert('Lỗi', 'Không thể cập nhật địa chỉ');
@@ -174,100 +176,194 @@ const EditAddressScreen = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={24} color="#000" />
-      </TouchableOpacity>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Update Shipping Address</Text>
-
-        <Text style={styles.labelSmall}>Country</Text>
-        <View style={styles.rowBetween}>
-          <Text style={styles.labelLarge}>{selectedCountry.name}</Text>
-          <TouchableOpacity onPress={() => setModalVisible(true)}>
-            <Ionicons name="arrow-forward-circle" size={24} color="#007AFF" />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.label}>Full Name</Text>
-        <TextInput style={styles.input} value={userName} onChangeText={setUserName} placeholder="Full Name" />
-
-        <Text style={styles.label}>Phone</Text>
-        <View style={styles.phoneRow}>
-          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.flagBox}>
-            <Text style={{ fontSize: 20 }}>{selectedCountry.flag}</Text>
-          </TouchableOpacity>
-          <TextInput
-            style={[styles.input, { flex: 1 }]}
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            placeholder={selectedCountry.code}
-          />
-        </View>
-
-        <Text style={styles.label}>Province</Text>
-        <Picker selectedValue={province} onValueChange={v => setProvince(v)}>
-          <Picker.Item label="Chọn tỉnh" value="" />
-          {provinces.map(p => (
-            <Picker.Item
-              key={p.code || `province-${p.name}`}
-              label={p.name || 'Unknown'}
-              value={p.code ? p.code.toString() : ''}
-            />
-          ))}
-        </Picker>
-
-        <Text style={styles.label}>District</Text>
-        <Picker selectedValue={district} onValueChange={v => setDistrict(v)} enabled={!!province}>
-          <Picker.Item label="Chọn huyện" value="" />
-          {districts.map(d => (
-            <Picker.Item
-              key={d.code || `district-${d.name}`}
-              label={d.name || 'Unknown'}
-              value={d.code ? d.code.toString() : ''}
-            />
-          ))}
-        </Picker>
-
-        <Text style={styles.label}>Ward</Text>
-        <Picker selectedValue={ward} onValueChange={v => setWard(v)} enabled={!!district}>
-          <Picker.Item label="Chọn xã" value="" />
-          {wards.map(w => (
-            <Picker.Item
-              key={w.code || `ward-${w.name}`}
-              label={w.name || 'Unknown'}
-              value={w.code ? w.code.toString() : ''}
-            />
-          ))}
-        </Picker>
-
-        <Text style={styles.label}>Ghi chú địa chỉ</Text>
-        <TextInput style={styles.input} placeholder="VD: số nhà, tên đường..." value={note} onChangeText={setNote} />
-
-        <Text style={styles.label}>Postal Code</Text>
-        <TextInput style={styles.input} placeholder="VD: 700000" value={postalCode} onChangeText={setPostalCode} />
-
-        <TouchableOpacity style={styles.saveButton} onPress={handleUpdateAddress}>
-          <Text style={styles.saveButtonText}>Update Address</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#2C3E50" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Chỉnh sửa địa chỉ</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Country Selection */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Quốc gia</Text>
+          <TouchableOpacity style={styles.countrySelector} onPress={() => setModalVisible(true)}>
+            <View style={styles.countryInfo}>
+              <Text style={styles.flagText}>{selectedCountry.flag}</Text>
+              <Text style={styles.countryName}>{selectedCountry.name}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#BDC3C7" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Personal Information */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Họ và tên *</Text>
+            <TextInput
+              style={styles.input}
+              value={userName}
+              onChangeText={setUserName}
+              placeholder="Nhập họ và tên"
+              placeholderTextColor="#95A5A6"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Số điện thoại *</Text>
+            <View style={styles.phoneContainer}>
+              <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.flagContainer}>
+                <Text style={styles.flagEmoji}>{selectedCountry.flag}</Text>
+                <Text style={styles.countryCode}>{selectedCountry.code}</Text>
+              </TouchableOpacity>
+              <TextInput
+                style={[styles.input, styles.phoneInput]}
+                keyboardType="phone-pad"
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Nhập số điện thoại"
+                placeholderTextColor="#95A5A6"
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Address Information */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Địa chỉ giao hàng</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Tỉnh/Thành phố *</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={province}
+                onValueChange={v => setProvince(v)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Chọn tỉnh/thành phố" value="" />
+                {provinces.map(p => (
+                  <Picker.Item
+                    key={p.code || `province-${p.name}`}
+                    label={p.name || 'Unknown'}
+                    value={p.code ? p.code.toString() : ''}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Quận/Huyện *</Text>
+            <View style={[styles.pickerContainer, !province && styles.disabledPicker]}>
+              <Picker
+                selectedValue={district}
+                onValueChange={v => setDistrict(v)}
+                enabled={!!province}
+                style={styles.picker}
+              >
+                <Picker.Item label="Chọn quận/huyện" value="" />
+                {districts.map(d => (
+                  <Picker.Item
+                    key={d.code || `district-${d.name}`}
+                    label={d.name || 'Unknown'}
+                    value={d.code ? d.code.toString() : ''}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Phường/Xã *</Text>
+            <View style={[styles.pickerContainer, !district && styles.disabledPicker]}>
+              <Picker
+                selectedValue={ward}
+                onValueChange={v => setWard(v)}
+                enabled={!!district}
+                style={styles.picker}
+              >
+                <Picker.Item label="Chọn phường/xã" value="" />
+                {wards.map(w => (
+                  <Picker.Item
+                    key={w.code || `ward-${w.name}`}
+                    label={w.name || 'Unknown'}
+                    value={w.code ? w.code.toString() : ''}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Địa chỉ cụ thể *</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Số nhà, tên đường, khu vực..."
+              value={note}
+              onChangeText={setNote}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              placeholderTextColor="#95A5A6"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Mã bưu điện *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ví dụ: 700000"
+              value={postalCode}
+              onChangeText={setPostalCode}
+              keyboardType="numeric"
+              placeholderTextColor="#95A5A6"
+            />
+          </View>
+        </View>
+
+        {/* Save Button */}
+        <TouchableOpacity style={styles.saveButton} onPress={handleUpdateAddress}>
+          <Text style={styles.saveButtonText}>Cập nhật địa chỉ</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 20 }} />
       </ScrollView>
 
-      <Modal visible={modalVisible} transparent animationType="slide">
+      {/* Country Selection Modal */}
+      <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Chọn quốc gia</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#2C3E50" />
+              </TouchableOpacity>
+            </View>
             {countries.map((country, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.countryItem}
+                style={styles.countryOption}
                 onPress={() => {
                   setSelectedCountry(country);
                   setModalVisible(false);
                 }}
               >
-                <Text style={{ fontSize: 18 }}>
-                  {country.flag} {country.name} ({country.code})
-                </Text>
+                <View style={styles.countryOptionContent}>
+                  <Text style={styles.countryOptionFlag}>{country.flag}</Text>
+                  <View style={styles.countryOptionInfo}>
+                    <Text style={styles.countryOptionName}>{country.name}</Text>
+                    <Text style={styles.countryOptionCode}>{country.code}</Text>
+                  </View>
+                </View>
+                {selectedCountry.code === country.code && (
+                  <Ionicons name="checkmark" size={20} color="#3498DB" />
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -278,30 +374,221 @@ const EditAddressScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 20, backgroundColor: '#fff', flex: 1 },
-  backButton: { position: 'absolute', top: 40, left: 20, zIndex: 10 },
-  scrollContent: { paddingBottom: 20 },
-  title: { fontSize: 22, fontWeight: 'bold', alignSelf: 'center', marginBottom: 20, marginTop: 20 },
-  label: { fontSize: 14, marginTop: 15 },
-  labelSmall: { fontSize: 12, color: '#777' },
-  labelLarge: { fontSize: 16, fontWeight: '600' },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8EAED',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2C3E50',
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 16,
+  },
+  countrySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+  },
+  countryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  flagText: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  countryName: {
+    fontSize: 16,
+    color: '#2C3E50',
+    fontWeight: '500',
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#34495E',
+    marginBottom: 8,
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#E8EAED',
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: '#f7f7f7',
-    marginBottom: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    fontSize: 16,
+    color: '#2C3E50',
   },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  flagBox: { padding: 10, backgroundColor: '#e6e6e6', borderRadius: 10, marginRight: 10 },
-  saveButton: { backgroundColor: '#0066FF', marginTop: 30, paddingVertical: 15, borderRadius: 10 },
-  saveButtonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
-  modalContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%' },
-  countryItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  flagContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+    marginRight: 8,
+    minWidth: 80,
+  },
+  flagEmoji: {
+    fontSize: 16,
+    marginRight: 4,
+  },
+  countryCode: {
+    fontSize: 14,
+    color: '#7F8C8D',
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  disabledPicker: {
+    backgroundColor: '#F8F9FA',
+    opacity: 0.6,
+  },
+  picker: {
+    height: 50,
+    color: '#2C3E50',
+  },
+  saveButton: {
+    backgroundColor: '#3498DB',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 24,
+    elevation: 3,
+    shadowColor: '#3498DB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  saveButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '85%',
+    maxHeight: '70%',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8EAED',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2C3E50',
+  },
+  countryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8F9FA',
+  },
+  countryOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  countryOptionFlag: {
+    fontSize: 20,
+    marginRight: 16,
+  },
+  countryOptionInfo: {
+    flex: 1,
+  },
+  countryOptionName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#2C3E50',
+  },
+  countryOptionCode: {
+    fontSize: 14,
+    color: '#7F8C8D',
+    marginTop: 2,
+  },
 });
-
 export default EditAddressScreen;
