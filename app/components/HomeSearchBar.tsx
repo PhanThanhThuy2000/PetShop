@@ -442,12 +442,6 @@ const HomeSearchBar: React.FC<HomeSearchBarProps> = ({
                         blurOnSubmit={false}
                         editable={false} // Prevent direct editing, only through modal
                     />
-                    <TouchableOpacity
-                        style={styles.cameraButton}
-                        onPress={openCamera}
-                    >
-                        <Icon name="camera" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
                 </TouchableOpacity>
             </View>
 

@@ -433,11 +433,6 @@ const BreedsScreen = () => {
             </View>
           )}
         </View>
-
-        <View style={styles.statsRight}>
-          <FeatherIcon name="grid" size={16} color="#6B7280" />
-          <Text style={styles.viewModeText}>Lưới</Text>
-        </View>
       </View>
 
       {/* Breeds Grid - THAY ĐỔI data từ breeds thành filteredBreeds */}

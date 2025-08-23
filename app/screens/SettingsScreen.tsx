@@ -102,12 +102,10 @@ const SettingsScreen: React.FC = () => {
         <View style={styles.sectionContainer}>
           <Row label="Tài khoản" onPress={() => navigation.navigate('EditInfomation')} />
           <Row label="Địa chỉ" onPress={() => navigation.navigate('ListAddress')} />
-          <Row label="Thanh toán" onPress={showNotDevelopedAlert} />
         </View>
 
         <Text style={styles.sectionHeader}>Tài khoản và bảo mật</Text>
         <View style={styles.sectionContainer}>
-          <Row label="Ngôn ngữ" value="Tiếng Việt" onPress={showNotDevelopedAlert} />
           <Row label="Thông tin" onPress={() => navigation.navigate('About')} />
           <Row label="Đổi mật khẩu" onPress={() => navigation.navigate('ChangePassword')} />
           <Row label="Xóa tài khoản" onPress={showNotDevelopedAlert} />
@@ -173,7 +171,7 @@ const styles = StyleSheet.create({
   },
   rowValue: { fontSize: 16, color: '#8e8e93', marginRight: 8 },
   logoutBtn: {
-    marginTop: 32,
+    marginTop: 30,
     marginHorizontal: 16,
     alignItems: 'center',
     paddingVertical: 14,

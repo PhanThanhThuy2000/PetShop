@@ -517,7 +517,7 @@ export default function CartScreen() {
             <Text style={styles.emptySubtext}>Thêm sản phẩm yêu thích vào giỏ hàng để mua sắm</Text>
             <TouchableOpacity
               style={styles.shopNowBtn}
-              onPress={() => navigation.navigate('Home')}
+              onPress={() => navigation.navigate('Trang chủ')}
             >
               <Text style={styles.shopNowText}>Mua sắm ngay</Text>
             </TouchableOpacity>
