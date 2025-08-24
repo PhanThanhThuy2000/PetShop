@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../../hooks/useAuth';
 
 interface ChatSupportButtonProps {
   style?: any;
@@ -16,6 +17,12 @@ const ChatSupportButton: React.FC<ChatSupportButtonProps> = ({
   variant = 'floating'
 }) => {
   const navigation = useNavigation();
+  const { isAuthenticated } = useAuth();
+
+  // Don't render the button if user is not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const handlePress = () => {
     // Navigate to customer support chat
