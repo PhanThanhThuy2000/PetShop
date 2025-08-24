@@ -721,18 +721,6 @@ const CustomerSupportChatScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.imageButton}
-            onPress={handleTakePhoto}
-            disabled={sendingImage}
-          >
-            {sendingImage ? (
-              <ActivityIndicator size="small" color="#007aff" />
-            ) : (
-              <Ionicons name="camera" size={24} color="#007aff" />
-            )}
-          </TouchableOpacity>
-          
           <TextInput
             style={styles.textInput}
             value={inputText}
