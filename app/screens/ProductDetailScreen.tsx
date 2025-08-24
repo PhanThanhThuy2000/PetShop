@@ -1381,9 +1381,6 @@ const ProductDetailScreen: FC = () => {
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Chi tiết sản phẩm</Text>
-        <TouchableOpacity style={styles.headerFav}>
-          <Ionicons name="share-social-outline" size={24} />
-        </TouchableOpacity>
       </View>
       <ScrollView>
         <Header
@@ -1544,7 +1541,7 @@ const styles = StyleSheet.create({
     paddingTop: 35,
   },
   backBtn: { padding: 4 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 20, fontWeight: 'bold' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 20, fontWeight: 'bold',marginRight: 24 },
   headerFav: { padding: 4 },
   headerImage: { width: '100%', height: 300 },
   carouselDots: { position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center' },
