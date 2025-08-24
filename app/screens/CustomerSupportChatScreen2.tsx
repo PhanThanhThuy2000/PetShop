@@ -609,13 +609,13 @@ const CustomerSupportChatScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Hỗ trợ khách hàng</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4CAF50" />
+          <ActivityIndicator size="large" color="#007aff" />
           <Text style={styles.loadingText}>Đang kết nối...</Text>
         </View>
       </SafeAreaView>
@@ -627,7 +627,7 @@ const CustomerSupportChatScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Hỗ trợ khách hàng</Text>
           <View style={styles.headerRight} />
@@ -650,7 +650,7 @@ const CustomerSupportChatScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Hỗ trợ khách hàng</Text>
           <View style={styles.headerRight} />
@@ -669,11 +669,11 @@ const CustomerSupportChatScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Hỗ trợ khách hàng</Text>
         <View style={styles.connectionStatus}>
-          <View style={[styles.statusDot, { backgroundColor: isConnected ? '#4CAF50' : '#f44336' }]} />
+          <View style={[styles.statusDot, { backgroundColor: isConnected ? '#007aff' : '#f44336' }]} />
         </View>
       </View>
       
@@ -694,7 +694,7 @@ const CustomerSupportChatScreen: React.FC = () => {
           ListHeaderComponent={
             loadingHistory ? (
               <View style={styles.loadingHistoryContainer}>
-                <ActivityIndicator size="small" color="#4CAF50" />
+                <ActivityIndicator size="small" color="#007aff" />
                 <Text style={styles.loadingHistoryText}>Đang tải tin nhắn...</Text>
               </View>
             ) : null
@@ -715,9 +715,9 @@ const CustomerSupportChatScreen: React.FC = () => {
             disabled={sendingImage}
           >
             {sendingImage ? (
-              <ActivityIndicator size="small" color="#4CAF50" />
+              <ActivityIndicator size="small" color="#007aff" />
             ) : (
-              <Ionicons name="image" size={24} color="#4CAF50" />
+              <Ionicons name="image" size={24} color="#007aff" />
             )}
           </TouchableOpacity>
 
@@ -727,9 +727,9 @@ const CustomerSupportChatScreen: React.FC = () => {
             disabled={sendingImage}
           >
             {sendingImage ? (
-              <ActivityIndicator size="small" color="#4CAF50" />
+              <ActivityIndicator size="small" color="#007aff" />
             ) : (
-              <Ionicons name="camera" size={24} color="#4CAF50" />
+              <Ionicons name="camera" size={24} color="#007aff" />
             )}
           </TouchableOpacity>
           
@@ -748,16 +748,16 @@ const CustomerSupportChatScreen: React.FC = () => {
             disabled={!inputText.trim() || sending}
           >
             {sending ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color="#007aff" />
             ) : (
-              <Ionicons name="send" size={20} color="#FFFFFF" />
+                <Ionicons name="send" size={20} color="#007aff" />
             )}
           </TouchableOpacity>
         </View>
         
         {sendingImage && (
           <View style={styles.sendingImageOverlay}>
-            <ActivityIndicator size="small" color="#4CAF50" />
+            <ActivityIndicator size="small" color="#007aff" />
             <Text style={styles.sendingImageText}>Đang gửi hình ảnh...</Text>
           </View>
         )}
@@ -772,9 +772,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
+    marginTop: Platform.OS === 'android' ? 25 : 0,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#f2f6f9ff',
     paddingHorizontal: 16,
     paddingVertical: 12,
     elevation: 4,
@@ -790,8 +791,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#000',
     marginLeft: 8,
+    textAlign: 'center', // Thêm dòng này để căn giữa
+    marginRight: 40, // Đảm bảo tiêu đề không bị lệch khi có nút bên phải
   },
   headerRight: {
     width: 40,
@@ -882,7 +885,7 @@ const styles = StyleSheet.create({
     minHeight: 36,
   },
   ownMessageBubble: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#007aff',
   },
   otherMessageBubble: {
     backgroundColor: '#E6F0FF',
@@ -946,8 +949,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   sendButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 22,
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginLeft: 8,
@@ -1004,7 +1005,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#007aff',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',

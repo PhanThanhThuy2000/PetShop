@@ -87,7 +87,7 @@ const ChatSupportButton: React.FC<ChatSupportButtonProps> = ({
 
 const styles = StyleSheet.create({
   floatingButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#007aff',
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   },
   inlineText: {
     marginLeft: 8,
-    color: '#4CAF50',
+    color: '#17c23cff',
     fontWeight: '600',
   },
 });
