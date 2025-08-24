@@ -158,8 +158,7 @@ const VoucherScreen = () => {
         </View>
         <View style={styles.headerIcons}>
           <TouchableOpacity style={styles.iconCircle}>
-            <View style={styles.notificationDot} />
-            <Icon name="ellipsis-horizontal" size={16} color="#007aff" />
+            <Icon name="search" size={20}  />
           </TouchableOpacity>
         </View>
       </View>
