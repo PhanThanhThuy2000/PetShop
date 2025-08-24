@@ -78,7 +78,27 @@ const PetList: React.FC<PetListProps> = ({
         }
     };
 
-    const renderPetItem = ({ item }: { item: Pet }) => {
+    // Enhanced key extractor để đảm bảo uniqueness
+    const keyExtractor = (item: Pet, index: number) => {
+        // Priority order for generating unique key:
+        // 1. Use uniqueKey if available (set by parent component)
+        // 2. Use _id if available
+        // 3. Use combination of _id and index
+        // 4. Use index as fallback
+
+        if ((item as any).uniqueKey) {
+            return (item as any).uniqueKey;
+        }
+
+        if (item._id) {
+            return `pet_${item._id}_${index}`;
+        }
+
+        // Fallback - này chỉ xảy ra khi object không có _id (hiếm)
+        return `pet_fallback_${index}_${Date.now()}`;
+    };
+
+    const renderPetItem = ({ item, index }: { item: Pet; index: number }) => {
         const imageUrl = getImageUrl(item.images);
         const statusInfo = getStatusInfo(item.status);
 
@@ -169,7 +189,7 @@ const PetList: React.FC<PetListProps> = ({
         <FlatList
             data={pets}
             renderItem={renderPetItem}
-            keyExtractor={(item) => item._id}
+            keyExtractor={keyExtractor} // Sử dụng enhanced keyExtractor
             numColumns={horizontal ? 1 : numColumns}
             horizontal={horizontal}
             showsHorizontalScrollIndicator={showsHorizontalScrollIndicator}
@@ -178,6 +198,12 @@ const PetList: React.FC<PetListProps> = ({
             columnWrapperStyle={!horizontal && numColumns > 1 ? styles.columnWrapper : undefined}
             ListEmptyComponent={ListEmptyComponent || defaultEmptyComponent}
             showsVerticalScrollIndicator={false}
+            // Add extra props để tránh re-render không cần thiết
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+            initialNumToRender={6}
+            getItemLayout={undefined} // Let FlatList calculate automatically
         />
     );
 };

@@ -18,7 +18,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { getCurrentUser, updateUserProfile } from '../redux/slices/authSlice';
 
-const EditInfomationScreen = () => {
+const EditInformationScreen = () => {
   const navigation = useNavigation<any>();
   const { user, isLoading, dispatch } = useAuth();
 
@@ -56,11 +56,11 @@ const EditInfomationScreen = () => {
   // Show alert when user tries to edit email
   const handleEmailTap = () => {
     Alert.alert(
-      'Cannot Edit Email',
-      'Email address cannot be changed for security reasons. Please contact support if you need to update your email.',
+      'Không thể chỉnh sửa Email',
+      'Địa chỉ email không thể thay đổi vì lý do bảo mật. Vui lòng liên hệ hỗ trợ nếu bạn cần cập nhật email của mình.',
       [
         {
-          text: 'OK',
+          text: 'Đồng ý',
           style: 'default'
         }
       ]
@@ -72,8 +72,8 @@ const EditInfomationScreen = () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
-        'Permission Required',
-        'Sorry, we need camera roll permissions to change your profile picture!'
+        'Cần quyền truy cập',
+        'Xin lỗi, chúng tôi cần quyền truy cập thư viện ảnh để thay đổi ảnh đại diện của bạn!'
       );
       return false;
     }
@@ -97,13 +97,13 @@ const EditInfomationScreen = () => {
       if (!result.canceled && result.assets && result.assets[0]) {
         const imageUri = result.assets[0].uri;
         setSelectedImage(imageUri);
-        
+
         // Save avatar to user profile
         await saveAvatar(imageUri);
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      Alert.alert('Lỗi', 'Không thể chọn ảnh');
     }
   };
 
@@ -112,8 +112,8 @@ const EditInfomationScreen = () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
-        'Permission Required',
-        'Sorry, we need camera permissions to take a photo!'
+        'Cần quyền truy cập',
+        'Xin lỗi, chúng tôi cần quyền truy cập camera để chụp ảnh!'
       );
       return;
     }
@@ -128,13 +128,13 @@ const EditInfomationScreen = () => {
       if (!result.canceled && result.assets && result.assets[0]) {
         const imageUri = result.assets[0].uri;
         setSelectedImage(imageUri);
-        
+
         // Save avatar to user profile
         await saveAvatar(imageUri);
       }
     } catch (error) {
       console.error('Error taking photo:', error);
-      Alert.alert('Error', 'Failed to take photo');
+      Alert.alert('Lỗi', 'Không thể chụp ảnh');
     }
   };
 
@@ -142,7 +142,7 @@ const EditInfomationScreen = () => {
   const saveAvatar = async (imageUri: string) => {
     try {
       if (!user) {
-        Alert.alert('Error', 'User information not found');
+        Alert.alert('Lỗi', 'Không tìm thấy thông tin người dùng');
         return;
       }
 
@@ -152,18 +152,18 @@ const EditInfomationScreen = () => {
       };
 
       const result = await dispatch(updateUserProfile(updateData));
-      
+
       if (updateUserProfile.fulfilled.match(result)) {
-        Alert.alert('Success', 'Profile picture updated successfully!');
+        Alert.alert('Thành công', 'Cập nhật ảnh đại diện thành công!');
       } else {
         console.error('Avatar update failed:', result.payload);
-        Alert.alert('Error', 'Failed to update profile picture');
+        Alert.alert('Lỗi', 'Không thể cập nhật ảnh đại diện');
         // Revert the image if upload failed
         setSelectedImage(user?.avatar_url || null);
       }
     } catch (error) {
       console.error('Error saving avatar:', error);
-      Alert.alert('Error', 'Failed to save profile picture');
+      Alert.alert('Lỗi', 'Không thể lưu ảnh đại diện');
       // Revert the image if upload failed
       setSelectedImage(user?.avatar_url || null);
     }
@@ -172,19 +172,19 @@ const EditInfomationScreen = () => {
   // Show image picker options
   const showImagePickerOptions = () => {
     Alert.alert(
-      'Change Profile Picture',
-      'Choose how you want to select a photo',
+      'Thay đổi ảnh đại diện',
+      'Chọn cách bạn muốn chọn ảnh',
       [
         {
-          text: 'Camera',
+          text: 'Chụp ảnh',
           onPress: takePhoto,
         },
         {
-          text: 'Photo Library',
+          text: 'Chọn từ thư viện',
           onPress: pickImageFromLibrary,
         },
         {
-          text: 'Cancel',
+          text: 'Hủy',
           style: 'cancel',
         },
       ]
@@ -193,10 +193,10 @@ const EditInfomationScreen = () => {
 
   const validateForm = () => {
     if (!formData.username.trim()) {
-      Alert.alert('Error', 'Username is required');
+      Alert.alert('Lỗi', 'Tên người dùng là bắt buộc');
       return false;
     }
-    
+
     // Email validation removed since it's not editable
     return true;
   };
@@ -208,49 +208,48 @@ const EditInfomationScreen = () => {
 
     try {
       if (!user) {
-        Alert.alert('Error', 'User information not loaded');
+        Alert.alert('Lỗi', 'Thông tin người dùng chưa được tải');
         return;
       }
 
       // Prepare update data (only send changed fields, excluding email)
       const updateData: any = {};
-      
+
       if (formData.username !== user?.username) {
         updateData.username = formData.username;
       }
-      
+
       // Email is not editable, so we don't include it in updates
-      
+
       if (formData.phone !== user?.phone) {
         updateData.phone = formData.phone;
       }
 
       // Only update if there are changes
       if (Object.keys(updateData).length === 0) {
-        Alert.alert('Info', 'No changes to save');
+        Alert.alert('Thông báo', 'Không có thay đổi nào để lưu');
         return;
       }
 
       // Dispatch update action
       const result = await dispatch(updateUserProfile(updateData));
-      
+
       if (updateUserProfile.fulfilled.match(result)) {
         Alert.alert(
-          'Success', 
-          'Profile updated successfully!',
+          'Thành công',
+          'Cập nhật tài khoản thành công',
           [
             {
-              text: 'OK',
+              text: 'Đồng ý',
               onPress: () => navigation.goBack()
             }
           ]
         );
       } else {
-        Alert.alert('Error', result.payload as string || 'Failed to update profile');
+        Alert.alert('Lỗi', result.payload as string || 'Cập nhật tài khoản thất bại');
       }
     } catch (error) {
-      console.error('Update profile error:', error);
-      Alert.alert('Error', 'An unexpected error occurred');
+      Alert.alert('Lỗi', 'Đã xảy ra lỗi không mong muốn');
     }
   };
 
@@ -268,7 +267,7 @@ const EditInfomationScreen = () => {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading user information...</Text>
+        <Text style={styles.loadingText}>Đang tải thông tin người dùng...</Text>
       </SafeAreaView>
     );
   }
@@ -307,13 +306,13 @@ const EditInfomationScreen = () => {
               style={styles.input}
               value={formData.username}
               onChangeText={(text) => handleInputChange('username', text)}
-              placeholder="Enter username"
+              placeholder="Nhập tên hiển thị"
               placeholderTextColor="#8e8e93"
             />
           </View>
 
           <Text style={styles.inputLabel}>Địa chỉ email</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.inputContainer, styles.disabledInput]}
             onPress={handleEmailTap}
             activeOpacity={0.7}
@@ -321,7 +320,7 @@ const EditInfomationScreen = () => {
             <TextInput
               style={[styles.input, styles.disabledText]}
               value={formData.email}
-              placeholder="Email address"
+              placeholder="Địa chỉ email"
               placeholderTextColor="#8e8e93"
               editable={false}
               selectTextOnFocus={false}
@@ -338,7 +337,7 @@ const EditInfomationScreen = () => {
               style={styles.input}
               value={formData.phone}
               onChangeText={(text) => handleInputChange('phone', text)}
-              placeholder="Enter phone number"
+              placeholder="Nhập số điện thoại"
               keyboardType="phone-pad"
               placeholderTextColor="#8e8e93"
             />
@@ -350,7 +349,7 @@ const EditInfomationScreen = () => {
               <View style={styles.readOnlyItem}>
                 <Text style={styles.readOnlyItemLabel}>Ngày tạo:</Text>
                 <Text style={styles.readOnlyItemValue}>
-                  {new Date(user.created_at).toLocaleDateString()}
+                  {new Date(user.created_at).toLocaleDateString('vi-VN')}
                 </Text>
               </View>
             </View>
@@ -360,8 +359,8 @@ const EditInfomationScreen = () => {
 
       {/* Save Button */}
       <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.saveButton, isLoading && styles.saveButtonDisabled]} 
+        <TouchableOpacity
+          style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
           onPress={handleSaveChanges}
           disabled={isLoading}
         >
@@ -532,4 +531,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EditInfomationScreen;
+export default EditInformationScreen;

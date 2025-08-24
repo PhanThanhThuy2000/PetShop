@@ -451,7 +451,7 @@ export default function CartScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#3B82F6" />
           <Text style={styles.loadingText}>Đang tải giỏ hàng...</Text>
         </View>
       </SafeAreaView>
@@ -473,23 +473,30 @@ export default function CartScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Updated Header - Theo style của AppointmentHistoryScreen */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
+            <Ionicons name="arrow-back" size={24} color="#374151" />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Giỏ hàng</Text>
 
-          <View style={styles.headerRight}>
-            {cartItems.length > 0 && (
-              <TouchableOpacity onPress={handleClearCart} style={styles.clearButton}>
-                <Ionicons name="trash-outline" size={20} color="#e01111ff" />
-              </TouchableOpacity>
-            )}
-          </View>
+          {cartItems.length > 0 && (
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleClearCart}
+            >
+              <Ionicons name="trash-outline" size={24} color="#EF4444" />
+            </TouchableOpacity>
+          )}
+
+          {/* Placeholder khi không có items để giữ layout cân bằng */}
+          {cartItems.length === 0 && (
+            <View style={styles.headerPlaceholder} />
+          )}
         </View>
 
         {cartItems.length > 0 && (
@@ -512,7 +519,7 @@ export default function CartScreen() {
 
         {cartItems.length === 0 ? (
           <View style={styles.emptyCart}>
-            <Ionicons name="cart-outline" size={60} color="#C0C0C0" />
+            <Ionicons name="cart-outline" size={60} color="#9CA3AF" />
             <Text style={styles.emptyTitle}>Giỏ hàng trống</Text>
             <Text style={styles.emptySubtext}>Thêm sản phẩm yêu thích vào giỏ hàng để mua sắm</Text>
             <TouchableOpacity
@@ -538,7 +545,7 @@ export default function CartScreen() {
               {getSelectedTotal().toLocaleString('vi-VN')}₫
             </Text>
             {isLoading && (
-              <ActivityIndicator size="small" color="#007AFF" style={styles.footerLoader} />
+              <ActivityIndicator size="small" color="#3B82F6" style={styles.footerLoader} />
             )}
           </View>
           <TouchableOpacity
@@ -562,51 +569,56 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa'
+    backgroundColor: '#F8FAFC' // Updated background color to match AppointmentHistoryScreen
   },
   scroll: {
     padding: 12,
     paddingBottom: 120
   },
+
+  // Updated Header Styles - Theo AppointmentHistoryScreen
   header: {
-    marginTop:20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    marginTop: 20,
     marginBottom: 12,
-    paddingHorizontal: 4,
+    marginHorizontal: -12, // Offset scroll padding
   },
   backButton: {
     padding: 8,
-    marginRight: 8,
-    borderRadius: 8,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#374151',
     flex: 1,
-    color: '#1a1a1a',
     textAlign: 'center',
-    marginRight: 8,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center'
   },
   clearButton: {
-    marginLeft: 10,
-    padding: 4,
+    padding: 8,
   },
+  headerPlaceholder: {
+    width: 40, // Same width as clearButton to maintain balance
+  },
+
   selectAllContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.02,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   selectAllButton: {
     flexDirection: 'row',
@@ -616,7 +628,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#374151',
   },
   checkboxContainer: {
     paddingHorizontal: 8,
@@ -627,19 +639,19 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 3,
     borderWidth: 1.5,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     minHeight: CARD_HEIGHT,
     marginBottom: 8,
@@ -649,6 +661,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
     paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   imgWrapper: {
     width: CARD_HEIGHT - 16,
@@ -680,12 +694,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
     marginBottom: 4,
-    color: '#1a1a1a',
+    color: '#374151',
     lineHeight: 18,
   },
   cardDesc: {
     fontSize: 11,
-    color: '#666',
+    color: '#6B7280',
     marginBottom: 4,
     lineHeight: 14,
   },
@@ -697,28 +711,28 @@ const styles = StyleSheet.create({
   cardPrice: {
     fontWeight: '700',
     fontSize: 14,
-    color: '#007AFF',
+    color: '#3B82F6',
   },
   unitPrice: {
     fontSize: 10,
-    color: '#999',
+    color: '#9CA3AF',
     marginTop: 2,
   },
   priceUnavailable: {
     fontSize: 12,
-    color: '#666',
+    color: '#6B7280',
     fontStyle: 'italic',
   },
   variantInfoContainer: {
     marginBottom: 4,
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#EFF6FF',
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 4,
   },
   variantDetails: {
     fontSize: 11,
-    color: '#0066cc',
+    color: '#2563EB',
     lineHeight: 14,
     fontWeight: '500',
   },
@@ -733,10 +747,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 12,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F9FAFB',
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#e8e8e8',
+    borderColor: '#E5E7EB',
   },
   qtyBtn: {
     paddingHorizontal: 8,
@@ -747,10 +761,10 @@ const styles = StyleSheet.create({
   qtyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#374151',
   },
   qtyTextDisabled: {
-    color: '#ccc',
+    color: '#D1D5DB',
   },
   qtyCount: {
     minWidth: 24,
@@ -758,7 +772,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#374151',
   },
   footer: {
     position: 'absolute',
@@ -766,9 +780,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#E5E7EB',
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -783,28 +797,28 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 13,
-    color: '#666',
+    color: '#6B7280',
     fontWeight: '500',
   },
   totalText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#007AFF',
+    color: '#3B82F6',
   },
   footerLoader: {
     marginLeft: 8
   },
   checkoutBtn: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#3B82F6',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   checkoutBtnDisabled: {
-    backgroundColor: '#cccccc',
+    backgroundColor: '#D1D5DB',
   },
   checkoutText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 15,
   },
@@ -816,7 +830,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#666',
+    color: '#6B7280',
   },
   emptyContainer: {
     flex: 1,
@@ -826,34 +840,37 @@ const styles = StyleSheet.create({
   },
   emptyCart: {
     alignItems: 'center',
-    paddingVertical: 40,
-    backgroundColor: '#fff',
+    paddingVertical: 60,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#374151',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: 14,
+    color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 18,
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 20,
   },
   shopNowBtn: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
     borderRadius: 8,
   },
   shopNowText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 16,
   },
 });

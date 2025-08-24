@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import React, { useEffect } from 'react';
 import {
@@ -145,8 +146,16 @@ const FavouriteScreen = () => {
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
+                {/* ✅ CẬP NHẬT HEADER GIỐNG APPOINTMENTHISTORYSCREEN */}
                 <View style={styles.header}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#374151" />
+                    </TouchableOpacity>
                     <Text style={styles.headerTitle}>Yêu thích</Text>
+                    <View style={styles.rightPlaceholder} />
                 </View>
 
                 <View style={styles.loadingContainer}>
@@ -163,8 +172,16 @@ const FavouriteScreen = () => {
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
+                {/* ✅ CẬP NHẬT HEADER GIỐNG APPOINTMENTHISTORYSCREEN */}
                 <View style={styles.header}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#374151" />
+                    </TouchableOpacity>
                     <Text style={styles.headerTitle}>Yêu thích</Text>
+                    <View style={styles.rightPlaceholder} />
                 </View>
 
                 <View style={styles.errorContainer}>
@@ -183,12 +200,16 @@ const FavouriteScreen = () => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-            {/* ✅ HEADER */}
+            {/* ✅ CẬP NHẬT HEADER GIỐNG APPOINTMENTHISTORYSCREEN */}
             <View style={styles.header}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => navigation.goBack()}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#374151" />
+                </TouchableOpacity>
                 <Text style={styles.headerTitle}>Yêu thích</Text>
-                <Text style={styles.headerSubtitle}>
-                    {favourites.filter(item => item.pet_id || item.product_id).length} sản phẩm
-                </Text>
+                <View style={styles.rightPlaceholder} />
             </View>
 
             {/* ✅ FAVOURITES LIST */}
@@ -234,25 +255,33 @@ const FavouriteScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: '#F8FAFC',
     },
+    // ✅ CẬP NHẬT HEADER STYLES GIỐNG APPOINTMENTHISTORYSCREEN
     header: {
-        paddingHorizontal: 20,
-        paddingTop: 48,
-        paddingBottom: 15,
-        backgroundColor: '#fff',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: '#E5E7EB',
+        marginTop: 20,
+    },
+    backButton: {
+        padding: 8,
     },
     headerTitle: {
-        fontSize: 28,
+        fontSize: 20,
         fontWeight: 'bold',
-        color: '#202020',
+        color: '#374151',
+        flex: 1,
+        textAlign: 'center',
     },
-    headerSubtitle: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 4,
+    rightPlaceholder: {
+        width: 40, // Tương đương với addButton để cân đối
+        height: 40,
     },
 
     // ✅ LOADING STATES
