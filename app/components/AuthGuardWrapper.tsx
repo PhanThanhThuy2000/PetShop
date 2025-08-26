@@ -41,7 +41,6 @@ const AuthGuardWrapper: React.FC<AuthGuardWrapperProps> = ({
         onCreateAccountPress={() => navigation.navigate('SignUp')}
         createAccountLabel="Tạo tài khoản"
         showGuestLink
-        guestLabel="Tiếp tục xem như khách"
         onGuestPress={() => navigation.navigate('Home')}
       />
     </View>

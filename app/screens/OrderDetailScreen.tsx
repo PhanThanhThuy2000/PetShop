@@ -317,7 +317,9 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f8f8f8',
         paddingHorizontal: 16,
-        paddingTop: 8,
+        marginTop: 20,
+        paddingTop: 20,
+
     },
     sectionContainer: {
         marginBottom: 24,

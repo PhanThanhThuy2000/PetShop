@@ -11,7 +11,6 @@ interface LoginRequiredProps {
   onCreateAccountPress?: () => void;
   createAccountLabel?: string;
   showGuestLink?: boolean;
-  guestLabel?: string;
   onGuestPress?: () => void;
 }
 
@@ -24,7 +23,6 @@ const LoginRequired: React.FC<LoginRequiredProps> = ({
   onCreateAccountPress,
   createAccountLabel = 'Tạo tài khoản',
   showGuestLink = true,
-  guestLabel = 'Tiếp tục xem như khách',
   onGuestPress,
 }) => {
   return (
@@ -49,12 +47,6 @@ const LoginRequired: React.FC<LoginRequiredProps> = ({
         >
           <Text style={styles.secondaryButtonText}>{primaryLabel}</Text>
         </TouchableOpacity>
-
-        {showGuestLink && (
-          <TouchableOpacity style={styles.linkButton} onPress={onGuestPress}>
-            <Text style={styles.linkText}>{guestLabel}</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </View>
   );

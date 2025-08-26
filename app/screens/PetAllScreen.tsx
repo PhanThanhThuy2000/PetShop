@@ -209,7 +209,6 @@ const PetAllScreen = () => {
                 >
                     <Ionicons name="arrow-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Thú cưng</Text>
                 <View style={styles.placeholder} />
             </View>
 

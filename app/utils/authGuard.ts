@@ -47,12 +47,12 @@ export const useAuthGuard = () => {
     } else if (requiresLogin) {
       // Features requiring full authentication - suggest login
       Alert.alert(
-        'Login Required',
-        `Please login to access ${featureName}.`,
+        'Thông báo ',
+        `Yêu cầu đăng nhập ${featureName}.`,
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: 'Hủy', style: 'cancel' },
           {
-            text: 'Login',
+            text: 'Đăng nhâp',
             onPress: onLoginRequired || (() => {}),
           },
         ]

@@ -208,7 +208,6 @@ export default function PushNotificationScreen() {
             onPrimaryPress={() => navigation.navigate('Login')}
             showCreateAccount={false}
             showGuestLink={true}
-            guestLabel="Tiếp tục xem như khách"
             onGuestPress={() => navigation.navigate('Home')}
           />
         </View>
