@@ -237,28 +237,6 @@ const PetAllScreen = () => {
                 </View>
             </View>
 
-            {/* Results Info Bar */}
-            <View style={styles.resultsBar}>
-                <View style={styles.resultsInfo}>
-                    <Text style={styles.resultsText}>
-                        {searchQuery
-                            ? `${pets.length} kết quả`
-                            : `${pets.length} thú cưng`
-                        }
-                    </Text>
-                    {loading && (
-                        <View style={styles.loadingWrapper}>
-                            <ActivityIndicator size="small" color="#3B82F6" />
-                        </View>
-                    )}
-                </View>
-                {searchQuery && (
-                    <Text style={styles.searchTerm} numberOfLines={1}>
-                        "{searchQuery}"
-                    </Text>
-                )}
-            </View>
-
             {/* Error Message */}
             {error && (
                 <View style={styles.errorContainer}>
