@@ -360,7 +360,9 @@ const PetCareBookingScreen: React.FC = () => {
 
                 const petOrderItems = response.data
                     .map((item: ApiOrderItem) => extractPetFromOrderItem(item))
-                    .filter((item): item is PurchasedPetOrderItem => item !== null);
+                    .filter((item): item is PurchasedPetOrderItem => item !== null)
+                    // Lọc chỉ lấy đơn hàng trạng thái completed
+                    .filter((item) => item.order_id?.status === 'completed');
 
                 // Remove duplicates based on pet ID
                 const uniquePets: PurchasedPetOrderItem[] = [];
@@ -379,7 +381,7 @@ const PetCareBookingScreen: React.FC = () => {
                 if (uniquePets.length === 0) {
                     Alert.alert(
                         'Thông báo',
-                        'Bạn chưa mua thú cưng nào. Vui lòng mua thú cưng trước khi đặt lịch chăm sóc.',
+                        'Bạn chưa mua thú cưng nào hoặc đơn hàng chưa hoàn tất. Vui lòng mua thú cưng và hoàn tất thanh toán trước khi đặt lịch chăm sóc.',
                         [
                             { text: 'Mua thú cưng', onPress: () => navigation.navigate('PetAll') },
                             { text: 'Quay lại', onPress: () => navigation.goBack() }
