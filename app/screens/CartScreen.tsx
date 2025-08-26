@@ -302,6 +302,17 @@ export default function CartScreen() {
         return;
       }
 
+      // KIỂM TRA: Không cho phép mua pet và product không cùng thể loại
+      const hasPet = selectedCartItems.some(item => item.itemType === 'pet' || item.itemType === 'variant');
+      const hasProduct = selectedCartItems.some(item => item.itemType === 'product');
+      if (hasPet && hasProduct) {
+        Alert.alert(
+          'Không thể mua cùng lúc',
+          'Bạn không thể mua 2 sản phẩm và pet không cùng thể loại.'
+        );
+        return;
+      }
+
       // 🔧 IMPROVED: Format cart items cho Payment screen
       const formattedCartItems = selectedCartItems.map(item => {
         const formattedItem = {
@@ -323,12 +334,6 @@ export default function CartScreen() {
       });
 
       const selectedTotal = getSelectedTotal();
-
-      console.log('🚀 Navigating to Payment with:', {
-        totalItems: formattedCartItems.length,
-        total: selectedTotal,
-        cartItems: formattedCartItems
-      });
 
       navigation.navigate('Payment', {
         cartItems: formattedCartItems,
