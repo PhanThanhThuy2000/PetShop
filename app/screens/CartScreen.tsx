@@ -67,7 +67,6 @@ export default function CartScreen() {
       const itemInfo = apiItem.item_info;
       const itemType = apiItem.item_type || 'unknown';
       const unitPrice = apiItem.unit_price || 0;
-      const totalPrice = apiItem.total_price;
       const apiId = apiItem._id || `temp-${Math.floor(Math.random() * 1000000)}`;
 
       if (!itemInfo) {
@@ -84,7 +83,8 @@ export default function CartScreen() {
           productId: null,
           variantId: null,
           variantInfo: null,
-          itemType: 'unknown'
+          itemType: 'unknown',
+          categoryId: null,
         };
       }
 
@@ -93,11 +93,12 @@ export default function CartScreen() {
       let petId = null;
       let productId = null;
       let variantId = null;
+      let categoryId = null;
 
-      // 🔧 FIXED: Xử lý variant items theo structure mới từ CartController
+      console.log(`🔍 Item type: ${itemType}, category_id: ${JSON.stringify(itemInfo.category_id)}`);
+
       if (itemType === 'variant' && itemInfo.variant) {
         console.log('🧬 Processing variant item:', itemInfo.variant);
-
         const variant = itemInfo.variant;
         variantInfo = {
           color: variant.color,
@@ -107,41 +108,34 @@ export default function CartScreen() {
           display_name: variant.display_name,
           selling_price: variant.selling_price,
           stock_quantity: variant.stock_quantity,
-          sku: variant.sku
+          sku: variant.sku,
         };
-
         description = variant.display_name ||
           `${variant.color} - ${variant.weight}kg - ${variant.gender} - ${variant.age} tuổi`;
-
         variantId = variant._id;
-        petId = itemInfo._id; // Pet info từ itemInfo
-      }
-      // 🔧 FIXED: Xử lý pet items
-      else if (itemType === 'pet') {
+        petId = itemInfo._id;
+        // Lấy _id từ category_id
+        categoryId = itemInfo.category_id?._id || null;
+      } else if (itemType === 'pet') {
         console.log('🐕 Processing pet item:', itemInfo);
-
         const breedName = typeof itemInfo.breed_id === 'object'
           ? itemInfo.breed_id?.name
           : 'Unknown Breed';
-
         description = `${breedName} - ${itemInfo.type || 'Unknown'}`;
-
-        // 🔧 ADDED: Thêm thông tin hasVariants nếu có
         if (itemInfo.hasVariants) {
           description += ' (Có variants)';
         }
-
         petId = itemInfo._id;
-      }
-      // 🔧 IMPROVED: Xử lý product items
-      else if (itemType === 'product') {
+        // Lấy _id từ category_id
+        categoryId = itemInfo.category_id?._id || null;
+      } else if (itemType === 'product') {
         console.log('📦 Processing product item:', itemInfo);
-
         description = itemInfo.description || 'Pet product';
         productId = itemInfo._id;
+        // Lấy _id từ category_id
+        categoryId = itemInfo.category_id?._id || null;
       }
 
-      // 🔧 IMPROVED: Xử lý hình ảnh
       let primaryImage = require('../../assets/images/dog.png');
       if (itemInfo.images && Array.isArray(itemInfo.images) && itemInfo.images.length > 0) {
         const foundImage = itemInfo.images.find((img: any) => img.is_primary) || itemInfo.images[0];
@@ -155,14 +149,15 @@ export default function CartScreen() {
         image: primaryImage,
         title: itemInfo.name || 'Unknown Item',
         description,
-        price: unitPrice || 0, // 🔧 SỬ DỤNG unit_price từ API (backend đã tính sẵn)
+        price: unitPrice || 0,
         quantity: apiItem.quantity || 1,
         _apiId: apiId,
         petId,
         productId,
         variantId,
         variantInfo,
-        itemType
+        itemType,
+        categoryId,
       };
 
       console.log('✅ Processed item:', JSON.stringify(processedItem, null, 2));
@@ -302,18 +297,40 @@ export default function CartScreen() {
         return;
       }
 
-      // KIỂM TRA: Không cho phép mua pet và product không cùng thể loại
+      // Kiểm tra xem có cả pet/variant và product
       const hasPet = selectedCartItems.some(item => item.itemType === 'pet' || item.itemType === 'variant');
       const hasProduct = selectedCartItems.some(item => item.itemType === 'product');
+
       if (hasPet && hasProduct) {
-        Alert.alert(
-          'Không thể mua cùng lúc',
-          'Bạn không thể mua 2 sản phẩm và pet không cùng thể loại.'
-        );
-        return;
+        // Lấy danh sách categoryId từ các mục được chọn
+        const validItems = selectedCartItems.filter(item => item.categoryId);
+        if (validItems.length < selectedCartItems.length) {
+          Alert.alert('Lỗi dữ liệu', 'Một số sản phẩm hoặc thú cưng không có thông tin danh mục.');
+          return;
+        }
+        const categoryIds = validItems.map(item => item.categoryId.toString());
+        const uniqueCategoryIds = new Set(categoryIds);
+        if (uniqueCategoryIds.size > 1) {
+          const petNames = selectedCartItems
+            .filter(item => item.itemType === 'pet' || item.itemType === 'variant')
+            .map(item => item.title)
+            .join(', ');
+
+          const productNames = selectedCartItems
+            .filter(item => item.itemType === 'product')
+            .map(item => item.title)
+            .join(', ');
+
+          Alert.alert(
+            'Cảnh báo',
+            `Thú cưng : ${petNames}  không thể sử dụng thức ăn: ${productNames}. Vui lòng chọn thức ăn cho thú cưng phù hợp`
+            
+          );
+          return;
+        }
       }
 
-      // 🔧 IMPROVED: Format cart items cho Payment screen
+      // Format cart items cho Payment screen
       const formattedCartItems = selectedCartItems.map(item => {
         const formattedItem = {
           id: item._apiId,
@@ -326,7 +343,8 @@ export default function CartScreen() {
           productId: item.productId || undefined,
           variantId: item.variantId || undefined,
           variantInfo: item.variantInfo || undefined,
-          _apiId: item._apiId
+          _apiId: item._apiId,
+          categoryId: item.categoryId, // Thêm categoryId
         };
 
         console.log('💳 Formatted cart item for payment:', JSON.stringify(formattedItem, null, 2));
@@ -337,7 +355,7 @@ export default function CartScreen() {
 
       navigation.navigate('Payment', {
         cartItems: formattedCartItems,
-        total: selectedTotal
+        total: selectedTotal,
       });
     } catch (error) {
       console.error('❌ Checkout error:', error);

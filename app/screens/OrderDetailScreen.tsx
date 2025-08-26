@@ -1,4 +1,4 @@
-// OrderDetailScreen.tsx - CẬP NHẬT HỖ TRỢ VARIANT DATA
+// OrderDetailScreen.tsx - GIAO DIỆN CẢI THIỆN
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
@@ -124,15 +124,17 @@ const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({ route }) => {
 
     if (isLoading) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>Đang tải chi tiết đơn hàng...</Text>
+            <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Đang tải chi tiết đơn hàng...</Text>
             </View>
         );
     }
 
     if (error || !order) {
         return (
-            <View style={styles.container}>
+            <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={64} color="#FF6B6B" />
+                <Text style={styles.errorTitle}>Có lỗi xảy ra</Text>
                 <Text style={styles.errorText}>{error || `Không tìm thấy đơn hàng (Mã: ${orderId})`}</Text>
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                     <Text style={styles.backButtonText}>Quay lại</Text>
@@ -154,7 +156,7 @@ const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({ route }) => {
         total: order.total_amount,
         address:
             orderItems[0]?.addresses_id && typeof orderItems[0].addresses_id === 'object'
-                ? `${orderItems[0].addresses_id.name}, ${orderItems[0].addresses_id.phone}, ${orderItems[0].addresses_id.note ? orderItems[0].addresses_id.note + ', ' : ''}${orderItems[0].addresses_id.ward}, ${orderItems[0].addresses_id.district}, ${orderItems[0].addresses_id.province}, ${orderItems[0].addresses_id.country}`
+                ? `${orderItems[0].addresses_id.name}, ${orderItems[0].addresses_id.phone}, ${orderItems[0].addresses_id.ward}, ${orderItems[0].addresses_id.district}, ${orderItems[0].addresses_id.province}`
                 : 'Chưa có thông tin địa chỉ',
         deliveryDate: new Date(order.updated_at).toLocaleString('vi-VN'),
         paymentMethod: order.payment_method === 'cod' ? 'Thanh toán khi nhận hàng' : order.payment_method || 'Không xác định',
@@ -168,145 +170,146 @@ const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({ route }) => {
         ].filter(item => item !== null),
     };
 
+    const getStatusColor = () => {
+        switch (order.status) {
+            case 'completed': return '#4CAF50';
+            case 'processing': return '#FF9800';
+            case 'pending': return '#2196F3';
+            default: return '#F44336';
+        }
+    };
+
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
+                <TouchableOpacity
+                    style={styles.backIcon}
+                    onPress={() => navigation.goBack()}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
-                <View style={{ width: 24 }} />
+                <View style={styles.headerSpacer} />
             </View>
 
-            {/* Status Banner */}
-            <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Trạng thái đơn hàng</Text>
-                <View style={styles.statusBanner}>
-                    <Text style={styles.statusText}>{orderDetail.status}</Text>
+            {/* Order ID Card */}
+            <View style={styles.orderIdCard}>
+                <View style={styles.orderIdHeader}>
+                    <Text style={styles.orderIdLabel}>Mã đơn hàng</Text>
+                    <TouchableOpacity style={styles.copyButton}>
+                        <Ionicons name="copy-outline" size={16} color="#007AFF" />
+                        <Text style={styles.copyButtonText}>Sao chép</Text>
+                    </TouchableOpacity>
+                </View>
+                <Text style={styles.orderIdValue}>{orderDetail.orderId}</Text>
+            </View>
+
+            {/* Status Card */}
+            <View style={[styles.statusCard, { backgroundColor: getStatusColor() }]}>
+                <Ionicons name="checkmark-circle" size={24} color="#fff" />
+                <Text style={styles.statusText}>{orderDetail.status}</Text>
+            </View>
+
+            {/* Customer Info */}
+            <View style={styles.infoCard}>
+                <Text style={styles.cardTitle}>Thông tin khách hàng</Text>
+                <View style={styles.infoRow}>
+                    <Ionicons name="person-outline" size={20} color="#666" />
+                    <Text style={styles.infoText}>{orderDetail.userName}</Text>
                 </View>
             </View>
 
-            {/* User Info */}
-            <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Thông tin khách hàng</Text>
-                <View style={styles.infoBox}>
-                    <Ionicons name="person" size={16} color="#000" />
-                    <View style={styles.infoTextContainer}>
-                        <Text style={styles.infoText}>Khách hàng: {orderDetail.userName}</Text>
-                    </View>
-                </View>
-            </View>
-
-            {/* Address */}
-            <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Địa chỉ giao hàng</Text>
-                <View style={styles.infoBox}>
-                    <Ionicons name="location" size={16} color="#000" />
-                    <Text style={styles.infoText}>{orderDetail.address}</Text>
+            {/* Delivery Address */}
+            <View style={styles.infoCard}>
+                <Text style={styles.cardTitle}>Địa chỉ giao hàng</Text>
+                <View style={styles.infoRow}>
+                    <Ionicons name="location-outline" size={20} color="#666" />
+                    <Text style={styles.infoTextMultiline}>{orderDetail.address}</Text>
                 </View>
             </View>
 
             {/* Payment Info */}
-            <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Thông tin thanh toán</Text>
-                <View style={styles.infoBox}>
-                    <Ionicons name="card" size={16} color="#000" />
-                    <View style={styles.infoTextContainer}>
-                        <Text style={styles.infoText}>Phương thức thanh toán: {orderDetail.paymentMethod}</Text>
-                        {orderDetail.paymentMethod !== 'Thanh toán khi nhận hàng' && (
-                            <Text style={styles.infoText}>Mã giao dịch VNPay: {orderDetail.vnpayTransactionId}</Text>
-                        )}
-                        <Text style={styles.infoText}>Ngày thanh toán: {new Date(order.created_at).toLocaleDateString('vi-VN')}</Text>
+            <View style={styles.infoCard}>
+                <Text style={styles.cardTitle}>Thông tin thanh toán</Text>
+                <View style={styles.infoColumn}>
+                    <View style={styles.infoRow}>
+                        <Ionicons name="card-outline" size={20} color="#666" />
+                        <Text style={styles.infoText}>{orderDetail.paymentMethod}</Text>
+                    </View>
+                    {orderDetail.paymentMethod !== 'Thanh toán khi nhận hàng' && (
+                        <View style={styles.infoRowSecondary}>
+                            <Text style={styles.infoLabel}>Mã giao dịch VNPay:</Text>
+                            <Text style={styles.infoValue}>{orderDetail.vnpayTransactionId}</Text>
+                        </View>
+                    )}
+                    <View style={styles.infoRowSecondary}>
+                        <Text style={styles.infoLabel}>Ngày thanh toán:</Text>
+                        <Text style={styles.infoValue}>{new Date(order.created_at).toLocaleDateString('vi-VN')}</Text>
                     </View>
                 </View>
             </View>
 
-            {/* Product Items - 🔧 CẬP NHẬT XỬ LÝ DỮ LIỆU */}
-            <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Danh sách sản phẩm</Text>
+            {/* Products */}
+            <View style={styles.productsCard}>
+                <Text style={styles.cardTitle}>Danh sách sản phẩm ({orderItems.length} sản phẩm)</Text>
                 {orderItems.length > 0 ? (
                     orderItems.map((item, index) => {
                         const itemInfo = getItemDisplayInfo(item);
-
                         return (
-                            <View key={index} style={styles.productContainer}>
+                            <View key={index} style={styles.productItem}>
                                 <Image
                                     source={{ uri: itemInfo.image }}
                                     style={styles.productImage}
                                     defaultSource={{ uri: 'https://via.placeholder.com/100' }}
                                 />
-                                <View style={styles.productDetails}>
+                                <View style={styles.productInfo}>
                                     <Text style={styles.productName}>{itemInfo.name}</Text>
-
-                                    {/* 🆕 Hiển thị mô tả item */}
                                     {itemInfo.description && (
                                         <Text style={styles.productDescription}>{itemInfo.description}</Text>
                                     )}
-
-                                    <Text style={styles.originalPrice}>
-                                        đ{(item.unit_price * 1.1).toLocaleString()}
-                                    </Text>
-                                    <Text style={styles.discountedPrice}>đ{item.unit_price.toLocaleString()}</Text>
-                                    <Text style={styles.quantity}>Số lượng: x{item.quantity}</Text>
-
-                                    {/* 🆕 Hiển thị item type */}
-                                    {item.item_type && (
-                                        <Text style={styles.itemType}>
-                                            Loại: {item.item_type === 'variant' ? 'Biến thể' : item.item_type === 'pet' ? 'Thú cưng' : 'Sản phẩm'}
+                                    <View style={styles.priceRow}>
+                                        <Text style={styles.originalPrice}>
+                                            đ{(item.unit_price * 1.1).toLocaleString()}
                                         </Text>
-                                    )}
+                                        <Text style={styles.currentPrice}>
+                                            đ{item.unit_price.toLocaleString()}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.quantity}>Số lượng: {item.quantity}</Text>
                                 </View>
                             </View>
                         );
                     })
                 ) : (
-                    <Text style={styles.errorText}>Không có mục đơn hàng nào để hiển thị</Text>
+                    <View style={styles.emptyProducts}>
+                        <Ionicons name="cube-outline" size={48} color="#ccc" />
+                        <Text style={styles.emptyText}>Không có sản phẩm nào</Text>
+                    </View>
                 )}
             </View>
 
-            {/* Total */}
-            <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Tổng cộng</Text>
-                <View style={styles.totalContainer}>
-                    <Text style={styles.totalText}>Thành tiền:</Text>
-                    <Text style={styles.totalAmount}>đ{orderDetail.total.toLocaleString()}</Text>
+            {/* Order Summary */}
+            <View style={styles.summaryCard}>
+                <Text style={styles.cardTitle}>Tổng cộng đơn hàng</Text>
+                <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Thành tiền:</Text>
+                    <Text style={styles.summaryAmount}>đ{orderDetail.total.toLocaleString()}</Text>
                 </View>
             </View>
 
             {/* Order History */}
-            <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Lịch sử đơn hàng</Text>
+            <View style={styles.historyCard}>
+                <Text style={styles.cardTitle}>Lịch sử đơn hàng</Text>
                 {orderDetail.orderHistory.map((item, index) => (
                     <View key={index} style={styles.historyItem}>
-                        <Text style={styles.historyLabel}>{item.label}</Text>
-                        <Text style={styles.historyTime}>{item.time}</Text>
+                        <View style={styles.historyDot} />
+                        <View style={styles.historyContent}>
+                            <Text style={styles.historyLabel}>{item.label}</Text>
+                            <Text style={styles.historyTime}>{item.time}</Text>
+                        </View>
                     </View>
                 ))}
-            </View>
-
-            {/* Order ID */}
-            <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Mã đơn hàng</Text>
-                <View style={styles.orderIdContainer}>
-                    <Text style={styles.orderIdText}>Mã đơn hàng:</Text>
-                    <Text style={styles.orderIdValue}>{orderDetail.orderId}</Text>
-                    <TouchableOpacity style={styles.checkButton}>
-                        <Text style={styles.checkButtonText}>SAO CHÉP</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Actions */}
-            <View style={styles.sectionContainer}>
-                <View style={styles.actionContainer}>
-                    <TouchableOpacity style={styles.actionButton}>
-                        <Text style={styles.actionButtonText}>Xem đánh giá của bạn</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
-                        <Text style={styles.actionButtonText}>Yêu cầu trả hàng/hoàn tiền</Text>
-                    </TouchableOpacity>
-                </View>
             </View>
         </ScrollView>
     );
@@ -315,222 +318,336 @@ const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({ route }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f8f8',
-        paddingHorizontal: 16,
-        marginTop: 20,
-        paddingTop: 20,
+        backgroundColor: '#f5f7fa',
+    },
 
+    // Loading & Error States
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f5f7fa',
     },
-    sectionContainer: {
-        marginBottom: 24,
+    loadingText: {
+        fontSize: 16,
+        color: '#666',
+        marginTop: 16,
     },
-    sectionTitle: {
-        fontSize: 18,
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f5f7fa',
+        paddingHorizontal: 32,
+    },
+    errorTitle: {
+        fontSize: 20,
         fontWeight: '600',
         color: '#333',
-        marginBottom: 12,
+        marginTop: 16,
+        marginBottom: 8,
     },
+    errorText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 24,
+        marginBottom: 32,
+    },
+
+    // Header
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 12,
+        paddingHorizontal: 16,
+        paddingTop: 60,
+        paddingBottom: 16,
+        backgroundColor: '#fff',
         borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-        marginBottom: 16,
+        borderBottomColor: '#e8eaed',
+    },
+    backIcon: {
+        padding: 8,
+        borderRadius: 20,
+        backgroundColor: '#f8f9fa',
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: '700',
+        fontSize: 18,
+        fontWeight: '600',
         color: '#333',
     },
-    statusBanner: {
-        backgroundColor: '#4CAF50',
-        padding: 12,
-        borderRadius: 8,
+    headerSpacer: {
+        width: 40,
+    },
+
+    // Order ID Card
+    orderIdCard: {
+        backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginTop: 16,
+        padding: 16,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    orderIdHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 8,
+    },
+    orderIdLabel: {
+        fontSize: 14,
+        color: '#666',
+        fontWeight: '500',
+    },
+    copyButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f0f8ff',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
+    copyButtonText: {
+        fontSize: 12,
+        color: '#007AFF',
+        fontWeight: '500',
+        marginLeft: 4,
+    },
+    orderIdValue: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+    },
+
+    // Status Card
+    statusCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginHorizontal: 16,
+        marginTop: 12,
+        padding: 16,
+        borderRadius: 12,
     },
     statusText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: '600',
+        marginLeft: 8,
     },
-    infoBox: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
+
+    // Info Cards
+    infoCard: {
         backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginTop: 12,
         padding: 16,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderRadius: 12,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    infoTextContainer: {
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 12,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    infoColumn: {
+        gap: 12,
+    },
+    infoText: {
+        fontSize: 15,
+        color: '#333',
         marginLeft: 12,
         flex: 1,
     },
-    infoText: {
-        color: '#444',
-        fontSize: 14,
-        lineHeight: 20,
-        marginBottom: 4,
+    infoTextMultiline: {
+        fontSize: 15,
+        color: '#333',
+        marginLeft: 12,
+        flex: 1,
+        lineHeight: 22,
     },
-    productContainer: {
+    infoRowSecondary: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingLeft: 32,
+    },
+    infoLabel: {
+        fontSize: 14,
+        color: '#666',
+    },
+    infoValue: {
+        fontSize: 14,
+        color: '#333',
+        fontWeight: '500',
+    },
+
+    // Products Card
+    productsCard: {
         backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginTop: 12,
         padding: 16,
-        borderRadius: 8,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderRadius: 12,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    productItem: {
+        flexDirection: 'row',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
     },
     productImage: {
         width: 80,
         height: 80,
         borderRadius: 8,
+        backgroundColor: '#f8f9fa',
     },
-    productDetails: {
+    productInfo: {
         flex: 1,
         marginLeft: 12,
         justifyContent: 'space-between',
     },
     productName: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
         color: '#333',
         marginBottom: 4,
     },
-    // 🆕 THÊM STYLES MỚI
     productDescription: {
-        fontSize: 12,
+        fontSize: 13,
         color: '#666',
-        marginBottom: 4,
-        fontStyle: 'italic',
+        lineHeight: 18,
+        marginBottom: 8,
     },
-    itemType: {
-        fontSize: 11,
-        color: '#007AFF',
-        fontWeight: '500',
-        marginTop: 2,
+    priceRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
     },
     originalPrice: {
+        fontSize: 13,
+        color: '#999',
         textDecorationLine: 'line-through',
-        color: '#888',
-        fontSize: 14,
     },
-    discountedPrice: {
+    currentPrice: {
         fontSize: 16,
         fontWeight: '600',
         color: '#e53e3e',
     },
     quantity: {
-        color: '#666',
         fontSize: 14,
+        color: '#666',
     },
-    totalContainer: {
+    emptyProducts: {
+        alignItems: 'center',
+        paddingVertical: 32,
+    },
+    emptyText: {
+        fontSize: 16,
+        color: '#999',
+        marginTop: 8,
+    },
+
+    // Summary Card
+    summaryCard: {
+        backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginTop: 12,
+        padding: 16,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    summaryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        padding: 16,
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
     },
-    totalText: {
+    summaryLabel: {
         fontSize: 16,
         fontWeight: '600',
         color: '#333',
     },
-    totalAmount: {
-        fontSize: 16,
+    summaryAmount: {
+        fontSize: 18,
         fontWeight: '700',
         color: '#e53e3e',
     },
+
+    // History Card
+    historyCard: {
+        backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginTop: 12,
+        marginBottom: 32,
+        padding: 16,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
     historyItem: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        alignItems: 'flex-start',
         paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
+    },
+    historyDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#007AFF',
+        marginTop: 6,
+        marginRight: 12,
+    },
+    historyContent: {
+        flex: 1,
     },
     historyLabel: {
+        fontSize: 15,
+        fontWeight: '500',
         color: '#333',
-        fontSize: 14,
+        marginBottom: 2,
     },
     historyTime: {
+        fontSize: 13,
         color: '#666',
-        fontSize: 14,
     },
-    orderIdContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        padding: 16,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-    },
-    orderIdText: {
-        color: '#333',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    orderIdValue: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#333',
-        flex: 1,
-        marginLeft: 8,
-    },
-    checkButton: {
-        backgroundColor: '#3182CE',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-    },
-    checkButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    actionContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    actionButton: {
-        flex: 1,
-        backgroundColor: '#3182CE',
-        padding: 8,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginHorizontal: 8,
-    },
-    actionButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    errorText: {
-        fontSize: 16,
-        color: '#e53e3e',
-        textAlign: 'center',
-        marginVertical: 20,
-    },
+
+    // Buttons
     backButton: {
-        backgroundColor: '#3182CE',
-        padding: 16,
+        backgroundColor: '#007AFF',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
         borderRadius: 8,
         alignItems: 'center',
-        marginTop: 20,
-        width: '50%',
-        alignSelf: 'center',
     },
     backButtonText: {
         color: '#fff',
