@@ -135,9 +135,9 @@ export const reviewService = {
   async createReviewFromOrderItem(reviewData: {
     rating: number;
     comment: string;
-    pet_id: string;
+    pet_id?: string; // Thay đổi thành optional
     product_id?: string;
-    orderItemId: string;  // ✅ Thêm orderItemId
+    orderItemId: string;
     images?: ImageData[];
   }) {
     const formData = new FormData();
@@ -145,24 +145,24 @@ export const reviewService = {
     // Thêm các field thông tin
     formData.append('rating', reviewData.rating.toString());
     formData.append('comment', reviewData.comment);
-    formData.append('pet_id', reviewData.pet_id);
-    formData.append('orderItemId', reviewData.orderItemId); // ✅ Thêm orderItemId
+    formData.append('orderItemId', reviewData.orderItemId);
 
-    if (reviewData.product_id) {
+    // Chỉ thêm pet_id hoặc product_id nếu chúng tồn tại và hợp lệ
+    if (reviewData.pet_id && reviewData.pet_id !== 'undefined') {
+      formData.append('pet_id', reviewData.pet_id);
+    }
+    if (reviewData.product_id && reviewData.product_id !== 'undefined') {
       formData.append('product_id', reviewData.product_id);
     }
 
-    // Thêm ảnh nếu có - React Native FormData format
+    // Thêm ảnh nếu có
     if (reviewData.images && reviewData.images.length > 0) {
       reviewData.images.forEach((image, index) => {
-        // React Native FormData cần object với uri, type, name
         const imageFile = {
           uri: image.uri,
           type: image.type || 'image/jpeg',
           name: image.name || `review_image_${Date.now()}_${index}.jpg`,
         };
-
-        // Append với field name 'images' (backend expect array)
         formData.append('images', imageFile as any);
       });
     }
@@ -171,22 +171,22 @@ export const reviewService = {
       rating: reviewData.rating,
       comment: reviewData.comment,
       pet_id: reviewData.pet_id,
+      product_id: reviewData.product_id,
       orderItemId: reviewData.orderItemId,
-      imageCount: reviewData.images?.length || 0
+      imageCount: reviewData.images?.length || 0,
     });
 
     try {
-      // ✅ SỬ DỤNG ENDPOINT MỚI CHO ORDER ITEM REVIEW
       const response = await api.post<ApiResponse<Review>>('/reviews/from-order-item', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 30000, // Tăng timeout lên 30s cho upload ảnh
+        timeout: 30000,
       });
       return response.data;
     } catch (error: any) {
       console.error('Upload review from order item error:', error.response?.data || error.message);
-      throw error; // Throw original error để có thể debug
+      throw error;
     }
   },
 
