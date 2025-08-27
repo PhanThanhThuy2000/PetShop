@@ -179,81 +179,88 @@ const groupOrderItems = (orderItems: OrderItem[]): GroupedOrder[] => {
     );
 };
 
-// Component hiển thị grouped order với tính năng expand/collapse
-const GroupedOrderComponent = ({ groupedOrder, onOrderCancelled }: {
+const OrderItemComponent = ({ groupedOrder, onOrderCancelled }: {
     groupedOrder: GroupedOrder;
     onOrderCancelled?: () => void
 }) => {
     const navigation = useNavigation<any>();
+    const [isReviewed, setIsReviewed] = useState<{ [key: string]: boolean }>({});
     const [isCancelling, setIsCancelling] = useState(false);
+    const [reviewData, setReviewData] = useState<{ [key: string]: any }>({});
+    const [isCheckingReview, setIsCheckingReview] = useState<{ [key: string]: boolean }>({});
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'pending': return '#F59E0B';
-            case 'processing': return '#3B82F6';
-            case 'shipped': return '#8B5CF6';
-            case 'completed': return '#10B981';
-            case 'cancelled': return '#EF4444';
-            default: return '#6B7280';
-        }
-    };
+    useEffect(() => {
+        // Kiểm tra tất cả items đã được đánh giá chưa
+        groupedOrder.items.forEach(item => {
+            checkReviewStatus(item);
+        });
+    }, [groupedOrder]);
 
-    const getStatusText = (status: string) => {
-        switch (status) {
-            case 'pending': return 'Đang chờ xử lý';
-            case 'processing': return 'Đang xử lý';
-            case 'shipped': return 'Đang giao hàng';
-            case 'completed': return 'Đã hoàn thành';
-            case 'cancelled': return 'Đã hủy';
-            default: return status || 'Không xác định';
-        }
-    };
-
-    const canCancelOrder = (orderInfo: any) => {
-        if (orderInfo.status !== 'pending') {
-            let message = '';
-            switch (orderInfo.status) {
-                case 'processing':
-                    message = 'Đơn hàng đã được xác nhận và không thể hủy trực tiếp. Vui lòng liên hệ cửa hàng.';
-                    break;
-                case 'shipped':
-                    message = 'Đơn hàng đang được vận chuyển và không thể hủy.';
-                    break;
-                case 'completed':
-                    message = 'Đơn hàng đã hoàn thành và không thể hủy.';
-                    break;
-                case 'cancelled':
-                    message = 'Đơn hàng đã được hủy trước đó.';
-                    break;
-                default:
-                    message = 'Không thể hủy đơn hàng ở trạng thái hiện tại.';
-            }
-            return { allowed: false, message };
+    // Kiểm tra trạng thái đánh giá cho từng item
+    const checkReviewStatus = async (item: OrderItem) => {
+        if (groupedOrder.orderInfo.status !== 'completed') {
+            setIsReviewed(prev => ({ ...prev, [item._id]: false }));
+            return;
         }
 
         try {
-            const orderTime = new Date(orderInfo.created_at);
-            const now = new Date();
-            const hoursDiff = (now.getTime() - orderTime.getTime()) / (1000 * 60 * 60);
+            setIsCheckingReview(prev => ({ ...prev, [item._id]: true }));
+            const response = await ordersService.checkReviewStatus(item._id);
 
-            if (hoursDiff > 24) {
-                return {
-                    allowed: false,
-                    message: 'Không thể hủy đơn hàng đã đặt quá 24 giờ.'
-                };
+            if (response.success && response.data) {
+                setIsReviewed(prev => ({
+                    ...prev,
+                    [item._id]: response.data.isReviewed
+                }));
+                if (response.data.isReviewed && response.data.reviewData) {
+                    setReviewData(prev => ({
+                        ...prev,
+                        [item._id]: response.data.reviewData
+                    }));
+                }
             }
-
-            const isLateCancel = hoursDiff > 23;
-            return { allowed: true, message: '', isLateCancel };
         } catch (error) {
-            return {
-                allowed: false,
-                message: 'Lỗi xử lý thời gian. Vui lòng thử lại.',
-            };
+            console.error('Error checking review status:', error);
+        } finally {
+            setIsCheckingReview(prev => ({ ...prev, [item._id]: false }));
         }
     };
 
+    // STATUS TEXT HELPER
+    const getStatusText = (status: string) => {
+        switch (status) {
+            case 'pending':
+                return 'Đang chờ xử lý';
+            case 'processing':
+                return 'Đang xử lý';
+            case 'completed':
+                return 'Đã hoàn thành';
+            case 'cancelled':
+                return 'Đã hủy';
+            default:
+                return status || 'Không xác định';
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'pending':
+                return '#F59E0B';
+            case 'processing':
+                return '#3B82F6';
+            case 'shipped':
+                return '#8B5CF6';
+            case 'completed':
+                return '#10B981';
+            case 'cancelled':
+                return '#EF4444';
+            default:
+                return '#6B7280';
+        }
+    };
+
+    // CHỨC NĂNG HỦY ĐƠN HÀNG
     const handleCancelOrder = () => {
         const canCancel = canCancelOrder(groupedOrder.orderInfo);
 
@@ -268,7 +275,7 @@ const GroupedOrderComponent = ({ groupedOrder, onOrderCancelled }: {
                         onPress: () => {
                             Alert.alert(
                                 'Liên hệ hỗ trợ',
-                                'Vui lòng gọi hotline: 1900 123 456 hoặc email: support@petcare.com',
+                                'Vui lòng gọi hotline: 1900 123 456 hoặc email: support@petcare.com để được hỗ trợ hủy đơn hàng.',
                                 [{ text: 'Đã hiểu', style: 'default' }]
                             );
                         }
@@ -288,7 +295,7 @@ const GroupedOrderComponent = ({ groupedOrder, onOrderCancelled }: {
                 {
                     text: 'Xác nhận hủy',
                     style: 'destructive',
-                    onPress: performCancelOrder,
+                    onPress: () => performCancelOrder(),
                 },
             ]
         );
@@ -296,20 +303,100 @@ const GroupedOrderComponent = ({ groupedOrder, onOrderCancelled }: {
 
     const performCancelOrder = async () => {
         setIsCancelling(true);
+
         try {
-            await ordersService.cancelOrder(groupedOrder.orderId);
-            Alert.alert('Thành công', 'Đã hủy đơn hàng thành công');
-            if (onOrderCancelled) onOrderCancelled();
+            console.log('🚫 Attempting to cancel order:', groupedOrder.orderId);
+            const response = await ordersService.cancelOrder(groupedOrder.orderId);
+
+            Alert.alert(
+                'Thành công',
+                'Đã hủy đơn hàng thành công',
+                [{ text: 'OK', style: 'default' }]
+            );
+
+            if (onOrderCancelled) {
+                onOrderCancelled();
+            }
+
         } catch (error: any) {
+            console.error('Cancel order error:', error);
+
             let errorMessage = 'Không thể hủy đơn hàng. Vui lòng thử lại.';
+
             if (error.response?.data?.message) {
                 errorMessage = error.response.data.message;
             } else if (error.message) {
-                errorMessage = error.message;
+                if (error.message === 'Network Error') {
+                    errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra internet và thử lại.';
+                } else {
+                    errorMessage = error.message;
+                }
             }
-            Alert.alert('Lỗi hủy đơn hàng', errorMessage);
+
+            Alert.alert(
+                'Lỗi hủy đơn hàng',
+                errorMessage,
+                [
+                    { text: 'Thử lại', onPress: () => performCancelOrder() },
+                    { text: 'Đóng', style: 'cancel' }
+                ]
+            );
         } finally {
             setIsCancelling(false);
+        }
+    };
+
+    // LOGIC KIỂM TRA CÓ THỂ HỦY ĐƠN HÀNG
+    const canCancelOrder = (orderInfo: any) => {
+        if (orderInfo.status !== 'pending') {
+            let message = '';
+            switch (orderInfo.status) {
+                case 'processing':
+                    message = 'Đơn hàng đã được xác nhận và không thể hủy trực tiếp. Vui lòng liên hệ cửa hàng để được hỗ trợ.';
+                    break;
+                case 'shipped':
+                    message = 'Đơn hàng đang được vận chuyển và không thể hủy.';
+                    break;
+                case 'completed':
+                    message = 'Đơn hàng đã đã hoàn thành và không thể hủy.';
+                    break;
+                case 'cancelled':
+                    message = 'Đơn hàng đã được hủy trước đó.';
+                    break;
+                default:
+                    message = 'Không thể hủy đơn hàng ở trạng thái hiện tại.';
+            }
+            return { allowed: false, message };
+        }
+
+        try {
+            const orderTime = new Date(orderInfo.created_at);
+            const now = new Date();
+            const timeDiff = now.getTime() - orderTime.getTime();
+            const hoursDiff = timeDiff / (1000 * 60 * 60);
+
+            if (hoursDiff > 24) {
+                console.log('Cannot cancel: Order too old');
+                return {
+                    allowed: false,
+                    message: 'Không thể hủy đơn hàng đã đặt quá 24 giờ.'
+                };
+            }
+
+            const isLateCancel = hoursDiff > 23;
+
+            console.log('Can cancel:', { hoursDiff, isLateCancel });
+            return {
+                allowed: true,
+                message: '',
+                isLateCancel
+            };
+        } catch (error) {
+            console.error('Error in canCancelOrder:', error);
+            return {
+                allowed: false,
+                message: 'Lỗi xử lý thời gian. Vui lòng thử lại.',
+            };
         }
     };
 
@@ -317,47 +404,104 @@ const GroupedOrderComponent = ({ groupedOrder, onOrderCancelled }: {
         navigation.navigate('OrderDetail', { orderId: groupedOrder.orderId });
     };
 
+    // Xử lý đánh giá hoặc xem đánh giá cho từng item
+    const handleReview = (item: OrderItem) => {
+        const itemInfo = getItemDisplayInfo(item);
+        const product = {
+            id: itemInfo.productId || item._id,
+            name: itemInfo.name,
+            image: itemInfo.image || 'https://via.placeholder.com/100',
+        };
+
+        if (isReviewed[item._id]) {
+            navigation.navigate('AllReviewsScreen', {
+                product,
+                orderItemId: item._id,
+                reviewData: reviewData[item._id],
+                itemType: itemInfo.type, // Thêm itemType
+            });
+        } else {
+            navigation.navigate('AddReviewScreen', {
+                product,
+                orderItemId: item._id,
+                itemType: itemInfo.type, // Thêm itemType
+            });
+        }
+    };
+
     // Render từng item trong order
-    const renderOrderItem = (item: OrderItem, index: number) => {
+
+    // Thay đổi hàm renderOrderItem để tất cả items có kích thước bằng nhau
+    const renderOrderItem = (item: OrderItem, index: number, isMainItem: boolean = false) => {
         const itemInfo = getItemDisplayInfo(item);
 
         return (
-            <View key={item._id} style={[styles.orderItemDetail, index > 0 && styles.orderItemBorder]}>
-                {itemInfo.image && itemInfo.image.startsWith('http') ? (
+            <View key={item._id} style={[
+                styles.orderContent, // Dùng chung 1 style cho tất cả
+                index > 0 && styles.itemBorder // Chỉ thêm border cho item thứ 2 trở đi
+            ]}>
+                {itemInfo.image && (itemInfo.image.startsWith('http') || itemInfo.image.startsWith('https')) ? (
                     <Image
                         source={{ uri: itemInfo.image }}
-                        style={styles.itemImage}
-                        defaultSource={{ uri: 'https://via.placeholder.com/60' }}
+                        style={styles.petImage} // Dùng chung 1 kích thước cho tất cả
+                        defaultSource={{ uri: 'https://via.placeholder.com/100' }}
                     />
                 ) : (
-                    <View style={[styles.itemImage, styles.placeholderImage]}>
-                        <Ionicons name="image-outline" size={20} color="#ccc" />
+                    <View style={[styles.petImage, styles.placeholderImage]}>
+                        <Ionicons name="image-outline" size={24} color="#ccc" />
                     </View>
                 )}
 
-                <View style={styles.itemInfo}>
-                    <Text style={styles.itemName}>{itemInfo.name}</Text>
+                <View style={styles.orderInfo}>
+                    <Text style={styles.petName}> {/* Dùng chung 1 style cho tên */}
+                        {itemInfo.name}
+                    </Text>
+
                     {itemInfo.description && (
-                        <Text style={styles.itemDescription} numberOfLines={1}>
+                        <Text style={styles.petDescription} numberOfLines={2}>
                             {itemInfo.description}
                         </Text>
                     )}
-                    <View style={styles.itemTypeContainer}>
-                        <Text style={[
-                            styles.itemType,
-                            itemInfo.type === 'pet' || itemInfo.type === 'variant'
-                                ? styles.petType
-                                : styles.productType
-                        ]}>
-                            {itemInfo.type === 'variant' ? 'Biến thể' :
-                                itemInfo.type === 'pet' ? 'Thú cưng' : 'Sản phẩm'}
-                        </Text>
-                    </View>
-                    <View style={styles.itemPriceContainer}>
-                        <Text style={styles.itemPrice}>
+
+                    {item.item_type && (
+                        <View style={styles.itemTypeContainer}>
+                            <Text style={[
+                                styles.itemType,
+                                itemInfo.type === 'pet' || itemInfo.type === 'variant'
+                                    ? styles.petType
+                                    : styles.productType
+                            ]}>
+                                {item.item_type === 'variant' ? 'Biến thể' : item.item_type === 'pet' ? 'Thú cưng' : 'Sản phẩm'}
+                            </Text>
+                        </View>
+                    )}
+
+                    <View style={styles.priceContainer}>
+                        <Ionicons name="pricetag-outline" size={16} color="#6B7280" />
+                        <Text style={styles.price}> {/* Dùng chung 1 style cho giá */}
                             {item.unit_price.toLocaleString('vi-VN')} đ x {item.quantity}
                         </Text>
                     </View>
+
+                    {/* Review button hiển thị cho tất cả items nếu đơn hàng completed */}
+                    {groupedOrder.orderInfo.status === 'completed' && (
+                        <View style={styles.reviewButtonContainer}>
+                            {isCheckingReview[item._id] ? (
+                                <View style={styles.loadingReviewButton}>
+                                    <ActivityIndicator size="small" color="#3B82F6" />
+                                </View>
+                            ) : (
+                                <TouchableOpacity
+                                    style={isReviewed[item._id] ? styles.viewReviewButton : styles.reviewButton}
+                                    onPress={() => handleReview(item)}
+                                >
+                                    <Text style={isReviewed[item._id] ? styles.viewReviewButtonText : styles.reviewButtonText}>
+                                        {isReviewed[item._id] ? 'Đã đánh giá' : 'Đánh giá'}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
                 </View>
             </View>
         );
@@ -365,26 +509,16 @@ const GroupedOrderComponent = ({ groupedOrder, onOrderCancelled }: {
 
     // Lấy items để hiển thị
     const getDisplayItems = () => {
-        if (groupedOrder.items.length <= 1) {
-            return groupedOrder.items;
-        }
-
-        // Luôn hiển thị pet/variant đầu tiên
         const sortedItems = groupedOrder.items;
-        const firstItem = sortedItems[0];
-        const firstItemInfo = getItemDisplayInfo(firstItem);
+        if (sortedItems.length <= 1) {
+            return sortedItems;
+        }
 
         if (isExpanded) {
             return sortedItems;
         }
 
-        // Nếu item đầu tiên là pet/variant, chỉ hiển thị nó
-        if (firstItemInfo.type === 'pet' || firstItemInfo.type === 'variant') {
-            return [firstItem];
-        }
-
-        // Nếu không có pet, hiển thị item đầu tiên (product)
-        return [firstItem];
+        return [sortedItems[0]];
     };
 
     const displayItems = getDisplayItems();
@@ -393,20 +527,13 @@ const GroupedOrderComponent = ({ groupedOrder, onOrderCancelled }: {
 
     return (
         <TouchableOpacity onPress={handlePress}>
-            <View style={styles.groupedOrderCard}>
-                {/* Header */}
+            <View style={styles.orderItem}>
+                {/* IMPROVED HEADER WITH STATUS BADGE */}
                 <View style={styles.orderHeader}>
                     <View style={styles.orderIdContainer}>
-                        <Text style={styles.orderNumber}>
-                            #{groupedOrder.orderId.slice(-6)}
-                        </Text>
-                        <View style={[
-                            styles.statusBadge,
-                            { backgroundColor: getStatusColor(groupedOrder.orderInfo.status) }
-                        ]}>
-                            <Text style={styles.statusBadgeText}>
-                                {getStatusText(groupedOrder.orderInfo.status)}
-                            </Text>
+                        <Text style={styles.orderNumber}>#{groupedOrder.orderId.slice(-6)}</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(groupedOrder.orderInfo.status) }]}>
+                            <Text style={styles.statusBadgeText}>{getStatusText(groupedOrder.orderInfo.status)}</Text>
                         </View>
                     </View>
                     <Text style={styles.orderDate}>
@@ -418,60 +545,62 @@ const GroupedOrderComponent = ({ groupedOrder, onOrderCancelled }: {
                     </Text>
                 </View>
 
-                {/* Items List */}
-                <View style={styles.itemsList}>
-                    {displayItems.map((item, index) => renderOrderItem(item, index))}
+                {/* Sub Items (khi expanded) */}
+                {displayItems.map((item, index) => renderOrderItem(item, index))}
+                {/* Expand/Collapse Button */}
+                {totalItems > 1 && (
+                    <TouchableOpacity
+                        style={styles.expandButton}
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            setIsExpanded(!isExpanded);
+                        }}
+                    >
+                        <Text style={styles.expandButtonText}>
+                            {isExpanded
+                                ? 'Thu gọn'
+                                : `Xem thêm ${totalItems - displayItems.length} sản phẩm`
+                            }
+                        </Text>
+                        <Ionicons
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                            size={16}
+                            color="#3B82F6"
+                        />
+                    </TouchableOpacity>
+                )}
 
-                    {/* Expand/Collapse Button */}
-                    {totalItems > 1 && (
-                        <TouchableOpacity
-                            style={styles.expandButton}
-                            onPress={(e) => {
-                                e.stopPropagation();
-                                setIsExpanded(!isExpanded);
-                            }}
-                        >
-                            <Text style={styles.expandButtonText}>
-                                {isExpanded
-                                    ? 'Thu gọn'
-                                    : `Xem thêm ${totalItems - displayItems.length} sản phẩm`
-                                }
-                            </Text>
-                            <Ionicons
-                                name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                                size={16}
-                                color="#3B82F6"
-                            />
-                        </TouchableOpacity>
-                    )}
+
+                {/* Total Price Container */}
+                <View style={styles.totalPriceContainer}>
+                    <Text style={styles.totalPrice}>
+                        Tổng tiền: {groupedOrder.orderInfo.total_amount?.toLocaleString('vi-VN')} đ
+                    </Text>
                 </View>
 
-                {/* Footer */}
+                {/* IMPROVED FOOTER WITH BETTER ACTION BUTTONS */}
                 <View style={styles.orderFooter}>
-                    <View style={styles.orderSummary}>
-                        <Text style={styles.itemCount}>
-                            {groupedOrder.items.length} sản phẩm
-                        </Text>
-                        <Text style={styles.totalAmount}>
-                            Tổng: {groupedOrder.orderInfo.total_amount.toLocaleString('vi-VN')} đ
-                        </Text>
-                    </View>
+                    <TouchableOpacity
+                        style={styles.detailButton}
+                        onPress={handlePress}
+                    >
+                        <Text style={styles.detailButtonText}>Chi tiết</Text>
+                    </TouchableOpacity>
 
                     <View style={styles.actionButtons}>
-                        <TouchableOpacity style={styles.detailButton} onPress={handlePress}>
-                            <Text style={styles.detailButtonText}>Chi tiết</Text>
-                        </TouchableOpacity>
-
                         {groupedOrder.orderInfo.status === 'pending' && (
                             <TouchableOpacity
-                                style={[styles.cancelButton, isCancelling && styles.cancelButtonDisabled]}
+                                style={[
+                                    styles.cancelButton,
+                                    isCancelling && styles.cancelButtonDisabled
+                                ]}
                                 onPress={handleCancelOrder}
                                 disabled={isCancelling}
                             >
                                 {isCancelling ? (
                                     <ActivityIndicator size="small" color="#FFFFFF" />
                                 ) : (
-                                    <Text style={styles.cancelButtonText}>Hủy</Text>
+                                    <Text style={styles.cancelButtonText}>Hủy đơn</Text>
                                 )}
                             </TouchableOpacity>
                         )}
@@ -509,14 +638,19 @@ const HistoryScreen = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
 
+    // STATUS TEXT HELPER
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'pending': return 'Đang chờ xử lý';
-            case 'processing': return 'Đang xử lý';
-            case 'shipped': return 'Đang giao hàng';
-            case 'completed': return 'Đã hoàn thành';
-            case 'cancelled': return 'Đã hủy';
-            default: return status || 'Không xác định';
+            case 'pending':
+                return 'Đang chờ xử lý';
+            case 'processing':
+                return 'Đang xử lý';
+            case 'completed':
+                return 'Đã hoàn thành';
+            case 'cancelled':
+                return 'Đã hủy';
+            default:
+                return status || 'Không xác định';
         }
     };
 
@@ -532,42 +666,7 @@ const HistoryScreen = () => {
         return grouped;
     };
 
-    // Fetch order items và nhóm chúng
-    const fetchOrderItems = useCallback(async () => {
-        try {
-            setIsLoading(true);
-
-            const params = { page: 1, limit: 50 };
-            console.log('Fetching order items with params:', params);
-
-            const response = await ordersService.getMyOrderItems(params);
-            const allItems = response.data || [];
-
-            console.log('All items from API:', allItems.length);
-            setOrderItems(allItems);
-
-            // Nhóm và filter orders
-            const grouped = groupAndFilterOrders(allItems);
-            console.log('Grouped orders:', grouped.length);
-            setGroupedOrders(grouped);
-
-            if (grouped.length === 0) {
-                setError(selectedStatus === 'all'
-                    ? 'Không có đơn hàng nào'
-                    : `Không có đơn hàng với trạng thái "${getStatusText(selectedStatus)}"`
-                );
-            } else {
-                setError(null);
-            }
-        } catch (err: any) {
-            console.error('API error:', err);
-            setError('Không thể tải danh sách đơn hàng');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [selectedStatus]);
-
-    // Search function
+    // IMPROVED SEARCH FUNCTION WITH CLIENT-SIDE FILTERING
     const handleSearch = async () => {
         if (!searchQuery.trim()) {
             fetchOrderItems();
@@ -585,11 +684,10 @@ const HistoryScreen = () => {
                 limit: 50
             };
 
-            console.log('Searching with params:', params);
+            console.log('🔍 Searching with params:', params);
             const response = await ordersService.searchOrderItems(params);
-            const searchResults = response.data || [];
 
-            console.log('Search results:', searchResults.length);
+            let searchResults = response.data || [];
             setOrderItems(searchResults);
 
             // Nhóm và filter search results
@@ -597,30 +695,61 @@ const HistoryScreen = () => {
             setGroupedOrders(grouped);
 
             if (grouped.length === 0) {
-                setError('Không tìm thấy đơn hàng nào phù hợp');
+                setError('Không tìm thấy mục đơn hàng nào phù hợp');
             } else {
                 setError(null);
             }
         } catch (err: any) {
-            console.error('Search error:', err);
-            setError('Không thể tìm kiếm đơn hàng: ' + (err.response?.data?.message || err.message));
+            console.error('❌ Search error:', err);
+            setError('Không thể tìm kiếm mục đơn hàng: ' + (err.response?.data?.message || err.message));
         } finally {
             setIsLoading(false);
         }
     };
 
+    // IMPROVED FETCH WITH CLIENT-SIDE STATUS FILTER
+    const fetchOrderItems = useCallback(async () => {
+        try {
+            setIsLoading(true);
+
+            const params = {
+                page: 1,
+                limit: 50
+            };
+
+            console.log('🔍 Fetching order items with params:', params);
+            const response = await ordersService.getMyOrderItems(params);
+            const allItems = response.data || [];
+
+            console.log('📦 All items from API:', allItems.length);
+            setOrderItems(allItems);
+
+            // Nhóm và filter orders
+            const grouped = groupAndFilterOrders(allItems);
+            console.log('✅ Grouped orders:', grouped.length);
+            setGroupedOrders(grouped);
+
+            if (grouped.length === 0) {
+                setError(selectedStatus === 'all'
+                    ? 'Không có mục đơn hàng nào để hiển thị'
+                    : `Không có đơn hàng nào với trạng thái "${getStatusText(selectedStatus)}"`
+                );
+            } else {
+                setError(null);
+            }
+        } catch (err: any) {
+            console.error('❌ API error:', err.response?.data || err.message);
+            setError('Không thể tải danh sách mục đơn hàng');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [selectedStatus]);
+
+    // REFRESH CONTROL
     const handleRefresh = async () => {
         setRefreshing(true);
         await fetchOrderItems();
         setRefreshing(false);
-    };
-
-    const toggleSearch = () => {
-        if (isSearching && searchQuery) {
-            setSearchQuery('');
-            fetchOrderItems();
-        }
-        setIsSearching(!isSearching);
     };
 
     useEffect(() => {
@@ -637,13 +766,20 @@ const HistoryScreen = () => {
         }
     }, [selectedStatus, orderItems]);
 
-    // Status filter component
+    const toggleSearch = () => {
+        if (isSearching && searchQuery) {
+            setSearchQuery('');
+            fetchOrderItems();
+        }
+        setIsSearching(!isSearching);
+    };
+
+    // STATUS FILTER COMPONENT
     const renderStatusFilter = () => {
         const statuses = [
             { key: 'all', label: 'Tất cả', color: '#6B7280' },
             { key: 'pending', label: 'Đang chờ xử lý', color: '#F59E0B' },
             { key: 'processing', label: 'Đang xử lý', color: '#3B82F6' },
-            { key: 'shipped', label: 'Đang giao hàng', color: '#8B5CF6' },
             { key: 'completed', label: 'Đã hoàn thành', color: '#10B981' },
             { key: 'cancelled', label: 'Đã hủy', color: '#EF4444' },
         ];
@@ -678,7 +814,7 @@ const HistoryScreen = () => {
         );
     };
 
-    // Empty state component
+    // EMPTY STATE COMPONENT
     const renderEmptyList = () => (
         <View style={styles.emptyContainer}>
             <Ionicons name="receipt-outline" size={64} color="#9CA3AF" />
@@ -713,7 +849,7 @@ const HistoryScreen = () => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
 
-            {/* Header */}
+            {/* IMPROVED HEADER */}
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                     <Ionicons name="arrow-back" size={24} color="#374151" />
@@ -739,18 +875,13 @@ const HistoryScreen = () => {
                 </TouchableOpacity>
             </View>
 
-            {/* Status Filter */}
+            {/* STATUS FILTER */}
             {renderStatusFilter()}
 
-            {/* Grouped Orders List */}
+            {/* ORDER LIST WITH REFRESH CONTROL */}
             <FlatList
                 data={groupedOrders}
-                renderItem={({ item }) => (
-                    <GroupedOrderComponent
-                        groupedOrder={item}
-                        onOrderCancelled={fetchOrderItems}
-                    />
-                )}
+                renderItem={({ item }) => <OrderItemComponent groupedOrder={item} onOrderCancelled={fetchOrderItems} />}
                 keyExtractor={item => item.orderId}
                 refreshControl={
                     <RefreshControl
@@ -767,7 +898,7 @@ const HistoryScreen = () => {
                 ListEmptyComponent={!isLoading ? renderEmptyList : null}
             />
 
-            {/* Error Message */}
+            {/* ERROR MESSAGE */}
             {error && groupedOrders.length > 0 && (
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>{error}</Text>
@@ -829,7 +960,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
 
-    // Filter styles
+    // FILTER STYLES
     filterContainer: {
         paddingVertical: 16,
         backgroundColor: '#FFFFFF',
@@ -853,7 +984,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 
-    // List styles
+    // LIST STYLES
     listContainer: {
         padding: 16,
     },
@@ -871,8 +1002,8 @@ const styles = StyleSheet.create({
         color: '#6B7280',
     },
 
-    // Grouped order styles
-    groupedOrderCard: {
+    // IMPROVED ORDER ITEM STYLES
+    orderItem: {
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
         marginBottom: 16,
@@ -896,7 +1027,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     orderNumber: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#374151',
         marginRight: 8,
@@ -915,48 +1046,47 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#6B7280',
     },
-
-    // Items list styles
-    itemsList: {
-        paddingHorizontal: 16,
-    },
-    orderItemDetail: {
+    orderContent: {
         flexDirection: 'row',
-        paddingVertical: 12,
+        padding: 16,
     },
-    orderItemBorder: {
+    subOrderBorder: {
         borderTopWidth: 1,
         borderTopColor: '#F3F4F6',
         marginTop: 8,
         paddingTop: 12,
     },
-    itemImage: {
-        width: 60,
-        height: 60,
+    petImage: {
+        width: 70,
+        height: 70,
         borderRadius: 8,
-        marginRight: 12,
-        backgroundColor: '#F3F4F6',
+        marginRight: 16,
+        backgroundColor: '#f0f0f0',
     },
+
     placeholderImage: {
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#f0f0f0'
     },
-    itemInfo: {
+    orderInfo: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'center'
     },
-    itemName: {
-        fontSize: 14,
+    petName: {
+        fontSize: 16,
         fontWeight: '600',
         color: '#374151',
-        marginBottom: 2,
+        marginBottom: 4,
     },
-    itemDescription: {
+
+    petDescription: {
         fontSize: 12,
         color: '#6B7280',
         marginBottom: 4,
         fontStyle: 'italic',
     },
+
     itemTypeContainer: {
         marginBottom: 4,
     },
@@ -976,23 +1106,60 @@ const styles = StyleSheet.create({
         color: '#3B82F6',
         backgroundColor: '#EBF4FF',
     },
-    itemPriceContainer: {
+    priceContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginBottom: 4,
     },
-    itemPrice: {
-        fontSize: 13,
+    price: {
+        fontSize: 14,
         fontWeight: '500',
         color: '#EF4444',
+        marginLeft: 6,
     },
 
-    // Expand button styles
+    reviewButtonContainer: {
+        marginTop: 8,
+    },
+    reviewButton: {
+        backgroundColor: '#3B82F6',
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        alignSelf: 'flex-start',
+    },
+    reviewButtonText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    viewReviewButton: {
+        backgroundColor: '#d2d7d2ff',
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        alignSelf: 'flex-start',
+    },
+    viewReviewButtonText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    loadingReviewButton: {
+        backgroundColor: '#F3F4F6',
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+    },
     expandButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 12,
-        marginTop: 8,
+        marginHorizontal: 16,
         borderTopWidth: 1,
         borderTopColor: '#F3F4F6',
     },
@@ -1002,28 +1169,35 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         marginRight: 4,
     },
+    totalPriceContainer: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+    },
+    totalPrice: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: '#374151',
+    },
 
-    // Footer styles
+    // IMPROVED FOOTER STYLES
     orderFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
+        paddingBottom: 16,
     },
-    orderSummary: {
+    detailButton: {
         flex: 1,
+        backgroundColor: '#F3F4F6',
+        paddingVertical: 10,
+        borderRadius: 8,
+        marginRight: 8,
+        alignItems: 'center',
     },
-    itemCount: {
-        fontSize: 12,
-        color: '#6B7280',
-        marginBottom: 2,
-    },
-    totalAmount: {
-        fontSize: 16,
-        fontWeight: 'bold',
+    detailButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
         color: '#374151',
     },
     actionButtons: {
@@ -1031,23 +1205,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
     },
-    detailButton: {
-        backgroundColor: '#F3F4F6',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-    },
-    detailButtonText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#374151',
-    },
     cancelButton: {
         backgroundColor: '#FEE2E2',
         borderRadius: 8,
-        paddingVertical: 8,
+        paddingVertical: 10,
         paddingHorizontal: 16,
-        minWidth: 60,
+        minWidth: 80,
         alignItems: 'center',
     },
     cancelButtonText: {
@@ -1062,16 +1225,16 @@ const styles = StyleSheet.create({
     contactSupportButton: {
         backgroundColor: '#FEF3C7',
         borderRadius: 8,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
     },
     contactSupportButtonText: {
         color: '#D97706',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: '600',
     },
 
-    // Empty state styles
+    // EMPTY STATE STYLES
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -1104,7 +1267,7 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
 
-    // Error styles
+    // ERROR STYLES
     errorContainer: {
         position: 'absolute',
         bottom: 20,
@@ -1134,6 +1297,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#FFFFFF',
     },
+    
 });
 
 export default HistoryScreen;

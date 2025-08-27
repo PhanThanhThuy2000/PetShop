@@ -156,19 +156,32 @@ export default function AddReviewScreen() {
         return;
       }
 
+      const { itemType } = route.params || {};
+      const reviewPayload = {
+        rating,
+        comment: comment.trim(),
+        orderItemId,
+        images: selectedImages.length > 0 ? selectedImages : undefined,
+      };
+
+      // Gửi pet_id hoặc product_id dựa trên itemType
+      if (itemType === 'pet' || itemType === 'variant') {
+        reviewPayload.pet_id = product.id;
+      } else if (itemType === 'product') {
+        reviewPayload.product_id = product.id;
+      }
+
       console.log('Submitting review with:', {
         rating,
         commentLength: comment.trim().length,
         imageCount: selectedImages.length,
-        petId: product.id
+        itemType,
+        pet_id: reviewPayload.pet_id,
+        product_id: reviewPayload.product_id,
+        orderItemId,
       });
 
-      const response = await reviewService.createReviewWithImages({
-        rating,
-        comment: comment.trim(),
-        pet_id: product.id,
-        images: selectedImages.length > 0 ? selectedImages : undefined,
-      });
+      const response = await reviewService.createReviewFromOrderItem(reviewPayload);
 
       if (response.success) {
         Alert.alert('Thành công', 'Đánh giá đã được gửi thành công!', [
